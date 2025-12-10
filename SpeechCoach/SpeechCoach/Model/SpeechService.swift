@@ -55,7 +55,8 @@ final class RealSpeechService: SpeechService {
         }
         let audioURL = try await exportAudio(from: videoURL)
         let raw = try await recognize(url: audioURL, with: recognizer)
-        let cleaned = TranscriptCleaner.cleaned(raw)
+        let autoCorrected = AutoCorrectionStore.shared.apply(to: raw)
+        let cleaned = TranscriptCleaner.cleaned(autoCorrected)
         return cleaned
     }
 }

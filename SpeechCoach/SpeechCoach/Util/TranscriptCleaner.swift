@@ -20,7 +20,8 @@ enum TranscriptCleaner {
         "더 나은 제한을": "더 나은 제안을",
         "복지콕으로": "복식호흡으로",
         "빠르고": "따르고",
-        "웹툰 쿠키 작가": "웹툰 콘티 작가"
+        "웹툰 쿠키 작가": "웹툰 콘티 작가",
+        "중요하다고고": "중요하다고"
     ]
     
     static let junkCharacters = CharacterSet(charactersIn: ".,!?~…—[]{}<>·|※#%$^&*()_+=“”")
@@ -42,6 +43,7 @@ enum TranscriptCleaner {
         text = removeNoiseNumbers(in: text)
         text = tidyPunctuation(in: text)
         text = splitByKoreanEndingsIfNeeded(text)
+        text = AutoCorrectionStore.shared.apply(to: text)
         text = applyReplacements(text)
         text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if text.isEmpty == false,

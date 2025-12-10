@@ -13,6 +13,7 @@ struct ResultScreen: View {
     @EnvironmentObject private var recordStore: SpeechRecordStore
     @Environment(\.dismiss) private var dismiss
     
+    @State private var editedTranscript: String = ""
     @State private var introText: String
     @State private var strenthsText: String
     @State private var improvementsText: String
@@ -56,7 +57,11 @@ struct ResultScreen: View {
         }
         .onAppear {
             previousRecord = recordStore.previousRecord(before: record.id)
+            editedTranscript = record.transcript
         }
+        .navigationBarItems(trailing: Button("저장") {
+            saveNotes()
+        })
     }
     
     private var headerSection: some View {
@@ -362,6 +367,13 @@ struct ResultScreen: View {
                 improvements: improvementsText.trimmingCharacters(in: .whitespacesAndNewlines),
                 nextStep: nextStepsText.trimmingCharacters(in: .whitespacesAndNewlines)
             )
+        
+        if editedTranscript != record.transcript {
+            AutoCorrectionStore.shared.learn(
+                from: record.transcript,
+                edited: editedTranscript
+            )
+        }
     }
     
     private func appendTemplate(_ text: inout String, template: String) {

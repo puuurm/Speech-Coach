@@ -22,7 +22,8 @@ struct ResultScreen: View {
     @State private var showCopyAlert = false
     @State private var previousRecord: SpeechRecord?
     
-    @State private var metrics: QualitativeMetrics = .empty
+    @State private var metrics: QualitativeMetrics
+    @State private var suggestedMetrics: QualitativeMetrics?
     @State private var showSaveAlert = false
     
     init(record: SpeechRecord) {
@@ -31,6 +32,7 @@ struct ResultScreen: View {
         _strenthsText = State(initialValue: record.noteStrengths)
         _improvementsText = State(initialValue: record.noteImprovements)
         _nextStepsText = State(initialValue: record.noteNextStep)
+        _metrics = State(initialValue: record.qualitative ?? .neutral)
     }
     
     var body: some View {
@@ -63,6 +65,11 @@ struct ResultScreen: View {
             previousRecord = recordStore.previousRecord(before: record.id)
             editedTranscript = record.transcript
             metrics = record.qualitative
+            if suggestedMetrics == nil {
+                let prev = recordStore.previousRecord(before: record.id)
+                let suggester = QualitativeMetricsSuggester()
+                suggestedMetrics = suggester.suggestion(for: record, previous: prev)
+            }
         }
         .navigationBarItems(trailing: Button("저장") {
             saveNotes()
@@ -106,8 +113,23 @@ struct ResultScreen: View {
     
     private var qualitativeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("정성 지표")
-                .font(.headline)
+            HStack {
+                Text("정성 지표")
+                    .font(.headline)
+                if let suggested = suggestedMetrics {
+                    Spacer()
+                    Button {
+                        metrics = suggested
+                    } label: {
+                        Text("자동 제안값 적용")
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color(.systemGray5))
+                            .cornerRadius(8)
+                    }
+                }
+            }
             
             qualitativeRow(
                 title: "전달력",
@@ -130,21 +152,16 @@ struct ResultScreen: View {
                 value: $metrics.gesture
             )
             
-            Button {
-                recordStore.updateQualitative(for: record.id, metrics: metrics)
-                showSaveAlert = true
-            } label: {
-                Text("정성 지표 저장")
-                    .font(.subheadline.weight(.medium))
-                    .frame(maxWidth: .infinity)
-                    .padding(12)
-                    .background(Color.accentColor.opacity(0.9))
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+            Button("정성 지표 저장") {
+                recordStore
+                    .updateQualitative(
+                        for: record.id,
+                        metrics: metrics
+                    )
             }
-            .padding(.top, 8)
+            .buttonStyle(.borderedProminent)
+            .frame(maxWidth: .infinity)
         }
-        .padding(.vertical, 8)
     }
     
     private func metricCard(title: String, value: String, detail: String) -> some View {
@@ -508,35 +525,43 @@ struct ResultScreen: View {
         }
     }
     
-    private func qualitativeRow(title: String, value: Binding<Int>) -> some View {
+    private func qualitativeRow(title: String, value: Binding<EmojiRating>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.subheadline.weight(.medium))
             
             HStack(spacing: 10) {
-                ForEach(1..<6) { level in
-                    Text(emoji(for: level))
+                ForEach(EmojiRating.allCases, id: \.self) { rating in
+                    let isSelected = value.wrappedValue == rating
+                    
+                    Text(emoji(for: rating))
                         .font(.title2)
                         .padding(6)
-                        .background(value.wrappedValue == level ? Color.accentColor.opacity(0.2) : Color.clear)
+                        .background(
+                            isSelected
+                            ? Color.accentColor.opacity(0.2)
+                            : Color.clear
+                        )
                         .cornerRadius(8)
-                        .onTapGesture { value.wrappedValue = level }
+                        .onTapGesture {
+                            value.wrappedValue = rating
+                        }
+                    
                 }
             }
         }
     }
 
-    private func emoji(for level: Int) -> String {
-        switch level {
-        case 1: return "😐"
-        case 2: return "🙂"
-        case 3: return "😃"
-        case 4: return "😄"
-        case 5: return "🤩"
-        default: return "🙂"
+    private func emoji(for rating: EmojiRating) -> String {
+        switch rating {
+        case .veryBad:   return "😣"
+        case .bad:       return "😕"
+        case .normal:   return "😐"
+        case .good:      return "🙂"
+        case .veryGood:  return "😄"
         }
     }
-    
+
     private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")

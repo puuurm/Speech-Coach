@@ -24,6 +24,6 @@ struct SpeechRecord: Identifiable, Hashable, Codable {
     var noteImprovements: String
     var noteNextStep: String
     
-    var qualitative: QualitativeMetrics = .empty
+    var qualitative: QualitativeMetrics = .neutral
 }
 

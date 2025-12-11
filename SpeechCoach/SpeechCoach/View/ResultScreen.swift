@@ -19,14 +19,11 @@ struct ResultScreen: View {
     @State private var improvementsText: String
     @State private var nextStepsText: String
     
-    @State private var delivery = 0
-    @State private var pacing = 0
-    @State private var expression = 0
-    @State private var eyeContact = 0
-    @State private var posture = 0
-    
     @State private var showCopyAlert = false
     @State private var previousRecord: SpeechRecord?
+    
+    @State private var metrics: QualitativeMetrics = .empty
+    @State private var showSaveAlert = false
     
     init(record: SpeechRecord) {
         self.record = record
@@ -41,8 +38,8 @@ struct ResultScreen: View {
             VStack(alignment: .leading, spacing: 20) {
                 headerSection
                 metricsSection
-                qualitativeSection
                 progressSection
+                qualitativeSection
                 
                 if !record.fillerWords.isEmpty {
                     fillerDetailSection
@@ -65,6 +62,7 @@ struct ResultScreen: View {
         .onAppear {
             previousRecord = recordStore.previousRecord(before: record.id)
             editedTranscript = record.transcript
+            metrics = record.qualitative
         }
         .navigationBarItems(trailing: Button("저장") {
             saveNotes()
@@ -113,27 +111,28 @@ struct ResultScreen: View {
             
             qualitativeRow(
                 title: "전달력",
-                value: $delivery
+                value: $metrics.delivery
             )
             qualitativeRow(
                 title: "여유 / 속도감",
-                value: $pacing
+                value: $metrics.fluency
             )
             qualitativeRow(
                 title: "표정 자연스러움",
-                value: $expression
+                value: $metrics.naturalness
             )
             qualitativeRow(
                 title: "시선 처리",
-                value: $eyeContact
+                value: $metrics.eyeContact
             )
             qualitativeRow(
                 title: "자세 / 제스처",
-                value: $posture
+                value: $metrics.gesture
             )
             
             Button {
-                saveQualitative()
+                recordStore.updateQualitative(for: record.id, metrics: metrics)
+                showSaveAlert = true
             } label: {
                 Text("정성 지표 저장")
                     .font(.subheadline.weight(.medium))
@@ -536,18 +535,6 @@ struct ResultScreen: View {
         case 5: return "🤩"
         default: return "🙂"
         }
-    }
-    
-    private func saveQualitative() {
-        let metrics = QualitativeMetrics(
-            delivery: delivery,
-            pacing: pacing,
-            expression: expression,
-            eyeContact: eyeContact,
-            posture: posture
-        )
-        
-        recordStore.updateQualitative(for: record.id, metrics: metrics)
     }
     
     private func formattedDate(_ date: Date) -> String {

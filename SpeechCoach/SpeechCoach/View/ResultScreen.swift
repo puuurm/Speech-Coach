@@ -19,6 +19,12 @@ struct ResultScreen: View {
     @State private var improvementsText: String
     @State private var nextStepsText: String
     
+    @State private var delivery = 0
+    @State private var pacing = 0
+    @State private var expression = 0
+    @State private var eyeContact = 0
+    @State private var posture = 0
+    
     @State private var showCopyAlert = false
     @State private var previousRecord: SpeechRecord?
     
@@ -35,6 +41,7 @@ struct ResultScreen: View {
             VStack(alignment: .leading, spacing: 20) {
                 headerSection
                 metricsSection
+                qualitativeSection
                 progressSection
                 
                 if !record.fillerWords.isEmpty {
@@ -97,6 +104,48 @@ struct ResultScreen: View {
                 )
             }
         }
+    }
+    
+    private var qualitativeSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("정성 지표")
+                .font(.headline)
+            
+            qualitativeRow(
+                title: "전달력",
+                value: $delivery
+            )
+            qualitativeRow(
+                title: "여유 / 속도감",
+                value: $pacing
+            )
+            qualitativeRow(
+                title: "표정 자연스러움",
+                value: $expression
+            )
+            qualitativeRow(
+                title: "시선 처리",
+                value: $eyeContact
+            )
+            qualitativeRow(
+                title: "자세 / 제스처",
+                value: $posture
+            )
+            
+            Button {
+                saveQualitative()
+            } label: {
+                Text("정성 지표 저장")
+                    .font(.subheadline.weight(.medium))
+                    .frame(maxWidth: .infinity)
+                    .padding(12)
+                    .background(Color.accentColor.opacity(0.9))
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+            .padding(.top, 8)
+        }
+        .padding(.vertical, 8)
     }
     
     private func metricCard(title: String, value: String, detail: String) -> some View {
@@ -460,6 +509,46 @@ struct ResultScreen: View {
         }
     }
     
+    private func qualitativeRow(title: String, value: Binding<Int>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+            
+            HStack(spacing: 10) {
+                ForEach(1..<6) { level in
+                    Text(emoji(for: level))
+                        .font(.title2)
+                        .padding(6)
+                        .background(value.wrappedValue == level ? Color.accentColor.opacity(0.2) : Color.clear)
+                        .cornerRadius(8)
+                        .onTapGesture { value.wrappedValue = level }
+                }
+            }
+        }
+    }
+
+    private func emoji(for level: Int) -> String {
+        switch level {
+        case 1: return "😐"
+        case 2: return "🙂"
+        case 3: return "😃"
+        case 4: return "😄"
+        case 5: return "🤩"
+        default: return "🙂"
+        }
+    }
+    
+    private func saveQualitative() {
+        let metrics = QualitativeMetrics(
+            delivery: delivery,
+            pacing: pacing,
+            expression: expression,
+            eyeContact: eyeContact,
+            posture: posture
+        )
+        
+        recordStore.updateQualitative(for: record.id, metrics: metrics)
+    }
     
     private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()

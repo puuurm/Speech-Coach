@@ -23,5 +23,7 @@ struct SpeechRecord: Identifiable, Hashable, Codable {
     var noteStrengths: String
     var noteImprovements: String
     var noteNextStep: String
+    
+    var qualitative: QualitativeMetrics?
 }
 

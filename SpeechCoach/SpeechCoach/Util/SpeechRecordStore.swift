@@ -41,6 +41,12 @@ final class SpeechRecordStore: ObservableObject {
         print("Updated notes for record: ", id)
     }
     
+    func updateQualitative(for id: UUID, metrics: QualitativeMetrics) {
+        guard let index = records.firstIndex(where: { $0.id == id }) else { return }
+        records[index].qualitative = metrics
+        save()
+    }
+    
     func previousRecord(before id: UUID) -> SpeechRecord? {
         guard let index = records.firstIndex(where: { $0.id == id }) else { return nil }
         let nextIndex = index + 1

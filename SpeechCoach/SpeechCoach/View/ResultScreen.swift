@@ -21,9 +21,8 @@ struct ResultScreen: View {
     
     @State private var showCopyAlert = false
     @State private var previousRecord: SpeechRecord?
-    
-    @State private var metrics: QualitativeMetrics
-    @State private var suggestedMetrics: QualitativeMetrics?
+
+    @State private var qualitative: QualitativeMetrics
     @State private var showSaveAlert = false
     
     init(record: SpeechRecord) {
@@ -32,7 +31,8 @@ struct ResultScreen: View {
         _strenthsText = State(initialValue: record.noteStrengths)
         _improvementsText = State(initialValue: record.noteImprovements)
         _nextStepsText = State(initialValue: record.noteNextStep)
-        _metrics = State(initialValue: record.qualitative ?? .neutral)
+        let baseQualitative = record.qualitative ?? QualitativeRecommender.recommend(for: record)
+        _qualitative = State(initialValue: baseQualitative)
     }
     
     var body: some View {
@@ -64,16 +64,8 @@ struct ResultScreen: View {
         .onAppear {
             previousRecord = recordStore.previousRecord(before: record.id)
             editedTranscript = record.transcript
-            metrics = record.qualitative
-            if suggestedMetrics == nil {
-                let prev = recordStore.previousRecord(before: record.id)
-                let suggester = QualitativeMetricsSuggester()
-                suggestedMetrics = suggester.suggestion(for: record, previous: prev)
-            }
         }
-        .navigationBarItems(trailing: Button("저장") {
-            saveNotes()
-        })
+
     }
     
     private var headerSection: some View {
@@ -113,54 +105,27 @@ struct ResultScreen: View {
     
     private var qualitativeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("정성 지표")
-                    .font(.headline)
-                if let suggested = suggestedMetrics {
-                    Spacer()
-                    Button {
-                        metrics = suggested
-                    } label: {
-                        Text("자동 제안값 적용")
-                            .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color(.systemGray5))
-                            .cornerRadius(8)
-                    }
-                }
-            }
-            
+            Text("정성 지표 (1:1용)")
+                .font(.headline)
             qualitativeRow(
-                title: "전달력",
-                value: $metrics.delivery
-            )
-            qualitativeRow(
-                title: "여유 / 속도감",
-                value: $metrics.fluency
-            )
-            qualitativeRow(
-                title: "표정 자연스러움",
-                value: $metrics.naturalness
-            )
-            qualitativeRow(
-                title: "시선 처리",
-                value: $metrics.eyeContact
-            )
-            qualitativeRow(
-                title: "자세 / 제스처",
-                value: $metrics.gesture
+                title: "전달력 / 발화 안정감",
+                value: $qualitative.delivery
             )
             
-            Button("정성 지표 저장") {
-                recordStore
-                    .updateQualitative(
-                        for: record.id,
-                        metrics: metrics
-                    )
-            }
-            .buttonStyle(.borderedProminent)
-            .frame(maxWidth: .infinity)
+            qualitativeRow(
+                title: "명료함 / 이해도",
+                value: $qualitative.clarity
+            )
+            
+            qualitativeRow(
+                title: "자신감 / 에너지",
+                value: $qualitative.confidence
+            )
+            
+            qualitativeRow(
+                title: "답변 구조 / 논리",
+                value: $qualitative.structure
+            )
         }
     }
     
@@ -423,6 +388,7 @@ struct ResultScreen: View {
         .padding(.top, 4)
     }
     
+    
     private func saveNotes() {
         recordStore
             .updateNotes(
@@ -433,7 +399,14 @@ struct ResultScreen: View {
                 nextStep: nextStepsText.trimmingCharacters(in: .whitespacesAndNewlines)
             )
         
-        if editedTranscript != record.transcript {
+        recordStore
+            .updateQualitative(
+                for: record.id,
+                metrics: qualitative
+            )
+        
+        if !editedTranscript.isEmpty,
+            editedTranscript != record.transcript {
             AutoCorrectionStore.shared.learn(
                 from: record.transcript,
                 edited: editedTranscript
@@ -546,7 +519,6 @@ struct ResultScreen: View {
                         .onTapGesture {
                             value.wrappedValue = rating
                         }
-                    
                 }
             }
         }
@@ -554,11 +526,11 @@ struct ResultScreen: View {
 
     private func emoji(for rating: EmojiRating) -> String {
         switch rating {
-        case .veryBad:   return "😣"
-        case .bad:       return "😕"
-        case .normal:   return "😐"
-        case .good:      return "🙂"
-        case .veryGood:  return "😄"
+        case .veryLow:   return "😣"
+        case .low:       return "😕"
+        case .neutral:   return "😐"
+        case .high:      return "🙂"
+        case .veryHigh:  return "😄"
         }
     }
 

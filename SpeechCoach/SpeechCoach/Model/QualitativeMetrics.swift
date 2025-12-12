@@ -7,28 +7,16 @@
 
 import Foundation
 
-enum EmojiRating: Int, Codable, CaseIterable {
-    case veryBad = 1
-    case bad
-    case normal
-    case good
-    case veryGood
-}
-
 struct QualitativeMetrics: Codable, Hashable {
-    var delivery: EmojiRating       // 전달력
-    var fluency: EmojiRating        // 여유/속도감
-    var naturalness: EmojiRating    // 표정 자연스러움
-    var eyeContact: EmojiRating     // 시선 처리
-    var gesture: EmojiRating        // 자세/제스처
-
-    static var neutral: QualitativeMetrics {
-        .init(
-            delivery: .normal,
-            fluency: .normal,
-            naturalness: .normal,
-            eyeContact: .normal,
-            gesture: .normal
-        )
-    }
+    var delivery: EmojiRating      // 전달력 / 발화 안정감
+    var clarity: EmojiRating       // 명료함 / 이해도
+    var confidence: EmojiRating    // 자신감 / 에너지
+    var structure: EmojiRating     // 답변 구조 / 논리
+    
+    static let neutral: QualitativeMetrics = .init(
+        delivery: .neutral,
+        clarity: .neutral,
+        confidence: .neutral,
+        structure: .neutral
+    )
 }

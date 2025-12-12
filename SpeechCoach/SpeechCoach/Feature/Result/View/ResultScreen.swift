@@ -11,8 +11,9 @@ struct ResultScreen: View {
     let record: SpeechRecord
     
     @EnvironmentObject private var recordStore: SpeechRecordStore
+    @EnvironmentObject var router: NavigationRouter
     @Environment(\.dismiss) private var dismiss
-    
+        
     @State private var editedTranscript: String = ""
     @State private var introText: String
     @State private var strenthsText: String
@@ -362,6 +363,7 @@ struct ResultScreen: View {
             Button {
                 saveNotes()
                 dismiss()
+                router.popToRoot()
             } label: {
                 Text("메모 저장")
                     .font(.subheadline.weight(.semibold))

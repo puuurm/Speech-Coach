@@ -22,10 +22,15 @@ struct VideoPlayerScreen: View {
     @State private var analyzedRecord: SpeechRecord?      // 분석 결과
     @State private var showFeedbackSheet: Bool = false
     
+    @EnvironmentObject var router: NavigationRouter
     @EnvironmentObject var recordStore: SpeechRecordStore
     
     private let speechService = RealSpeechService()
     private let analyzer = TranscriptAnalyzer()
+    
+    private var canProceed: Bool {
+        playbackEnded && analyzedRecord != nil
+    }
     
     init(draft: SpeechDraft) {
         self.draft = draft
@@ -240,6 +245,7 @@ private extension VideoPlayerScreen {
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
+            .disabled(!canProceed)
             .padding(.top, 4)
         }
     }
@@ -317,6 +323,8 @@ private extension VideoPlayerScreen {
                 await MainActor.run {
                     // Store에 저장
                     recordStore.add(record)
+//                    router.push(.result(record))
+                    
                     analyzedRecord = record
                     
                     if playbackEnded {

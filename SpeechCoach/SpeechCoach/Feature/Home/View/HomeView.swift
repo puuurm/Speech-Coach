@@ -12,9 +12,9 @@ import AVFoundation
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
     @EnvironmentObject var recordStore: SpeechRecordStore
+    @EnvironmentObject var router: NavigationRouter
     
     @State private var selectedItem: PhotosPickerItem?
-    @State private var selectedDraft: SpeechDraft?
     @State private var navigateToPlayer = false
     
     @State private var isImporting: Bool = false
@@ -29,7 +29,6 @@ struct HomeView: View {
                         ProgressView()
                         Text("영상 불러오는 중이에요...")
                             .font(.subheadline)
-//                            .foregroundColor(.secondary)
                     }
                 }
             }
@@ -45,9 +44,6 @@ struct HomeView: View {
             }
             .navigationTitle("스피치 분석")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(item: $selectedDraft) { draft in
-                VideoPlayerScreen(draft: draft)
-            }
             .onAppear {
                 print("🏠 Home sees records:", recordStore.records.count)
             }
@@ -210,29 +206,9 @@ struct HomeView: View {
 extension HomeView {
     private func handlePickedItem(_ item: PhotosPickerItem) async {
         do {
-//            guard let data = try await item.loadTransferable(type: Data.self) else {
-//                return
-//            }
             guard let picked = try await item.loadTransferable(type: PickedVideo.self) else { return }
             
-//            let tempURL = FileManager.default
-//                .temporaryDirectory
-//                .appendingPathComponent("\(UUID().uuidString).mov")
-            
             let tempURL = picked.url
-  
-//            try data.write(to: tempURL)
-            
-//            let draft = SpeechDraft(
-//                id: UUID(),
-//                title: tempURL.lastPathComponent,
-//                duration: 0,
-//                videoURL: tempURL
-//            )
-//            
-//            await MainActor.run {
-//                self.selectedDraft = draft
-//            }
             
             let asset = AVAsset(url: tempURL)
             let seconds = CMTimeGetSeconds(asset.duration)
@@ -246,14 +222,13 @@ extension HomeView {
             )
             
             await MainActor.run {
-                self.selectedDraft = draft
+                router.push(.videoPlayer(draft))
             }
             
         } catch {
             print("Video load error: \(error)")
         }
     }
-
 }
 
 //#Preview {

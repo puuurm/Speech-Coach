@@ -185,3 +185,70 @@ extension RealSpeechService {
         }
     }
 }
+
+extension RealSpeechService {
+    func recognizeDetailed(
+        url audioURL: URL,
+        with recognizer: SFSpeechRecognizer
+    ) async throws -> TranscriptResult {
+        let request = SFSpeechURLRecognitionRequest(url: audioURL)
+        request.shouldReportPartialResults = false
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            var recognitionTask: SFSpeechRecognitionTask?
+            var didFinish = false
+            
+            func finish(_ result: Result<TranscriptResult, Error>) {
+                guard !didFinish else { return }
+                didFinish = true
+                recognitionTask?.cancel()
+                recognitionTask = nil
+                
+                switch result {
+                case .success(let value):
+                    continuation.resume(returning: value)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+            
+            recognitionTask = recognizer.recognitionTask(with: request) { result, error in
+                if let error {
+                    print("🔴 Speech recognition error:", error)
+                    finish(.failure(error))
+                    return
+                }
+                
+                guard let result else { return }
+                guard result.isFinal else { return }
+                
+                let transcription = result.bestTranscription
+                let raw = transcription.formattedString
+                
+                if raw.isEmpty {
+                    finish(.failure(RealSpeechServiceError.noTranscription))
+                    return
+                }
+                
+                let segs: [TranscriptSegment] = transcription.segments.map {
+                    TranscriptSegment(
+                        text: $0.substring,
+                        start: $0.timestamp,
+                        duration: $0.duration,
+                        confidence: $0.confidence
+                    )
+                }
+                
+                let cleaned = TranscriptCleaner.cleaned(raw)
+                let payload = TranscriptResult(
+                    rawText: raw,
+                    cleanedText: cleaned,
+                    segments: segs
+                )
+                
+                print("✅ Final transcription:", cleaned)
+                finish(.success(payload))
+            }
+        }
+    }
+}

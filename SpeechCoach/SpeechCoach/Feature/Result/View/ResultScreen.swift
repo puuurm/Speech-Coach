@@ -26,6 +26,8 @@ struct ResultScreen: View {
     @State private var qualitative: QualitativeMetrics
     @State private var showSaveAlert = false
     
+    @State private var suggestions: [TemplateSuggestion] = []
+    
     init(record: SpeechRecord) {
         self.record = record
         _introText = State(initialValue: record.noteIntro)
@@ -48,6 +50,7 @@ struct ResultScreen: View {
                     fillerDetailSection
                 }
                 
+                suggestionSection
                 transcriptionSection
                 noteSections
                 feedbackActionsSection
@@ -65,8 +68,60 @@ struct ResultScreen: View {
         .onAppear {
             previousRecord = recordStore.previousRecord(before: record.id)
             editedTranscript = record.transcript
+            suggestions = QualitativeRecommender.makeSuggestions(
+                transcript: record.transcript,
+                duration: record.duration,
+                fillerCount: record.fillerCount,
+                segments: record.transcriptSegments
+            )
         }
 
+    }
+    
+    private var suggestionSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("추천 템플릿")
+                .font(.subheadline.weight(.semibold))
+            
+            if suggestions.isEmpty {
+                Text("추천을 생성할 데이터가 아직 부족해요")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 3) {
+                        ForEach(suggestions) { suggestion in
+                            Button {
+                                applySuggestion(suggestion)
+                            } label: {
+                                Text(suggestion.title)
+                                    .font(.caption.weight(.semibold))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 8)
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(10)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                Text("버튼을 누르면 해당 섹션에 문장이 추가돼요")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    private func applySuggestion(_ suggestion: TemplateSuggestion) {
+        let sentence = "• \(suggestion.body)\n"
+        switch suggestion.category {
+        case .strengths:
+            strenthsText = (strenthsText + (strenthsText.isEmpty ? "" : "\n") + sentence).trimmingCharacters(in: .whitespacesAndNewlines)
+        case .improvements:
+            improvementsText = (improvementsText + (improvementsText.isEmpty ? "" : "\n") + sentence).trimmingCharacters(in: .whitespacesAndNewlines)
+        case .nextStep:
+            nextStepsText = (nextStepsText + (nextStepsText.isEmpty ? "" : "\n") + sentence).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
     }
     
     private var headerSection: some View {

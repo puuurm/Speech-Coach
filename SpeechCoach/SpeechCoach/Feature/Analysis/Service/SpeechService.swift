@@ -233,7 +233,7 @@ extension RealSpeechService {
                 let segs: [TranscriptSegment] = transcription.segments.map {
                     TranscriptSegment(
                         text: $0.substring,
-                        start: $0.timestamp,
+                        startTime: $0.timestamp,
                         duration: $0.duration,
                         confidence: $0.confidence
                     )

@@ -7,6 +7,14 @@
 
 import SwiftUI
 
+extension ResultScreen {
+    enum ResultTab: String, CaseIterable, Identifiable {
+        case feedback = "피드백"
+        case analysis = "분석"
+        var id: String { rawValue }
+    }
+}
+
 struct ResultScreen: View {
     let record: SpeechRecord
     
@@ -15,6 +23,7 @@ struct ResultScreen: View {
     @Environment(\.dismiss) private var dismiss
         
     @State private var editedTranscript: String = ""
+    
     @State private var introText: String
     @State private var strenthsText: String
     @State private var improvementsText: String
@@ -28,6 +37,11 @@ struct ResultScreen: View {
     
     @State private var suggestions: [TemplateSuggestion] = []
     
+    @State private var selectedTab: ResultTab = .feedback
+    @State private var showAllTranscript: Bool = false
+    @State private var showAdvanced: Bool = false
+    @State private var showQualitative: Bool = false
+    
     init(record: SpeechRecord) {
         self.record = record
         _introText = State(initialValue: record.noteIntro)
@@ -39,25 +53,51 @@ struct ResultScreen: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                headerSection
-                metricsSection
-                progressSection
-                qualitativeSection
-                
-                if !record.fillerWords.isEmpty {
-                    fillerDetailSection
+        VStack(spacing: 0) {
+            headerSection
+            
+            Picker("", selection: $selectedTab) {
+                ForEach(ResultTab.allCases) { tab in
+                    Text(tab.rawValue).tag(tab)
                 }
-                
-                suggestionSection
-                transcriptionSection
-                noteSections
-                feedbackActionsSection
             }
+            .pickerStyle(.segmented)
             .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    switch selectedTab {
+                    case .feedback:
+                        feedbackTab
+                    case .analysis:
+                        analysisTab
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+            }
         }
+//        ScrollView {
+//            VStack(alignment: .leading, spacing: 20) {
+//                headerSection
+//                metricsSection
+//                progressSection
+//                qualitativeSection
+//                
+//                if !record.fillerWords.isEmpty {
+//                    fillerDetailSection
+//                }
+//                
+//                suggestionSection
+//                transcriptionSection
+//                noteSections
+//                feedbackActionsSection
+//            }
+//            .padding(.horizontal, 20)
+//            .padding(.vertical, 16)
+//        }
         .navigationTitle("분석 결과")
         .navigationBarTitleDisplayMode(.inline)
         .alert("피드백이 복사되었어요", isPresented: $showCopyAlert) {
@@ -125,17 +165,25 @@ struct ResultScreen: View {
     }
     
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(cleanTitle(from: record.title))
                 .font(.title3.weight(.semibold))
+            
             HStack(spacing: 8) {
                 Text(formattedDate(record.createdAt))
                 Text("·")
                 Text(durationString(record.duration))
+                if record.studentName.isEmpty == false {
+                    Text("·")
+                    Text(record.studentName)
+                }
             }
             .font(.subheadline)
             .foregroundColor(.secondary)
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 6)
     }
     
     private var metricsSection: some View {
@@ -645,6 +693,385 @@ struct ResultScreen: View {
         if value > 0 { return "+\(value)" }
         if value < 0 { return "\(value)" }
         return "변화 없음"
+    }
+}
+
+extension ResultScreen {
+    
+    var noteSectionsRedesigned: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("피드백 메모")
+                .font(.headline)
+            
+            memoEditorRow(
+                title: "인사 / 전체 인상",
+                buttonTitle: "인사 템플릿",
+                placeholder: "전체적인 인상과 수고 메시지를 적어주세요.",
+                text: $introText
+            ) {
+                appendTemplate(&introText, template: """
+                \(record.studentName.isEmpty ? "학생님" : record.studentName) 안녕하세요. 
+                보내주신 과제 영상에 대한 피드백 남겨드립니다.
+                첫 촬영이라 익숙하지 않으셨을 텐데 차분히 연습해주셔서 감사합니다.
+                """)
+            }
+            
+            memoEditorRow(
+                title: "잘된 점 / 강점",
+                buttonTitle: "강점 템플릿",
+                placeholder: "좋았던 점을 bullet로 정리해보세요.",
+                text: $strenthsText
+            ) {
+                appendTemplate(&strenthsText, template: """
+                전반적으로 차분하게 전달해주셔서 듣기 편했습니다.
+                특히 \(wpmStrengthHighlight) 부분이 강점으로 느껴집니다.
+                """)
+            }
+            
+            memoEditorRow(
+                title: "개선할 점",
+                buttonTitle: "개선 템플릿",
+                placeholder: "개선 포인트를 구체적으로 적어주세요.",
+                text: $improvementsText
+            ) {
+                appendTemplate(&improvementsText, template: wpmImprovementTemplate)
+            }
+            
+            memoEditorRow(
+                title: "다음 연습 / 수업 방향",
+                buttonTitle: "다음 연습 템플릿",
+                placeholder: "다음 과제/수업에서의 목표를 적어주세요.",
+                text: $nextStepsText
+            ) {
+                appendTemplate(&nextStepsText, template: """
+                다음 과제에서는 핵심 문장마다 한 박자 멈추는 연습을 해보세요.
+                다음 수업에서 이 부분을 원포인트로 같이 점검해보겠습니다.
+                """)
+            }
+        
+//            noteCard(
+//                title: "인사 / 전체 인상",
+//                placeholder: "전체적인 인상과 수고 메시지를 적어주세요.",
+//                text: $introText
+//            ) {
+//                appendTemplate(
+//                    &introText,
+//                    template:
+//                    """
+//                    \(record.studentName.isEmpty ? "학생님" : record.studentName). 안녕하세요 :)
+//                    보내주신 과제 영상에 대한 피드백 남겨드립니다.
+//                    """
+//                )
+//            }
+//            
+//            noteCard(
+//                title: "잘된 점 / 강점",
+//                placeholder: "좋았던 점을 bullet로 정리해보세요.",
+//                text: $strenthsText
+//            ) {
+//                let template =
+//                """
+//                전반적으로 차분하게 잘 해주셨습니다. 
+//                특히 \(wpmStrengthHighlight) 부분에서 전달력이 좋게 느껴집니다.
+//                """
+//                appendTemplate(&strenthsText, template: template)
+//            }
+//            
+//            noteCard(
+//                title: "개선할 점",
+//                placeholder: "개선 포인트를 구체적으로 적어주세요.",
+//                text: $improvementsText
+//            ) {
+//                appendTemplate(&improvementsText, template: wpmImprovementTemplate)
+//            }
+//            
+//            noteCard(
+//                title: "다음 연습 / 수업 방향",
+//                placeholder: "다음 과제 방향/원포인트를 적어주세요.",
+//                text: $nextStepsText
+//            ) {
+//                appendTemplate(
+//                    &nextStepsText,
+//                    template:
+//                    """
+//                    다음 수업에서는 오늘 내용을 바탕으로 한 번 더 실전 답변처럼 다듬어보겠습니다.
+//                    """
+//                )
+//            }
+        }
+    }
+    
+    var qualitativeSectionCompact: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            qualitativeRow(
+                title: "전달력 / 발화 안정감",
+                value: $qualitative.delivery
+            )
+            
+            qualitativeRow(
+                title: "명료함 / 이해도",
+                value: $qualitative.clarity
+            )
+            
+            qualitativeRow(
+                title: "자신감 / 에너지",
+                value: $qualitative.confidence
+            )
+            
+            qualitativeRow(
+                title: "답변 구조 / 논리",
+                value: $qualitative.structure
+            )
+            
+            Text("※ 정성 지표는 '메모를 더 빨리/일관되게 쓰기 위한 체크' 용도로만 사용해요.")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+        .padding(.top, 6)
+    }
+    
+    func noteCard(
+        title: String,
+        placeholder: String,
+        text: Binding<String>,
+        templateAction: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Button("템플릿") { templateAction() }
+                    .font(.caption.weight(.semibold))
+            }
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: text)
+                    .frame(minHeight: 88)
+                    .padding(8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.secondary.opacity(0.25))
+                    )
+                if text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(placeholder)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 14)
+                        .allowsHitTesting(false)
+                }
+            }
+        }
+        .padding(12)
+//        .background(
+//            RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+    }
+    
+    func memoEditorRow(
+        title: String,
+        buttonTitle: String,
+        placeholder: String,
+        text: Binding<String>,
+        onTemplateTap: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title)
+                    .font(.headline)
+                
+                Spacer()
+                
+                Button(buttonTitle) { onTemplateTap() }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.accentColor)
+            }
+            
+            ZStack(alignment: .topLeading) {
+                if text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(placeholder)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 12)
+                }
+                TextEditor(text: text)
+                    .font(.body)
+                    .padding(8)
+                    .frame(minHeight: 110)
+                    .scrollContentBackground(.hidden)
+                    .background(Color.clear)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.secondary.opacity(0.25), lineWidth: 1)
+            )
+        }
+    }
+    
+}
+
+extension ResultScreen {
+    var feedbackTab: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            primaryActionsRow
+            suggestionSection
+            noteSectionsRedesigned
+            
+            DisclosureGroup(
+                isExpanded: $showQualitative,
+                content: { qualitativeSectionCompact },
+                label: {
+                    HStack {
+                        Text("정성 지표 (옵션)")
+                            .font(.headline)
+                        Spacer()
+                        Text(showQualitative ? "접기" : "펼치기")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            )
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+            saveOnlyButton
+        }
+    }
+    
+    var primaryActionsRow: some View {
+        HStack(spacing: 10) {
+            Button {
+                let text = makeFeedbackText()
+                UIPasteboard.general.string = text
+                showCopyAlert = true
+            } label: {
+                Label("피드백 복사", systemImage: "doc.on.doc")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.accentColor)
+                    .foregroundStyle(.white)
+                    .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
+            
+            Button {
+                saveNotes()
+                dismiss()
+                router.popToRoot()
+            } label: {
+                Label("저장", systemImage: "checkmark")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(width: 92)
+                    .padding(.vertical, 12)
+                    .background(Color(.systemGray6))
+                    .foregroundColor(.primary)
+                    .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+    
+    var saveOnlyButton: some View {
+        Button {
+            saveNotes()
+            dismiss()
+            router.popToRoot()
+        } label: {
+            Text("메모 저장하고 홈으로")
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 2)
+    }
+}
+
+extension ResultScreen {
+    var analysisTab: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            metricsSection
+            
+            if previousRecord != nil {
+                progressSection
+            }
+            
+            if !record.fillerWords.isEmpty {
+                fillerDetailSection
+            }
+            
+            transcriptSectionRedesigned
+            
+            DisclosureGroup(
+                isExpanded: $showAdvanced,
+                content: {
+                    Text("※ 자동 인식 초안이라 부정확할 수 있어요. 중요한 문장은 영상과 함께 확인해주세요.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                },
+                label: {
+                    HStack {
+                        Text("안내")
+                            .font(.headline)
+                        Spacer()
+                        Text(showAdvanced ? "접기" : "펼치기")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            )
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+
+            
+        }
+    }
+}
+
+extension ResultScreen {
+    var transcriptSectionRedesigned: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("전체 스크립트")
+                    .font(.headline)
+                Spacer()
+                Button(showAllTranscript ? "접기" : "펼치기") {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        showAllTranscript.toggle()
+                    }
+                }
+                .font(.caption.weight(.semibold))
+            }
+            
+            Text("자동 인식 초안이에요. 중요한 문장은 영상과 함께 확인해 주세요.")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            
+            let text = record.transcript.isEmpty ? "인식된 텍스트가 없어요." : record.transcript
+            
+            if showAllTranscript {
+                ScrollView {
+                    Text(text)
+                        .font(.body)
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                }
+                .frame(minHeight: 180)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+            } else {
+                Text(text)
+                    .font(.body)
+                    .foregroundColor(.primary)
+                    .lineLimit(5)
+                    .truncationMode(.tail)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+            }
+        }
     }
 }
 

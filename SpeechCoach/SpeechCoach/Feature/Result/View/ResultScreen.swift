@@ -42,6 +42,8 @@ struct ResultScreen: View {
     @State private var showAdvanced: Bool = false
     @State private var showQualitative: Bool = false
     
+    @State private var speechType: SpeechTypeSummary? = nil
+    
     init(record: SpeechRecord) {
         self.record = record
         _introText = State(initialValue: record.noteIntro)
@@ -114,8 +116,94 @@ struct ResultScreen: View {
                 fillerCount: record.fillerCount,
                 segments: record.transcriptSegments
             )
+            speechType = SpeechTypeSummarizer
+                .summarize(
+                    duration: record.duration,
+                    wordsPerMinute: record.wordsPerMinute,
+                    segments: record.transcriptSegments ?? []
+                )
         }
+    }
+    
+    var speakingTypeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text("말하기 타입 요약")
+                    .font(.headline)
+                
+                Text("1:1 핵심")
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Color(.systemGray6)))
+            }
 
+            if let speechType {
+                Text(speechType.oneLiner)
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.secondarySystemBackground))
+                    )
+                
+                FlowChips {
+                    chip(title: "속도", value: speechType.paceType.displayName)
+                    chip(title: "속도 안정", value: speechType.paceStability.displayName)
+                    chip(title: "쉬는 습관", value: speechType.pauseType.displayName)
+                    chip(title: "구조", value: speechType.structureType.displayName)
+                    chip(title: "확신 톤", value: speechType.confidenceType.displayName)
+                }
+                
+                if speechType.highlights.isEmpty == false {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("하이라이트")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.secondary)
+                        
+                        ForEach(speechType.highlights) { item in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.title)
+                                    .font(.subheadline.weight(.semibold))
+                                if item.detail.isEmpty == false {
+                                    Text(item.detail)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(.secondarySystemBackground))
+                            )
+                        }
+                    }
+                } else {
+                    Text("타입 요약을 만드는 중이에요.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+    
+    private func chip(title: String, value: String) -> some View {
+        HStack(spacing: 6) {
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(.primary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(.systemGray6))
+        )
     }
     
     private var suggestionSection: some View {
@@ -993,6 +1081,7 @@ extension ResultScreen {
     var analysisTab: some View {
         VStack(alignment: .leading, spacing: 18) {
             metricsSection
+            speakingTypeSection
             
             if previousRecord != nil {
                 progressSection

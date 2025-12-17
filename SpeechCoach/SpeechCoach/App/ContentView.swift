@@ -20,7 +20,7 @@ struct ContentView: View {
                     case .videoPlayer(let draft):
                         VideoPlayerScreen(draft: draft)
                     case .result(let record):
-                        ResultScreen(record: record)
+                        ResultScreen(record: record, player: nil)
                     }
                 }
         }

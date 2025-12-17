@@ -86,7 +86,7 @@ extension RealSpeechService {
 // MARK: - 영상 -> 오디오 추출
 
 extension RealSpeechService {
-    private func exportAudio(from videoURL: URL) async throws -> URL {
+    func exportAudio(from videoURL: URL) async throws -> URL {
         let asset = AVAsset(url: videoURL)
         
         guard asset.tracks(withMediaType: .audio).isEmpty == false else {

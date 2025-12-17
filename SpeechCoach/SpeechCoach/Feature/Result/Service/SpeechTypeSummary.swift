@@ -19,91 +19,189 @@ struct SpeechTypeSummary: Codable, Hashable {
     var highlights: [SpeechHighlight]
 }
 
-struct SpeechHighlight: Codable, Hashable, Identifiable {
-    var id: UUID = UUID()
-    var title: String
-    var detail: String
-    var start: TimeInterval
-    var end: TimeInterval
-    var reason: String
-}
+extension SpeechTypeSummary {
 
-enum PaceType: String, Codable, CaseIterable {
-    case slow = "느림"
-    case comfortable = "적정"
-    case fast = "빠름"
-}
+    func clipboardText(for record: SpeechRecord) -> String {
+        var lines: [String] = []
 
-extension PaceType {
-    var displayName: String {
-        switch self {
-        case .slow: return "느림"
-        case .comfortable: return "적정"
-        case .fast: return "빠름"
+        lines.append("말하기 타입 요약")
+        lines.append(oneLiner)
+
+        lines.append("· 속도: \(paceType.label) / 안정: \(paceStability.label)")
+        lines.append("· 쉬는 습관: \(pauseType.label)")
+        lines.append("· 구조: \(structureType.label)")
+        lines.append("· 자신감: \(confidenceType.label)")
+
+        if highlights.isEmpty == false {
+            lines.append("")
+            lines.append("체크할 구간")
+            for h in highlights.prefix(3) {
+                lines.append("· \(h.coachDetail(record: record))")
+            }
         }
+
+        return lines.joined(separator: "\n")
+    }
+
+    func memoSnippet(for record: SpeechRecord) -> String {
+        var parts: [String] = []
+        parts.append("【말하기 타입 요약】 \(oneLiner)")
+        if let h = highlights.first {
+            parts.append("체크 구간: \(h.coachDetail(record: record))")
+        }
+        return parts.joined(separator: "\n")
     }
 }
 
-enum StabilityLevel: String, Codable, CaseIterable {
-    case stable = "안정"
-    case mixed = "변동"
-    case unstable = "불안정"
-}
-
-extension StabilityLevel {
-    var displayName: String {
-        switch self {
-        case .stable: return "안정"
-        case .mixed: return "변동"
-        case .unstable: return "불안정"
+enum SpeechTypeSummarizer {
+    static func summarize(
+        duration: TimeInterval,
+        wordsPerMinute: Int,
+        segments: [TranscriptSegment]
+    ) -> SpeechTypeSummary {
+        let paceType = inferPaceType(wpm: wordsPerMinute)
+        let stability = inferPaceStability(duration: duration, segments: segments)
+        let pauseType = inferPauseType(duration: duration, segments: segments)
+        let structureType = inferStructureType(segments: segments)
+        let confidenceType = inferConfidenceType(segments: segments)
+        
+        let highlights = makeHighlights(duration: duration, segments: segments)
+        
+        let oneLiner = makeOneLiner(
+            paceType: paceType,
+            stability: stability,
+            pauseType: pauseType,
+            structure: structureType,
+            confidence: confidenceType
+        )
+        
+        return SpeechTypeSummary(
+            paceType: paceType,
+            paceStability: stability,
+            pauseType: pauseType,
+            structureType: structureType,
+            confidenceType: confidenceType,
+            oneLiner: oneLiner,
+            highlights: highlights
+        )
+    }
+    
+    static func inferPaceType(wpm: Int) -> PaceType {
+        switch wpm {
+        case 0..<110: return .slow
+        case 110...160: return .comfortable
+        default: return .fast
         }
     }
-}
-
-enum PauseType: String, Codable, CaseIterable {
-    case smooth = "느림"
-    case thinkingPause = "적정"
-    case choppy = "빠름"
-}
-
-extension PauseType {
-    var displayName: String {
-        switch self {
-        case .smooth: return "느림"
-        case .thinkingPause: return "적정"
-        case .choppy: return "빠름"
+    
+    static func inferPaceStability(duration: TimeInterval, segments: [TranscriptSegment]) -> StabilityLevel {
+        let series = SpeedSeries.make(from: segments, duration: duration, binSize: 5)
+        
+        guard series.bins.count >= 3 else { return .mixed }
+        
+        let values = series.bins.map(\.wpm)
+        let mean = values.reduce(0, +) / Double(values.count)
+        let variance = values.reduce(0) { $0 + pow($1 - mean, 2) } / Double(values.count)
+        let sd = sqrt(variance)
+        
+        if sd < 12 { return .stable }
+        if sd < 25 { return .mixed }
+        return .unstable
+    }
+    
+    static func inferPauseType(duration: TimeInterval, segments: [TranscriptSegment]) -> PauseType {
+        let gaps = PauseAnalyzer.gaps(from: segments, duration: duration)
+        let longPauses = gaps.filter { $0.duration >= 1.0 }
+        let veryLong = gaps.filter { $0.duration >= 2.0 }
+        
+        if veryLong.count >= 2 { return .thinkingPause }
+        if longPauses.count >= 4 { return .choppy }
+        return .smooth
+    }
+    
+    static func inferStructureType(segments: [TranscriptSegment]) -> StructureType {
+        let text = segments.map(\.text).joined(separator: " ")
+        let hasIntro = text.contains("결론") || text.contains("먼저") || text.contains("첫째")
+        let hasWrap = text.contains("정리") || text.contains("마무리") || text.contains("결과적으로")
+        
+        switch (hasIntro, hasWrap) {
+        case (true, true): return .clear
+        case (true, false), (false, true): return .partial
+        default: return .unclear
         }
     }
-}
-
-enum StructureType: String, Codable, CaseIterable {
-    case clear = "구조 명확"
-    case partial = "부분적으로 구조 있음"
-    case unclear = "구조 흐림"
-}
-
-extension StructureType {
-    var displayName: String {
-        switch self {
-        case .clear: return "구조 명확"
-        case .partial: return "부분적으로 구조 있음"
-        case .unclear: return "구조 흐림"
-        }
+    
+    static func inferConfidenceType(segments: [TranscriptSegment]) -> ConfidenceType {
+        let confidences = segments.compactMap(\.confidence)
+        guard segments.isEmpty == false, confidences.isEmpty == false else { return .neutral }
+        let avg = confidences.reduce(0, +) / Float(confidences.count)
+        
+        if avg >= 0.70 { return .confident }
+        if avg >= 0.55 { return .neutral }
+        return .hesitant
     }
-}
-
-enum ConfidenceType: String, Codable, CaseIterable {
-    case confident = "자신감 있음"
-    case neutral = "보통"
-    case hesitant = "조심/망설임"
-}
-
-extension ConfidenceType {
-    var displayName: String {
-        switch self {
-        case .confident: return "자신감 있음"
-        case .neutral: return "보통"
-        case .hesitant: return "조심/망설임"
+    
+    static func makeOneLiner(
+        paceType: PaceType,
+        stability: StabilityLevel,
+        pauseType: PauseType,
+        structure: StructureType,
+        confidence: ConfidenceType
+    ) -> String {
+        return "\(paceType.rawValue) 속도 / \(stability.rawValue) / \(pauseType.rawValue) / \(structure.rawValue) / \(confidence.rawValue)"
+    }
+    
+    static func makeHighlights(
+        duration: TimeInterval,
+        segments: [TranscriptSegment]
+    ) -> [SpeechHighlight] {
+        var result: [SpeechHighlight] = []
+        
+        let gaps = PauseAnalyzer.gaps(from: segments, duration: duration)
+        if let longest = gaps.max(by: { $0.duration < $1.duration }), longest.duration >= 1.2 {
+            result.append(
+                SpeechHighlight(
+                    title: "가장 긴 멈춤",
+                    detail: "\(String(format: "%.1f", longest.duration))초 멈춤 - 답변 정리 구간으로 보임",
+                    start: longest.start,
+                    end: longest.end,
+                    reason: "1.2초 이상 멈춘 구간으로 답변을 정리하거나 다음 문장을 고민하는 흐름"
+                )
+            )
         }
+        
+        let series = SpeedSeries.make(from: segments, duration: duration, binSize: 5)
+        if let maxBins = series.bins.max(by: { $0.wpm < $1.wpm }), maxBins.wpm >= 170 {
+            result.append(
+                SpeechHighlight(
+                    title: "속도 가장 빠른 구간",
+                    detail: "정보가 몰리며 말이 빨라진 구간 - 전달력 저하 가능",
+                    start: maxBins.start,
+                    end: maxBins.end,
+                    reason: "5초 bin 기준 WPM \(Int(maxBins.wpm)) 이상으로 상승한 구간"
+                )
+            )
+        }
+        
+        if let low = segments
+            .compactMap({ seg -> (seg: TranscriptSegment, c: Float)? in
+            guard let c = seg.confidence else { return nil }
+            return (seg, c)
+            }).min(by: { $0.c < $1.c })?
+            .seg
+        {
+            let start = low.startTime
+            let end = min(duration, low.startTime + low.duration)
+            result.append(
+                SpeechHighlight(
+                    title: "발음이 불명확한 구간",
+                    detail: "발음 또는 환경 영향으로 말이 흐려진 구간",
+                    start: start,
+                    end: end,
+                    reason: "Speech confidence 값이 가장 낮은 세그먼트"
+                )
+            )
+        }
+        return Array(result.prefix(3))
     }
 }

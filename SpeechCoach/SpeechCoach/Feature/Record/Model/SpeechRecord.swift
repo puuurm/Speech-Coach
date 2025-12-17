@@ -27,4 +27,3 @@ struct SpeechRecord: Identifiable, Hashable, Codable {
     var qualitative: QualitativeMetrics?
     var transcriptSegments: [TranscriptSegment]?
 }
-

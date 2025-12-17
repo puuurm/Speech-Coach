@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVKit
 
 extension ResultScreen {
     enum ResultTab: String, CaseIterable, Identifiable {
@@ -17,6 +18,7 @@ extension ResultScreen {
 
 struct ResultScreen: View {
     let record: SpeechRecord
+    let player: AVPlayer?
     
     @EnvironmentObject private var recordStore: SpeechRecordStore
     @EnvironmentObject var router: NavigationRouter
@@ -44,7 +46,7 @@ struct ResultScreen: View {
     
     @State private var speechType: SpeechTypeSummary? = nil
     
-    init(record: SpeechRecord) {
+    init(record: SpeechRecord, player: AVPlayer? = nil) {
         self.record = record
         _introText = State(initialValue: record.noteIntro)
         _strenthsText = State(initialValue: record.noteStrengths)
@@ -52,6 +54,7 @@ struct ResultScreen: View {
         _nextStepsText = State(initialValue: record.noteNextStep)
         let baseQualitative = record.qualitative ?? QualitativeRecommender.recommend(for: record)
         _qualitative = State(initialValue: baseQualitative)
+        self.player = player
     }
     
     var body: some View {
@@ -125,68 +128,110 @@ struct ResultScreen: View {
         }
     }
     
-    var speakingTypeSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text("말하기 타입 요약")
-                    .font(.headline)
-                
-                Text("1:1 핵심")
-                    .font(.caption2.weight(.semibold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(Color(.systemGray6)))
-            }
-
+//    var speakingTypeSection: some View {
+//        VStack(alignment: .leading, spacing: 8) {
+//            HStack(spacing: 8) {
+//                Text("말하기 타입 요약")
+//                    .font(.headline)
+//                
+//                Text("1:1 핵심")
+//                    .font(.caption2.weight(.semibold))
+//                    .padding(.horizontal, 8)
+//                    .padding(.vertical, 4)
+//                    .background(Capsule().fill(Color(.systemGray6)))
+//            }
+//
+//            if let speechType {
+//                Text(speechType.oneLiner)
+//                    .font(.subheadline.weight(.semibold))
+//                    .frame(maxWidth: .infinity, alignment: .leading)
+//                    .padding(12)
+//                    .background(
+//                        RoundedRectangle(cornerRadius: 12)
+//                            .fill(Color(.secondarySystemBackground))
+//                    )
+//                
+//                FlowChips {
+//                    chip(title: "속도", value: speechType.paceType.displayName)
+//                    chip(title: "속도 안정", value: speechType.paceStability.displayName)
+//                    chip(title: "쉬는 습관", value: speechType.pauseType.displayName)
+//                    chip(title: "구조", value: speechType.structureType.displayName)
+//                    chip(title: "확신 톤", value: speechType.confidenceType.displayName)
+//                }
+//                
+//                if speechType.highlights.isEmpty == false {
+//                    VStack(alignment: .leading, spacing: 8) {
+//                        Text("하이라이트")
+//                            .font(.subheadline.weight(.semibold))
+//                            .foregroundColor(.secondary)
+//                        
+//                        ForEach(speechType.highlights) { item in
+//                            VStack(alignment: .leading, spacing: 4) {
+//                                Text(item.title)
+//                                    .font(.subheadline.weight(.semibold))
+//                                if item.detail.isEmpty == false {
+//                                    Text(item.detail)
+//                                        .font(.caption)
+//                                        .foregroundColor(.secondary)
+//                                }
+//                            }
+//                            .padding(12)
+//                            .frame(maxWidth: .infinity, alignment: .leading)
+//                            .background(
+//                                RoundedRectangle(cornerRadius: 12)
+//                                    .fill(Color(.secondarySystemBackground))
+//                            )
+//                        }
+//                    }
+//                } else {
+//                    Text("타입 요약을 만드는 중이에요.")
+//                        .font(.caption)
+//                        .foregroundColor(.secondary)
+//                }
+//            }
+//        }
+//    }
+    
+    private var highlightSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("말하기 하이라이트")
+                .font(.headline)
             if let speechType {
-                Text(speechType.oneLiner)
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.secondarySystemBackground))
-                    )
-                
-                FlowChips {
-                    chip(title: "속도", value: speechType.paceType.displayName)
-                    chip(title: "속도 안정", value: speechType.paceStability.displayName)
-                    chip(title: "쉬는 습관", value: speechType.pauseType.displayName)
-                    chip(title: "구조", value: speechType.structureType.displayName)
-                    chip(title: "확신 톤", value: speechType.confidenceType.displayName)
-                }
-                
-                if speechType.highlights.isEmpty == false {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("하이라이트")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.secondary)
-                        
-                        ForEach(speechType.highlights) { item in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(item.title)
-                                    .font(.subheadline.weight(.semibold))
-                                if item.detail.isEmpty == false {
-                                    Text(item.detail)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .padding(12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.secondarySystemBackground))
-                            )
-                        }
-                    }
-                } else {
-                    Text("타입 요약을 만드는 중이에요.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                ForEach(speechType.highlights) { item in
+                    highlightRow(item)
                 }
             }
         }
+    }
+    
+    private func highlightRow(_ item: SpeechHighlight) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(item.title)
+                    .font(.subheadline.weight(.semibold))
+
+                Spacer()
+
+                Text("\(timeString(item.start))–\(timeString(item.end))")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            if !item.detail.isEmpty {
+                Text(item.detail)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Text(item.reason)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.secondarySystemBackground))
+        )
     }
     
     private func chip(title: String, value: String) -> some View {
@@ -1164,6 +1209,82 @@ extension ResultScreen {
     }
 }
 
+extension ResultScreen {
+
+    var speakingTypeSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("말하기 타입 요약")
+                    .font(.headline)
+
+                Spacer()
+
+                Button("요약 복사") {
+                    guard let speechType else { return }
+                    UIPasteboard.general.string = speechType.clipboardText(for: record)
+                    showCopyAlert = true
+                }
+                .font(.caption.weight(.semibold))
+            }
+
+            if let speechType {
+                // one-liner
+                Text(speechType.oneLiner)
+                    .font(.subheadline.weight(.semibold))
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.secondarySystemBackground))
+                    )
+
+                // “메모 삽입” (최소: 개선할 점에 붙이기 / or intro에 붙이기)
+                Button {
+                    let snippet = speechType.memoSnippet(for: record)
+                    insertIntoImprovements(snippet)
+                } label: {
+                    Label("개선 메모에 요약 삽입", systemImage: "plus.circle")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.accentColor)
+                
+                // inside ResultScreen
+
+                // highlights
+                if speechType.highlights.isEmpty == false {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("체크할 구간")
+                            .font(.subheadline.weight(.semibold))
+                        
+                        ForEach(speechType.highlights.prefix(3)) { h in
+                            SpeechHighlightRow(item: h, duration: record.duration) {
+                                HighlightSeekBridge.shared.seek(to: h.start, autoplay: true)
+                            }
+                        }
+
+                    }
+                }
+            } else {
+                Text("요약을 만들 데이터가 아직 부족해요.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private func insertIntoImprovements(_ snippet: String) {
+        let s = snippet.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard s.isEmpty == false else { return }
+
+        if improvementsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            improvementsText = s
+        } else {
+            improvementsText += "\n\n" + s
+        }
+    }
+}
+
 #Preview {
 //    ResultScreen(
 //        record: .init(
@@ -1189,3 +1310,5 @@ extension ResultScreen {
 //        )
 //    )
 }
+
+

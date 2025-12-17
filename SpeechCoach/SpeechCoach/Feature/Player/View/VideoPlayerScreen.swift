@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVKit
+import Speech
 
 struct VideoPlayerScreen: View {
     let draft: SpeechDraft
@@ -21,12 +22,15 @@ struct VideoPlayerScreen: View {
     @State private var isStartingAnalysis: Bool = false   // 중복 요청 방지용
     @State private var analyzedRecord: SpeechRecord?      // 분석 결과
     @State private var showFeedbackSheet: Bool = false
+    @State private var seekObserver: NSObjectProtocol?
     
     @EnvironmentObject var router: NavigationRouter
     @EnvironmentObject var recordStore: SpeechRecordStore
     
     private let speechService = RealSpeechService()
     private let analyzer = TranscriptAnalyzer()
+    
+    @StateObject private var seekBridge = HighlightSeekBridge.shared
     
     private var canProceed: Bool {
         playbackEnded && analyzedRecord != nil
@@ -38,22 +42,25 @@ struct VideoPlayerScreen: View {
     }
     
     var body: some View {
-        VStack(spacing: 16) {
-            if let player {
-                VideoPlayer(player: player)
-                    .aspectRatio(16/9, contentMode: .fit)
-                    .cornerRadius(16)
-                    .padding(.top, 16)
-                
-                infoSection
-                
-                analysisStatusSection
-                
-                Spacer()
-            } else {
-                loadingVideoView
+        VStack {
+            VideoPlayer(player: player)
+                .aspectRatio(16/9, contentMode: .fit)
+                .cornerRadius(16)
+            ScrollView {
+                VStack(spacing: 16) {
+                    if let player {
+                        infoSection
+                        analysisStatusSection
+                        
+    //                    Spacer()
+                    } else {
+                        loadingVideoView
+                    }
+                }
             }
         }
+
+
         .padding(.horizontal, 20)
         .navigationTitle("영상 확인")
         .navigationBarTitleDisplayMode(.inline)
@@ -77,16 +84,36 @@ struct VideoPlayerScreen: View {
                 isLoadingDuration = false
             }
         }
+        .onAppear {
+            if player == nil {
+                player = AVPlayer(url: draft.videoURL)
+            }
+            
+//            if seekObserver == nil, let player {
+//                seekObserver = player.observeHighlightSeek()
+//            }
+        }
+        .onReceive(seekBridge.$request) { req in
+            guard let req, let player else { return }
+            player.seek(to: CMTime(seconds: req.seconds, preferredTimescale: 600))
+            if req.autoplay { player.play() }
+            seekBridge.consume()
+        }
         .onDisappear {
             removePlaybackObserver()
+            if let seekObserver {
+                NotificationCenter.default.removeObserver(seekObserver)
+                self.seekObserver = nil
+            }
         }
         .sheet(isPresented: $showFeedbackSheet) {
-            if let record = analyzedRecord {
+            if let record = analyzedRecord, let player {
                 NavigationStack {
-                    ResultScreen(record: record)
+                    ResultScreen(record: record, player: player)
                 }
             }
         }
+        
     }
 }
 
@@ -221,6 +248,29 @@ private extension VideoPlayerScreen {
                 )
             }
             
+            let speechType = SpeechTypeSummarizer.summarize(
+                duration: record.duration,
+                wordsPerMinute: record.wordsPerMinute,
+                segments: record.transcriptSegments ?? []   // nil이면 빈 배열 -> 하이라이트 없음
+            )
+
+            if speechType.highlights.isEmpty == false, let player {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("체크할 구간")
+                        .font(.subheadline.weight(.semibold))
+
+                    ForEach(speechType.highlights.prefix(3)) { h in
+                        SpeechHighlightRow(item: h, duration: record.duration) {
+                            player.seek(to: CMTime(seconds: h.start, preferredTimescale: 600))
+                            player.play()
+                        }
+                    }
+                }
+                .padding(12)
+                .background(Color(uiColor: .secondarySystemBackground))
+                .cornerRadius(10)
+            }
+            
             VStack(alignment: .leading, spacing: 4) {
                 Text("전체 스크립트 (요약)")
                     .font(.subheadline.weight(.medium))
@@ -350,10 +400,15 @@ private extension VideoPlayerScreen {
     
     func runAnalysis() async throws -> SpeechRecord {
         // 1) 전사
+        let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko_RK"))!
+        let audioURL = try await speechService.exportAudio(from: draft.videoURL)
         let rawTranscript = try await speechService.transcribe(videoURL: draft.videoURL)
+        let transcriptResult = try await speechService.recognizeDetailed(url: audioURL, with: recognizer)
         
         // 2) 클린업
-        let cleaned = TranscriptCleaner.cleaned(rawTranscript)
+        let cleaned = transcriptResult.cleanedText
+        
+        let segments = transcriptResult.segments
         
         // 3) duration 확보 (draft.duration이 0이면 AVAsset으로 보정)
         let duration: TimeInterval = {
@@ -392,7 +447,8 @@ private extension VideoPlayerScreen {
             noteIntro: "",
             noteStrengths: "",
             noteImprovements: "",
-            noteNextStep: ""
+            noteNextStep: "",
+            transcriptSegments: segments
         )
         
         return record

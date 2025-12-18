@@ -28,6 +28,7 @@ struct SpeechHighlightRow: View {
             Spacer()
 
             Button {
+                print("Tap Button")
                 onPlay()
             } label: {
                 Text("재생")
@@ -40,6 +41,9 @@ struct SpeechHighlightRow: View {
             .buttonStyle(.plain)
         }
         .contentShape(Rectangle())
-        .onTapGesture { onPlay() } // 행 전체 탭으로도 재생
+        .onTapGesture {
+            print("onPlay")
+            onPlay()
+        } // 행 전체 탭으로도 재생
     }
 }

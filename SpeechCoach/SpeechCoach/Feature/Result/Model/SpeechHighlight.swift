@@ -96,3 +96,9 @@ extension SpeechHighlight {
         return String(format: "%02d:%02d", m, s)
     }
 }
+
+extension SpeechHighlight {
+    func timeLabel(duration: TimeInterval) -> String {
+        "\(start.toClock()) → \(min(end, duration).toClock())"
+    }
+}

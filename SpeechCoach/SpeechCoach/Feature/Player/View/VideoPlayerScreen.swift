@@ -30,7 +30,7 @@ struct VideoPlayerScreen: View {
     private let speechService = RealSpeechService()
     private let analyzer = TranscriptAnalyzer()
     
-    @StateObject private var seekBridge = HighlightSeekBridge.shared
+    @EnvironmentObject private var seekBridge: HighlightSeekBridge
     
     private var canProceed: Bool {
         playbackEnded && analyzedRecord != nil
@@ -51,7 +51,6 @@ struct VideoPlayerScreen: View {
                     if let player {
                         infoSection
                         analysisStatusSection
-                        
     //                    Spacer()
                     } else {
                         loadingVideoView
@@ -59,8 +58,6 @@ struct VideoPlayerScreen: View {
                 }
             }
         }
-
-
         .padding(.horizontal, 20)
         .navigationTitle("영상 확인")
         .navigationBarTitleDisplayMode(.inline)
@@ -83,22 +80,23 @@ struct VideoPlayerScreen: View {
             } else {
                 isLoadingDuration = false
             }
-        }
-        .onAppear {
+            
             if player == nil {
                 player = AVPlayer(url: draft.videoURL)
             }
-            
-//            if seekObserver == nil, let player {
-//                seekObserver = player.observeHighlightSeek()
-//            }
         }
-        .onReceive(seekBridge.$request) { req in
-            guard let req, let player else { return }
-            player.seek(to: CMTime(seconds: req.seconds, preferredTimescale: 600))
-            if req.autoplay { player.play() }
-            seekBridge.consume()
-        }
+//        .onReceive(seekBridge.$request) { req in
+//            guard let req, let player else { return }
+//            player.seek(to: CMTime(seconds: req.seconds, preferredTimescale: 600))
+//            if req.autoplay { player.play() }
+//            seekBridge.consume()
+//        }
+//        .onReceive(seekBridge.$request) { req in
+//            guard let req, let player else { return }
+//            print("▶️ seek req:", req.seconds)
+//            safeSeek(req.seconds, autoplay: req.autoplay)
+//            seekBridge.consume()
+//        }
         .onDisappear {
             removePlaybackObserver()
             if let seekObserver {
@@ -113,7 +111,6 @@ struct VideoPlayerScreen: View {
                 }
             }
         }
-        
     }
 }
 
@@ -253,16 +250,17 @@ private extension VideoPlayerScreen {
                 wordsPerMinute: record.wordsPerMinute,
                 segments: record.transcriptSegments ?? []   // nil이면 빈 배열 -> 하이라이트 없음
             )
-
+            
             if speechType.highlights.isEmpty == false, let player {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("체크할 구간")
                         .font(.subheadline.weight(.semibold))
-
+                    
                     ForEach(speechType.highlights.prefix(3)) { h in
                         SpeechHighlightRow(item: h, duration: record.duration) {
-                            player.seek(to: CMTime(seconds: h.start, preferredTimescale: 600))
-                            player.play()
+                            Task { @MainActor in
+                                seekPlayer(to: h.start, autoplay: true)
+                            }
                         }
                     }
                 }
@@ -298,6 +296,32 @@ private extension VideoPlayerScreen {
             .disabled(!canProceed)
             .padding(.top, 4)
         }
+    }
+    
+    
+    @MainActor
+    private func seekPlayer(to seconds: TimeInterval, autoplay: Bool) {
+        let safe = max(0, min(seconds, max(0, playerDuration() - 0.1)))
+        let t = CMTime(seconds: safe, preferredTimescale: 600)
+
+        print("seekPlayer")
+        guard let player else {
+            print("NO PLAYER")
+            return
+        }
+        player.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
+            if autoplay { player.play() }
+        }
+
+        print("▶️ seek to:", safe, "cur:", player.currentTime().seconds)
+    }
+
+    private func playerDuration() -> Double {
+        guard let player, let record = analyzedRecord else { return 0 }
+        
+        return player.currentItem?.duration.seconds.isFinite == true
+        ? player.currentItem!.duration.seconds
+        : record.duration
     }
     
     func failedView(message: String) -> some View {
@@ -342,6 +366,31 @@ private extension VideoPlayerScreen {
 // MARK: - Player & Analysis Logic
 
 private extension VideoPlayerScreen {
+    
+    func safeSeek(_ seconds: Double, autoplay: Bool) {
+        guard let player,
+              let item = player.currentItem,
+              item.status == .readyToPlay
+        else {
+            print(" seek ignored: player not ready")
+            return
+        }
+        
+        let duration = item.duration.seconds
+        guard seconds.isFinite, seconds >= 0, seconds <= duration else {
+            print("seek out of range:", seconds)
+            return
+        }
+        guard duration.isFinite, duration > 0 else { return }
+        
+        let clamped = max(0, min(seconds, duration - 0.05))
+        let time = CMTime(seconds: clamped, preferredTimescale: 600)
+        
+        player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
+            if autoplay { player.play() }
+        }
+
+    }
     
     func setupPlayerIfNeeded() {
         if player == nil {

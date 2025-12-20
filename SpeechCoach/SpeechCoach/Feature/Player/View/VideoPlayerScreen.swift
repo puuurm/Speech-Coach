@@ -12,7 +12,6 @@ import Speech
 struct VideoPlayerScreen: View {
     let draft: SpeechDraft
     
-    @State private var player: AVPlayer?
     @State private var duration: TimeInterval = 0
     @State private var isLoadingDuration = true
     
@@ -22,7 +21,6 @@ struct VideoPlayerScreen: View {
     @State private var isStartingAnalysis: Bool = false   // 중복 요청 방지용
     @State private var analyzedRecord: SpeechRecord?      // 분석 결과
     @State private var showFeedbackSheet: Bool = false
-    @State private var seekObserver: NSObjectProtocol?
     
     @EnvironmentObject var router: NavigationRouter
     @EnvironmentObject var recordStore: SpeechRecordStore
@@ -30,7 +28,7 @@ struct VideoPlayerScreen: View {
     private let speechService = RealSpeechService()
     private let analyzer = TranscriptAnalyzer()
     
-    @EnvironmentObject private var seekBridge: HighlightSeekBridge
+    @EnvironmentObject private var pc: PlayerController
     
     private var canProceed: Bool {
         playbackEnded && analyzedRecord != nil
@@ -38,20 +36,18 @@ struct VideoPlayerScreen: View {
     
     init(draft: SpeechDraft) {
         self.draft = draft
-        _player = State(initialValue: AVPlayer(url: draft.videoURL))
     }
     
     var body: some View {
         VStack {
-            VideoPlayer(player: player)
+            VideoPlayer(player: pc.player)
                 .aspectRatio(16/9, contentMode: .fit)
                 .cornerRadius(16)
             ScrollView {
                 VStack(spacing: 16) {
-                    if let player {
+                    if pc.isReadyToPlay {
                         infoSection
                         analysisStatusSection
-    //                    Spacer()
                     } else {
                         loadingVideoView
                     }
@@ -63,9 +59,8 @@ struct VideoPlayerScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             AudioSessionManager.configureForPlayback()
-            setupPlayerIfNeeded()
-            observePlaybackEnd()
-            
+            pc.load(url: draft.videoURL)
+
             if duration == 0 {
                 isLoadingDuration = true
                 Task {
@@ -80,34 +75,22 @@ struct VideoPlayerScreen: View {
             } else {
                 isLoadingDuration = false
             }
+        }
+        .onChange(of: pc.didReachEnd) { ended in
+            guard ended else { return }
+            playbackEnded = true
             
-            if player == nil {
-                player = AVPlayer(url: draft.videoURL)
+            if case .waitingForPlaybackEnd = phase {
+                phase = .ready
             }
         }
-//        .onReceive(seekBridge.$request) { req in
-//            guard let req, let player else { return }
-//            player.seek(to: CMTime(seconds: req.seconds, preferredTimescale: 600))
-//            if req.autoplay { player.play() }
-//            seekBridge.consume()
-//        }
-//        .onReceive(seekBridge.$request) { req in
-//            guard let req, let player else { return }
-//            print("▶️ seek req:", req.seconds)
-//            safeSeek(req.seconds, autoplay: req.autoplay)
-//            seekBridge.consume()
-//        }
         .onDisappear {
-            removePlaybackObserver()
-            if let seekObserver {
-                NotificationCenter.default.removeObserver(seekObserver)
-                self.seekObserver = nil
-            }
+            pc.player.pause()
         }
         .sheet(isPresented: $showFeedbackSheet) {
-            if let record = analyzedRecord, let player {
+            if let record = analyzedRecord {
                 NavigationStack {
-                    ResultScreen(record: record, player: player)
+                    ResultScreen(record: record, player: pc.player)
                 }
             }
         }
@@ -251,16 +234,15 @@ private extension VideoPlayerScreen {
                 segments: record.transcriptSegments ?? []   // nil이면 빈 배열 -> 하이라이트 없음
             )
             
-            if speechType.highlights.isEmpty == false, let player {
+            if speechType.highlights.isEmpty == false {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("체크할 구간")
                         .font(.subheadline.weight(.semibold))
                     
                     ForEach(speechType.highlights.prefix(3)) { h in
                         SpeechHighlightRow(item: h, duration: record.duration) {
-                            Task { @MainActor in
-                                seekPlayer(to: h.start, autoplay: true)
-                            }
+                            pc.fallbackDuration = record.duration
+                            pc.seek(to: h.start, autoplay: true)
                         }
                     }
                 }
@@ -297,32 +279,7 @@ private extension VideoPlayerScreen {
             .padding(.top, 4)
         }
     }
-    
-    
-    @MainActor
-    private func seekPlayer(to seconds: TimeInterval, autoplay: Bool) {
-        let safe = max(0, min(seconds, max(0, playerDuration() - 0.1)))
-        let t = CMTime(seconds: safe, preferredTimescale: 600)
 
-        print("seekPlayer")
-        guard let player else {
-            print("NO PLAYER")
-            return
-        }
-        player.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
-            if autoplay { player.play() }
-        }
-
-        print("▶️ seek to:", safe, "cur:", player.currentTime().seconds)
-    }
-
-    private func playerDuration() -> Double {
-        guard let player, let record = analyzedRecord else { return 0 }
-        
-        return player.currentItem?.duration.seconds.isFinite == true
-        ? player.currentItem!.duration.seconds
-        : record.duration
-    }
     
     func failedView(message: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -367,42 +324,9 @@ private extension VideoPlayerScreen {
 
 private extension VideoPlayerScreen {
     
-    func safeSeek(_ seconds: Double, autoplay: Bool) {
-        guard let player,
-              let item = player.currentItem,
-              item.status == .readyToPlay
-        else {
-            print(" seek ignored: player not ready")
-            return
-        }
-        
-        let duration = item.duration.seconds
-        guard seconds.isFinite, seconds >= 0, seconds <= duration else {
-            print("seek out of range:", seconds)
-            return
-        }
-        guard duration.isFinite, duration > 0 else { return }
-        
-        let clamped = max(0, min(seconds, duration - 0.05))
-        let time = CMTime(seconds: clamped, preferredTimescale: 600)
-        
-        player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
-            if autoplay { player.play() }
-        }
-
-    }
-    
-    func setupPlayerIfNeeded() {
-        if player == nil {
-            player = AVPlayer(url: draft.videoURL)
-        }
-    }
-    
     func startPlaybackAndAnalysis() {
-        guard let player else { return }
-        
         // 재생 시작
-        player.play()
+        pc.player.play()
         playbackEnded = false
         
         // 분석 중복 시작 방지
@@ -422,7 +346,6 @@ private extension VideoPlayerScreen {
                 await MainActor.run {
                     // Store에 저장
                     recordStore.add(record)
-//                    router.push(.result(record))
                     
                     analyzedRecord = record
                     
@@ -501,29 +424,6 @@ private extension VideoPlayerScreen {
         )
         
         return record
-    }
-    
-    func observePlaybackEnd() {
-        guard let playerItem = player?.currentItem else { return }
-        
-        NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: playerItem,
-            queue: .main
-        ) { _ in
-            playbackEnded = true
-            if case .waitingForPlaybackEnd = phase {
-                phase = .ready
-            }
-        }
-    }
-    
-    func removePlaybackObserver() {
-        NotificationCenter.default.removeObserver(
-            self,
-            name: .AVPlayerItemDidPlayToEndTime,
-            object: nil
-        )
     }
 }
     

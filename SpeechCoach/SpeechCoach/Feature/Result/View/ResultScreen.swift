@@ -21,6 +21,7 @@ struct ResultScreen: View {
     let player: AVPlayer?
     
     @EnvironmentObject private var recordStore: SpeechRecordStore
+    @EnvironmentObject private var pc: PlayerController
     @EnvironmentObject var router: NavigationRouter
     @Environment(\.dismiss) private var dismiss
         
@@ -1258,9 +1259,11 @@ extension ResultScreen {
                             .font(.subheadline.weight(.semibold))
                         ForEach(speechType.highlights.prefix(3)) { h in
                             SpeechHighlightRow(item: h, duration: record.duration) {
-                                Task { @MainActor in
-                                    seekPlayer(to: h.start, autoplay: true)
-                                }
+                                pc.fallbackDuration = record.duration
+                                pc.seek(to: h.start, autoplay: true)
+//                                Task { @MainActor in
+//                                    seekPlayer(to: h.start, autoplay: true)
+//                                }
 //                                seekPlayer(to: h.start, autoplay: true)
 //                                HighlightSeekBridge.shared.seek(to: max(0, h.start - 0.2), autoplay: true)
                             }
@@ -1276,30 +1279,30 @@ extension ResultScreen {
         }
     }
     
-    @MainActor
-    private func seekPlayer(to seconds: TimeInterval, autoplay: Bool) {
-        let safe = max(0, min(seconds, max(0, playerDuration() - 0.1)))
-        let t = CMTime(seconds: safe, preferredTimescale: 600)
-
-        print("seekPlayer")
-        guard let player else {
-            print("NO PLAYER")
-            return
-        }
-        player.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
-            if autoplay { player.play() }
-        }
-
-        print("▶️ seek to:", safe, "cur:", player.currentTime().seconds)
-    }
-
-    private func playerDuration() -> Double {
-        guard let player else { return 0 }
-        
-        return player.currentItem?.duration.seconds.isFinite == true
-        ? player.currentItem!.duration.seconds
-        : record.duration
-    }
+//    @MainActor
+//    private func seekPlayer(to seconds: TimeInterval, autoplay: Bool) {
+//        let safe = max(0, min(seconds, max(0, playerDuration() - 0.1)))
+//        let t = CMTime(seconds: safe, preferredTimescale: 600)
+//
+//        print("seekPlayer")
+//        guard let player else {
+//            print("NO PLAYER")
+//            return
+//        }
+//        player.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
+//            if autoplay { player.play() }
+//        }
+//
+//        print("▶️ seek to:", safe, "cur:", player.currentTime().seconds)
+//    }
+//
+//    private func playerDuration() -> Double {
+//        guard let player else { return 0 }
+//        
+//        return player.currentItem?.duration.seconds.isFinite == true
+//        ? player.currentItem!.duration.seconds
+//        : record.duration
+//    }
 
     private func insertIntoImprovements(_ snippet: String) {
         let s = snippet.trimmingCharacters(in: .whitespacesAndNewlines)

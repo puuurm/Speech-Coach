@@ -11,6 +11,7 @@ struct ContentView: View {
     @StateObject private var homeViewModel = HomeViewModel()
     @StateObject private var recordStore = SpeechRecordStore()
     @StateObject private var router = NavigationRouter()
+    @StateObject private var pc = PlayerController()
     
     var body: some View {
         NavigationStack(path: $router.path) {
@@ -19,8 +20,10 @@ struct ContentView: View {
                     switch route {
                     case .videoPlayer(let draft):
                         VideoPlayerScreen(draft: draft)
+                            .environmentObject(pc)
                     case .result(let record):
                         ResultScreen(record: record, player: nil)
+                            .environmentObject(pc)
                     }
                 }
         }

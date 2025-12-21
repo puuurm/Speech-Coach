@@ -136,9 +136,9 @@ struct HomeView: View {
                         
                         Section {
                             ForEach(sortedRecords) { record in
-                                NavigationLink {
-                                    ResultScreen(record: record)
-                                } label : {
+                                Button {
+                                    router.push(.result(record))
+                                } label: {
                                     RecentRecordRow(record: record)
                                 }
                                 .buttonStyle(.plain)
@@ -222,7 +222,7 @@ extension HomeView {
             )
             
             await MainActor.run {
-                router.push(.videoPlayer(draft))
+                router.navigateToVideoPlayer(draft: draft)
             }
             
         } catch {

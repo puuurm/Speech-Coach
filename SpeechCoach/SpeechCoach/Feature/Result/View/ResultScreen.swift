@@ -18,7 +18,8 @@ extension ResultScreen {
 
 struct ResultScreen: View {
     let record: SpeechRecord
-    let player: AVPlayer?
+    let playbackPolicy: HighlightPlaybackPolicy
+//    let onRequestPlay: (TimeInterval) -> Void
     
     @EnvironmentObject private var recordStore: SpeechRecordStore
     @EnvironmentObject private var pc: PlayerController
@@ -47,7 +48,11 @@ struct ResultScreen: View {
     
     @State private var speechType: SpeechTypeSummary? = nil
     
-    init(record: SpeechRecord, player: AVPlayer? = nil) {
+    init(
+        record: SpeechRecord,
+        playbackPolicy: HighlightPlaybackPolicy
+//        onRequestPlay: @escaping (TimeInterval) -> Void
+    ) {
         self.record = record
         _introText = State(initialValue: record.noteIntro)
         _strenthsText = State(initialValue: record.noteStrengths)
@@ -55,7 +60,9 @@ struct ResultScreen: View {
         _nextStepsText = State(initialValue: record.noteNextStep)
         let baseQualitative = record.qualitative ?? QualitativeRecommender.recommend(for: record)
         _qualitative = State(initialValue: baseQualitative)
-        self.player = player
+//        self.player = player
+//        self.onRequestPlay = onRequestPlay
+        self.playbackPolicy = playbackPolicy
     }
     
     var body: some View {
@@ -997,8 +1004,6 @@ extension ResultScreen {
             }
         }
         .padding(12)
-//        .background(
-//            RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
     }
     
     func memoEditorRow(
@@ -1258,15 +1263,15 @@ extension ResultScreen {
                         Text("체크할 구간")
                             .font(.subheadline.weight(.semibold))
                         ForEach(speechType.highlights.prefix(3)) { h in
-                            SpeechHighlightRow(item: h, duration: record.duration) {
-                                pc.fallbackDuration = record.duration
-                                pc.seek(to: h.start, autoplay: true)
-//                                Task { @MainActor in
-//                                    seekPlayer(to: h.start, autoplay: true)
-//                                }
-//                                seekPlayer(to: h.start, autoplay: true)
-//                                HighlightSeekBridge.shared.seek(to: max(0, h.start - 0.2), autoplay: true)
-                            }
+                            SpeechHighlightRow(
+                                item: h,
+                                duration: record.duration,
+                                playbackPolicy: playbackPolicy
+                            )
+//                            SpeechHighlightRow(item: h, duration: record.duration) {
+//                                onRequestPlay(h.start)
+//                                dismiss()
+//                            }
                         }
 
                     }
@@ -1278,31 +1283,6 @@ extension ResultScreen {
             }
         }
     }
-    
-//    @MainActor
-//    private func seekPlayer(to seconds: TimeInterval, autoplay: Bool) {
-//        let safe = max(0, min(seconds, max(0, playerDuration() - 0.1)))
-//        let t = CMTime(seconds: safe, preferredTimescale: 600)
-//
-//        print("seekPlayer")
-//        guard let player else {
-//            print("NO PLAYER")
-//            return
-//        }
-//        player.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
-//            if autoplay { player.play() }
-//        }
-//
-//        print("▶️ seek to:", safe, "cur:", player.currentTime().seconds)
-//    }
-//
-//    private func playerDuration() -> Double {
-//        guard let player else { return 0 }
-//        
-//        return player.currentItem?.duration.seconds.isFinite == true
-//        ? player.currentItem!.duration.seconds
-//        : record.duration
-//    }
 
     private func insertIntoImprovements(_ snippet: String) {
         let s = snippet.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1315,31 +1295,3 @@ extension ResultScreen {
         }
     }
 }
-
-#Preview {
-//    ResultScreen(
-//        record: .init(
-//            id: UUID(),
-//            createdAt: Date(),
-//            title: "예시 발표 영상",
-//            duration: 120,
-//            wordsPerMinute: 150,
-//            fillerCount: 5,
-//            transcript: """
-//                안녕하세요, 저는 iOS 개발자 양희정입니다.
-//                오늘은 제가 준비한 스피치 과제를 발표하겠습니다...
-//                
-//                (실제 구현에서는 음성 인식 결과 텍스트가 들어갈 영역)
-//                """,
-//            note: "",
-//            videoURL: URL(fileURLWithPath: "/dev/null"),
-//            fillerWords: [
-//                "음": 3,
-//                "어": 2,
-//                "그니까": 1
-//            ]
-//        )
-//    )
-}
-
-

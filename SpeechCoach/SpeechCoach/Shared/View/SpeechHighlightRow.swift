@@ -11,8 +11,8 @@ import AVKit
 struct SpeechHighlightRow: View {
     let item: SpeechHighlight
     let duration: TimeInterval
-
-    var onPlay: () -> Void
+    let playbackPolicy: HighlightPlaybackPolicy
+//    var onPlay: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -26,24 +26,27 @@ struct SpeechHighlightRow: View {
             }
 
             Spacer()
-
-            Button {
-                print("Tap Button")
-                onPlay()
-            } label: {
-                Text("재생")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
+            
+            switch playbackPolicy {
+            case .hidden:
+                EmptyView()
+            case .playable(let onPlay):
+                Button {
+                    onPlay(item.start)
+                } label: {
+                    Text("재생")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(10)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .contentShape(Rectangle())
-        .onTapGesture {
-            print("onPlay")
-            onPlay()
-        } // 행 전체 탭으로도 재생
+//        .onTapGesture {
+//            onPlay()
+//        }
     }
 }

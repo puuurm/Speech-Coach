@@ -13,6 +13,8 @@ struct AnalyzingScreen: View {
     
     let onComplete: (SpeechRecord) -> Void
     
+    @EnvironmentObject private var router: NavigationRouter
+    
     @State private var isLoading = true
     @State private var navigateToResult = false
     @State private var record: SpeechRecord?
@@ -49,7 +51,7 @@ struct AnalyzingScreen: View {
         .navigationTitle("분석 중")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $record) { record in
-            ResultScreen(record: record)
+            ResultScreen(record: record, playbackPolicy: .hidden)
         }
         .task {
             await runAnalysis()

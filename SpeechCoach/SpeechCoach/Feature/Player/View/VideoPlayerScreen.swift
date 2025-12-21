@@ -10,7 +10,17 @@ import AVKit
 import Speech
 
 struct VideoPlayerScreen: View {
-    let draft: SpeechDraft
+    let videoURL: URL
+    let title: String
+    let startTime: TimeInterval?
+    let autoplay: Bool
+    
+    init (videoURL: URL, title: String, startTime: TimeInterval? = nil, autoplay: Bool = false) {
+        self.videoURL = videoURL
+        self.title = title
+        self.startTime = startTime
+        self.autoplay = autoplay
+    }
     
     @State private var duration: TimeInterval = 0
     @State private var isLoadingDuration = true
@@ -22,6 +32,8 @@ struct VideoPlayerScreen: View {
     @State private var analyzedRecord: SpeechRecord?      // 분석 결과
     @State private var showFeedbackSheet: Bool = false
     
+    @State private var appliedStartTime = false
+    
     @EnvironmentObject var router: NavigationRouter
     @EnvironmentObject var recordStore: SpeechRecordStore
     
@@ -32,10 +44,6 @@ struct VideoPlayerScreen: View {
     
     private var canProceed: Bool {
         playbackEnded && analyzedRecord != nil
-    }
-    
-    init(draft: SpeechDraft) {
-        self.draft = draft
     }
     
     var body: some View {
@@ -59,12 +67,12 @@ struct VideoPlayerScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             AudioSessionManager.configureForPlayback()
-            pc.load(url: draft.videoURL)
+            pc.load(url: videoURL)
 
             if duration == 0 {
                 isLoadingDuration = true
                 Task {
-                    let asset = AVAsset(url: draft.videoURL)
+                    let asset = AVAsset(url: videoURL)
                     let seconds = CMTimeGetSeconds(asset.duration)
                     let value = seconds.isFinite ? seconds : 0
                     await MainActor.run {
@@ -74,6 +82,11 @@ struct VideoPlayerScreen: View {
                 }
             } else {
                 isLoadingDuration = false
+            }
+            
+            if let startTime, !appliedStartTime {
+                appliedStartTime = true
+                pc.seek(to: startTime, autoplay: autoplay)
             }
         }
         .onChange(of: pc.didReachEnd) { ended in
@@ -90,7 +103,13 @@ struct VideoPlayerScreen: View {
         .sheet(isPresented: $showFeedbackSheet) {
             if let record = analyzedRecord {
                 NavigationStack {
-                    ResultScreen(record: record, player: pc.player)
+                    ResultScreen(
+                        record: record,
+                        playbackPolicy: .playable { start in
+                            pc.seek(to: start, autoplay: true)
+                            showFeedbackSheet = false
+                        }
+                    )
                 }
             }
         }
@@ -112,11 +131,11 @@ private extension VideoPlayerScreen {
     
     var infoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(cleanTitle(from: draft.title))
+            Text(cleanTitle(from: title))
                 .font(.headline)
             
             HStack(spacing: 12) {
-                Label(durationString(draft.duration), systemImage: "clock")
+                Label(durationString(duration), systemImage: "clock")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 Text("카톡 → 사진 앱에 저장된 영상")
@@ -240,10 +259,14 @@ private extension VideoPlayerScreen {
                         .font(.subheadline.weight(.semibold))
                     
                     ForEach(speechType.highlights.prefix(3)) { h in
-                        SpeechHighlightRow(item: h, duration: record.duration) {
-                            pc.fallbackDuration = record.duration
-                            pc.seek(to: h.start, autoplay: true)
-                        }
+                        SpeechHighlightRow(
+                            item: h,
+                            duration: record.duration,
+                            playbackPolicy: .playable { start in
+                                pc.fallbackDuration = record.duration
+                                pc.seek(to: start, autoplay: true)
+                            }
+                        )
                     }
                 }
                 .padding(12)
@@ -373,8 +396,8 @@ private extension VideoPlayerScreen {
     func runAnalysis() async throws -> SpeechRecord {
         // 1) 전사
         let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko_RK"))!
-        let audioURL = try await speechService.exportAudio(from: draft.videoURL)
-        let rawTranscript = try await speechService.transcribe(videoURL: draft.videoURL)
+        let audioURL = try await speechService.exportAudio(from: videoURL)
+        let rawTranscript = try await speechService.transcribe(videoURL: videoURL)
         let transcriptResult = try await speechService.recognizeDetailed(url: audioURL, with: recognizer)
         
         // 2) 클린업
@@ -384,10 +407,10 @@ private extension VideoPlayerScreen {
         
         // 3) duration 확보 (draft.duration이 0이면 AVAsset으로 보정)
         let duration: TimeInterval = {
-            if draft.duration > 0 {
-                return draft.duration
+            if self.duration > 0 {
+                return self.duration
             } else {
-                let asset = AVAsset(url: draft.videoURL)
+                let asset = AVAsset(url: videoURL)
                 let seconds = CMTimeGetSeconds(asset.duration)
                 return seconds.isFinite ? seconds : 0
             }
@@ -406,14 +429,14 @@ private extension VideoPlayerScreen {
         
         // 6) SpeechRecord 생성
         let record = SpeechRecord(
-            id: draft.id,
+            id: UUID(),
             createdAt: Date(),
             title: title,
             duration: duration,
             wordsPerMinute: wpm,
             fillerCount: fillerTotal,
             transcript: cleaned,
-            videoURL: draft.videoURL,
+            videoURL: videoURL,
             fillerWords: fillerDict,
             studentName: "희정님",
             noteIntro: "",
@@ -427,14 +450,3 @@ private extension VideoPlayerScreen {
     }
 }
     
-
-#Preview {
-    VideoPlayerScreen(
-        draft: .init(
-            id: UUID(),
-            title: "예시 발표 영상",
-            duration: 120,
-            videoURL: URL(fileURLWithPath: "/dev/null")
-        )
-    )
-}

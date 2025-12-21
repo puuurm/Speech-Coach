@@ -18,12 +18,17 @@ struct ContentView: View {
             HomeView(viewModel: homeViewModel)
                 .navigationDestination(for: AppRoute.self) { route in
                     switch route {
-                    case .videoPlayer(let draft):
-                        VideoPlayerScreen(draft: draft)
-                            .environmentObject(pc)
+                    case .videoPlayer(let payload):
+                        VideoPlayerScreen(
+                            videoURL: payload.videoURL,
+                            title: payload.title,
+                            startTime: payload.startTime,
+                            autoplay: payload.autoplay
+                        )
+                        .environmentObject(pc)
                     case .result(let record):
-                        ResultScreen(record: record, player: nil)
-                            .environmentObject(pc)
+                        ResultScreen(record: record, playbackPolicy: .hidden)
+
                     }
                 }
         }
@@ -32,6 +37,4 @@ struct ContentView: View {
     }
 }
 
-#Preview {
-    ContentView()
-}
+

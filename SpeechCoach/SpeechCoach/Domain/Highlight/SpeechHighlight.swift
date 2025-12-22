@@ -15,43 +15,15 @@ struct SpeechHighlight: Codable, Hashable, Identifiable {
     var end: TimeInterval
     var reason: String
     
-    var category: CoachIssueCategory
-    var severity: Int
+//    var category: CoachIssueCategory
+//    var severity: Int
 }
 
-struct CoachAssistContent: Hashable {
-    var problemSummary: String
-    var listenerImpact: [String]
-    var checkpoints: [String]
-    
-    var likelyCauses: [String]
-    var diagnosticQuestions: [String]
-    
-    var coachingOneLiner: String
-    var coachingScripts30s: String
-    var alternativePhrases: [String]
-    var doSay: [String]
-    var avoidSay: [String]
-    
-    var drills: [CoachDrill]
-}
-
-struct CoachDrill: Identifiable, Hashable {
-    let id: UUID
-    var title: String
-    var durationHint: String
-    var howTo: [String]
-    var successCriteria: [String]
-    var commonMistakes: [String]
-}
-
-enum CoachIssueCategory: String, CaseIterable, Hashable, Codable {
-    case paceFast
-    case paceSlow
-    case fillerWords
-    case monotone
-    case unclearStructure
-    case weakEmphasis
+struct CoachDrill: Hashable, Identifiable {
+    let id = UUID()
+    let title: String
+    let durationSec: Int
+    let steps: [String]
 }
 
 extension SpeechHighlight {

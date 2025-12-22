@@ -8,13 +8,10 @@
 import SwiftUI
 
 @main
-struct SpeechCoachApp: App {
-    let seekBridge = HighlightSeekBridge.shared
-    
+struct SpeechCoachApp: App {    
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(seekBridge)
         }
     }
 }

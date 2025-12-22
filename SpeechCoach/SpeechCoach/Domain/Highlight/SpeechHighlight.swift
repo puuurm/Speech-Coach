@@ -14,6 +14,44 @@ struct SpeechHighlight: Codable, Hashable, Identifiable {
     var start: TimeInterval
     var end: TimeInterval
     var reason: String
+    
+    var category: CoachIssueCategory
+    var severity: Int
+}
+
+struct CoachAssistContent: Hashable {
+    var problemSummary: String
+    var listenerImpact: [String]
+    var checkpoints: [String]
+    
+    var likelyCauses: [String]
+    var diagnosticQuestions: [String]
+    
+    var coachingOneLiner: String
+    var coachingScripts30s: String
+    var alternativePhrases: [String]
+    var doSay: [String]
+    var avoidSay: [String]
+    
+    var drills: [CoachDrill]
+}
+
+struct CoachDrill: Identifiable, Hashable {
+    let id: UUID
+    var title: String
+    var durationHint: String
+    var howTo: [String]
+    var successCriteria: [String]
+    var commonMistakes: [String]
+}
+
+enum CoachIssueCategory: String, CaseIterable, Hashable, Codable {
+    case paceFast
+    case paceSlow
+    case fillerWords
+    case monotone
+    case unclearStructure
+    case weakEmphasis
 }
 
 extension SpeechHighlight {
@@ -58,16 +96,6 @@ extension SpeechHighlight {
     }
 }
 
-// 네 프로젝트에 이미 SpeechHighlight가 있다고 가정
-// struct SpeechHighlight: Identifiable, Codable, Hashable {
-//   var id: UUID = UUID()
-//   var title: String
-//   var detail: String
-//   var start: TimeInterval
-//   var end: TimeInterval
-//   var reason: String
-// }
-
 extension SpeechHighlight {
 
     var timeRangeText: String {
@@ -101,4 +129,10 @@ extension SpeechHighlight {
     func timeLabel(duration: TimeInterval) -> String {
         "\(start.toClock()) → \(min(end, duration).toClock())"
     }
+}
+
+func timeString(_ seconds: TimeInterval) -> String {
+    let m = Int(seconds) / 60
+    let s = Int(seconds) % 60
+    return String(format: "%02d:%02d", m, s)
 }

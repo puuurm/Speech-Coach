@@ -159,26 +159,50 @@ enum SpeechTypeSummarizer {
         
         let gaps = PauseAnalyzer.gaps(from: segments, duration: duration)
         if let longest = gaps.max(by: { $0.duration < $1.duration }), longest.duration >= 1.2 {
+            
+            let severity: HighlightSeverity
+            if longest.duration >= 2.5 {
+                severity = .high
+            } else if longest.duration >= 1.8 {
+                severity = .medium
+            } else {
+                severity = .low
+            }
             result.append(
                 SpeechHighlight(
                     title: "가장 긴 멈춤",
                     detail: "\(String(format: "%.1f", longest.duration))초 멈춤 - 답변 정리 구간으로 보임",
                     start: longest.start,
                     end: longest.end,
-                    reason: "1.2초 이상 멈춘 구간으로 답변을 정리하거나 다음 문장을 고민하는 흐름"
+                    reason: "1.2초 이상 멈춘 구간으로 답변을 정리하거나 다음 문장을 고민하는 흐름",
+                    category: .unclearStructure,
+                    severity: severity
                 )
             )
         }
         
         let series = SpeedSeries.make(from: segments, duration: duration, binSize: 5)
         if let maxBins = series.bins.max(by: { $0.wpm < $1.wpm }), maxBins.wpm >= 170 {
+            
+            let wpm = maxBins.wpm
+            let severity: HighlightSeverity
+            if wpm >= 200 {
+                severity = .high
+            } else if wpm >= 185 {
+                severity = .medium
+            } else {
+                severity = .low
+            }
+            
             result.append(
                 SpeechHighlight(
                     title: "속도 가장 빠른 구간",
                     detail: "정보가 몰리며 말이 빨라진 구간 - 전달력 저하 가능",
                     start: maxBins.start,
                     end: maxBins.end,
-                    reason: "5초 bin 기준 WPM \(Int(maxBins.wpm)) 이상으로 상승한 구간"
+                    reason: "5초 bin 기준 WPM \(Int(maxBins.wpm)) 이상으로 상승한 구간",
+                    category: .paceFast,
+                    severity: severity
                 )
             )
         }
@@ -192,13 +216,25 @@ enum SpeechTypeSummarizer {
         {
             let start = low.startTime
             let end = min(duration, low.startTime + low.duration)
+            
+            let confidence = low.confidence ?? 1.0
+            let severity: HighlightSeverity
+            if confidence <= 0.55 {
+                severity = .high
+            } else if confidence <= 0.70 {
+                severity = .medium
+            } else {
+                severity = .low
+            }
             result.append(
                 SpeechHighlight(
                     title: "발음이 불명확한 구간",
                     detail: "발음 또는 환경 영향으로 말이 흐려진 구간",
                     start: start,
                     end: end,
-                    reason: "Speech confidence 값이 가장 낮은 세그먼트"
+                    reason: "Speech confidence 값이 가장 낮은 세그먼트",
+                    category: .unclearPronunciation,
+                    severity: severity
                 )
             )
         }

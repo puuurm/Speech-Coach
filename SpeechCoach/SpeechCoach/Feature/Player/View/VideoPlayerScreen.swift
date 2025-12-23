@@ -108,7 +108,8 @@ struct VideoPlayerScreen: View {
                         playbackPolicy: .playable { start in
                             pc.seek(to: start, autoplay: true)
                             showFeedbackSheet = false
-                        }
+                        },
+                        onRequestPlay: nil
                     )
                 }
             }

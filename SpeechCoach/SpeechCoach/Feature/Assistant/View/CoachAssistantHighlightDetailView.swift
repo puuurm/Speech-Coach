@@ -120,7 +120,7 @@ struct CoachAssistantHighlightDetailView: View {
             copyCard(text: content.coachingOneLiner)
             
             sectionTitle("30초 설명 스크립트")
-            copyCard(text: content.coachingScripts30s)
+            copyCard(text: content.coachingScript30s)
             
             sectionTitle("대안 표현 예시")
             bulletList(content.alternativePhrases)
@@ -136,7 +136,8 @@ struct CoachAssistantHighlightDetailView: View {
     var drillSection: some View {
         VStack(alignment: .leading) {
             sectionTitle("추천 연습 드릴")
-            ForEach(content.drills) { drill in
+            let drills: [CoachDrill] = content.drills
+            ForEach(drills, id: \.id) { (drill: CoachDrill) in
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text(drill.title).font(.headline)
@@ -145,14 +146,14 @@ struct CoachAssistantHighlightDetailView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Text("방법").font(.subheadline).bold()
-                    bulletList(drill.howTo)
-                    
-                    Text("성공 조건").font(.subheadline).bold()
-                    bulletList(drill.successCriteria)
-                    
-                    Text("흔한 실수").font(.subheadline).bold()
-                    bulletList(drill.commonMistakes)
+//                    Text("방법").font(.subheadline).bold()
+//                    bulletList(drill.howTo)
+//                    
+//                    Text("성공 조건").font(.subheadline).bold()
+//                    bulletList(drill.successCriteria)
+//                    
+//                    Text("흔한 실수").font(.subheadline).bold()
+//                    bulletList(drill.commonMistakes)
                     
                     HStack {
                         Button {
@@ -165,11 +166,11 @@ struct CoachAssistantHighlightDetailView: View {
                         Spacer()
                         
                         Button {
-                            copyToPasteboard("""
-                            [연습] \(drill.title) (\(drill.durationHint))
-                            - 방법: \(drill.howTo.joined(separator: " / "))
-                            - 성공 조건: \(drill.successCriteria.joined(separator: " / "))
-                            """)
+//                            copyToPasteboard("""
+//                            [연습] \(drill.title) (\(drill.durationHint))
+//                            - 방법: \(drill.howTo.joined(separator: " / "))
+//                            - 성공 조건: \(drill.successCriteria.joined(separator: " / "))
+//                            """)
                         } label: {
                             Label("공유 텍스트 복사", systemImage: "doc.on.doc")
                         }

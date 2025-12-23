@@ -19,6 +19,7 @@ extension ResultScreen {
 struct ResultScreen: View {
     let record: SpeechRecord
     let playbackPolicy: HighlightPlaybackPolicy
+    let onRequestPlay: ((TimeInterval) -> Void)?
 //    let onRequestPlay: (TimeInterval) -> Void
     
     @EnvironmentObject private var recordStore: SpeechRecordStore
@@ -46,12 +47,16 @@ struct ResultScreen: View {
     @State private var showAdvanced: Bool = false
     @State private var showQualitative: Bool = false
     
+    @State private var isCoachAssistantPresented: Bool = false
+
+    @State private var selectedHighlight: SpeechHighlight?
     @State private var speechType: SpeechTypeSummary? = nil
-    
+    @Environment(\.horizontalSizeClass) private var hSizeClass
+
     init(
         record: SpeechRecord,
-        playbackPolicy: HighlightPlaybackPolicy
-//        onRequestPlay: @escaping (TimeInterval) -> Void
+        playbackPolicy: HighlightPlaybackPolicy,
+        onRequestPlay: ((TimeInterval) -> Void)? = nil
     ) {
         self.record = record
         _introText = State(initialValue: record.noteIntro)
@@ -61,7 +66,7 @@ struct ResultScreen: View {
         let baseQualitative = record.qualitative ?? QualitativeRecommender.recommend(for: record)
         _qualitative = State(initialValue: baseQualitative)
 //        self.player = player
-//        self.onRequestPlay = onRequestPlay
+        self.onRequestPlay = onRequestPlay
         self.playbackPolicy = playbackPolicy
     }
     
@@ -92,6 +97,26 @@ struct ResultScreen: View {
                 .padding(.vertical, 16)
             }
         }
+        .sheet(isPresented: Binding(
+              get: { hSizeClass == .compact && isCoachAssistantPresented },
+              set: { newValue in
+                  if !newValue { dismissCoachAssistant() }
+              }
+          )) {
+              if let highlight = selectedHighlight {
+                  CoachAssistantHighlightDetailView(
+                    highlight: highlight,
+                    content: CoachAssistContent.makeFallback(from: record, highlight: highlight),
+                    onRequestPlay: { sec in
+                        onRequestPlay?(sec)
+                    }
+                  )
+
+                  // .presentationDetents([.medium, .large]) // 필요하면
+              } else {
+                  EmptyView()
+              }
+          }
 //        ScrollView {
 //            VStack(alignment: .leading, spacing: 20) {
 //                headerSection
@@ -835,6 +860,11 @@ struct ResultScreen: View {
         if value < 0 { return "\(value)" }
         return "변화 없음"
     }
+    
+    private func dismissCoachAssistant() {
+        isCoachAssistantPresented = false
+        selectedHighlight = nil
+    }
 }
 
 extension ResultScreen {
@@ -1266,14 +1296,12 @@ extension ResultScreen {
                             SpeechHighlightRow(
                                 item: h,
                                 duration: record.duration,
-                                playbackPolicy: playbackPolicy
+                                playbackPolicy: playbackPolicy,
+                                onPlay: {
+                                    presentCoachAssistant(for: h)
+                                }
                             )
-//                            SpeechHighlightRow(item: h, duration: record.duration) {
-//                                onRequestPlay(h.start)
-//                                dismiss()
-//                            }
                         }
-
                     }
                 }
             } else {
@@ -1282,6 +1310,10 @@ extension ResultScreen {
                     .foregroundColor(.secondary)
             }
         }
+    }
+    private func presentCoachAssistant(for highlight: SpeechHighlight) {
+        selectedHighlight = highlight
+        isCoachAssistantPresented = true
     }
 
     private func insertIntoImprovements(_ snippet: String) {

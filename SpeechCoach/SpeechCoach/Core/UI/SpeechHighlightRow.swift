@@ -12,7 +12,7 @@ struct SpeechHighlightRow: View {
     let item: SpeechHighlight
     let duration: TimeInterval
     let playbackPolicy: HighlightPlaybackPolicy
-//    var onPlay: () -> Void
+    var onPlay: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -45,8 +45,8 @@ struct SpeechHighlightRow: View {
             }
         }
         .contentShape(Rectangle())
-//        .onTapGesture {
-//            onPlay()
-//        }
+        .onTapGesture {
+            onPlay?()
+        }
     }
 }

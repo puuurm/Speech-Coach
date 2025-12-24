@@ -91,4 +91,26 @@ final class SpeechRecordStore: ObservableObject {
             print("Failed to load SpeechRecord list:", error)
         }
     }
+    
+    func updateVideoRelativePath(recordID: UUID, relativePath: String) {
+        guard let index = records.firstIndex(where: { $0.id == recordID }) else {
+            assertionFailure("❌ Record not found: \(recordID)")
+            return
+        }
+
+        var updated = records[index]
+        updated.videoRelativePath = relativePath
+
+        // 🔴 중요: legacy videoURL도 같이 갱신 (혼용 방지)
+        updated.videoURL = VideoStore.shared.resolve(relativePath: relativePath)
+
+        records[index] = updated
+
+        persistIfNeeded()
+    }
+    
+    private func persistIfNeeded() {
+        // JSON / UserDefaults / CoreData 등
+        // 지금은 비워두거나 아래 2️⃣에서 구현
+    }
 }

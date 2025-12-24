@@ -77,7 +77,8 @@ struct CoachAssistantHighlightDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(highlight.title)
                 .font(.title3).bold()
-            Text("\(format(highlight.start)) ~ \(format(highlight.end))")
+//            Text("\(format(highlight.start)) ~ \(format(highlight.end))")
+            
             Text(highlight.coachDetail(record: record))
             
             Spacer()
@@ -88,20 +89,6 @@ struct CoachAssistantHighlightDetailView: View {
                 Label("이 구간 재생", systemImage: "play.fill")
             }
             .buttonStyle(.borderedProminent)
-//            HStack(alignment: .top) {
-//                VStack(alignment: .leading, spacing: 6) {
-//                    Text(highlight.title)
-//                        .font(.title3).bold()
-//                    Text("\(format(highlight.start)) ~ \(format(highlight.end))")
-//                        .font(.subheadline)
-//                        .foregroundStyle(.secondary)
-//                    
-//                    Text("심각도 \(highlight.severity)/5 · \(highlight.category.rawValue)")
-//                        .font(.caption)
-//                        .foregroundStyle(.secondary)
-//                }
-//
-//            }
         }
         .padding(14)
         .background(.thinMaterial)

@@ -67,6 +67,8 @@ struct VideoPlayerScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             AudioSessionManager.configureForPlayback()
+            print("videoURL:", videoURL)
+            print("exists:", FileManager.default.fileExists(atPath: videoURL.path))
             pc.load(url: videoURL)
 
             if duration == 0 {
@@ -397,18 +399,14 @@ private extension VideoPlayerScreen {
     }
     
     func runAnalysis() async throws -> SpeechRecord {
-        // 1) 전사
         let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko_RK"))!
         let audioURL = try await speechService.exportAudio(from: videoURL)
         let rawTranscript = try await speechService.transcribe(videoURL: videoURL)
         let transcriptResult = try await speechService.recognizeDetailed(url: audioURL, with: recognizer)
         
-        // 2) 클린업
         let cleaned = transcriptResult.cleanedText
-        
         let segments = transcriptResult.segments
         
-        // 3) duration 확보 (draft.duration이 0이면 AVAsset으로 보정)
         let duration: TimeInterval = {
             if self.duration > 0 {
                 return self.duration
@@ -419,34 +417,34 @@ private extension VideoPlayerScreen {
             }
         }()
         
-        // 4) 분석 지표
         let wpm = analyzer.wordsPerMinute(transcript: cleaned, duration: duration)
         let fillerDict = analyzer.fillerWordsDict(from: cleaned)
         let fillerTotal = fillerDict.values.reduce(0, +)
         
-        // 5) 제목 생성 (있다면)
         let title = SpeechTitleBuilder.makeTitle(
             transcript: cleaned,
             createdAt: Date()
         )
+        let recordID = UUID()
+        let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
         
-        // 6) SpeechRecord 생성
         let record = SpeechRecord(
-            id: UUID(),
+            id: recordID,
             createdAt: Date(),
             title: title,
             duration: duration,
             wordsPerMinute: wpm,
             fillerCount: fillerTotal,
             transcript: cleaned,
-            videoURL: videoURL,
+            videoURL: VideoStore.shared.resolve(relativePath: relative),
             fillerWords: fillerDict,
             studentName: "희정님",
             noteIntro: "",
             noteStrengths: "",
             noteImprovements: "",
             noteNextStep: "",
-            transcriptSegments: segments
+            transcriptSegments: segments,
+            videoRelativePath: relative
         )
         
         return record

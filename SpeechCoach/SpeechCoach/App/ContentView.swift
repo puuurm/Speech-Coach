@@ -34,7 +34,7 @@ struct ContentView: View {
                                 pc.seek(to: sec, autoplay: true)
                             }
                         )
-
+                        .environmentObject(pc)
                     }
                 }
         }

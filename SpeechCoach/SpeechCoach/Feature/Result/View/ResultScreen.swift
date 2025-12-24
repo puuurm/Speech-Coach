@@ -49,8 +49,19 @@ struct ResultScreen: View {
     @State private var isCoachAssistantPresented: Bool = false
 
     @State private var selectedHighlight: SpeechHighlight?
+    @State private var showPlayer: Bool = false
+    @State private var pendingSeek: TimeInterval = 0
+    
     @State private var speechType: SpeechTypeSummary? = nil
-    @Environment(\.horizontalSizeClass) private var hSizeClass
+    
+    struct PlayerRoute: Identifiable, Equatable {
+        let id = UUID()
+        let recordID: UUID
+        let startTime: TimeInterval?
+        let autoplay: Bool
+    }
+
+    @State private var playerRoute: PlayerRoute?
 
     init(
         record: SpeechRecord,
@@ -103,12 +114,35 @@ struct ResultScreen: View {
                 onRequestPlay: { sec in
                     onRequestPlay(sec)
                     selectedHighlight = nil
-                    dismiss()
+                    pendingSeek = sec
+                    playerRoute = .init(recordID: record.id, startTime: sec, autoplay: true)
+                    DispatchQueue.main.async {
+                        showPlayer = true
+                    }
                 }
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
+        .fullScreenCover(isPresented: $showPlayer, onDismiss: {
+            playerRoute = nil
+        }) {
+            if let url = record.resolvedVideoURL,
+               let route = playerRoute {
+                VideoPlayerScreen(
+                    videoURL: url,
+                    title: record.title,
+                    startTime: route.startTime,
+                    autoplay: route.autoplay
+                )
+            } else {
+                // fallback UI
+                VideoReconnectView(record: record)
+            }
+        }
+//        .fullScreenCover(isPresented: $showPlayer) {
+//            VideoPlayerScreen(videoURL: record.resolvedVideoURL!, title: record.title)
+//        }
 //        ScrollView {
 //            VStack(alignment: .leading, spacing: 20) {
 //                headerSection

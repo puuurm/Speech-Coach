@@ -15,8 +15,8 @@ struct SpeechRecord: Identifiable, Hashable, Codable {
     let wordsPerMinute: Int
     let fillerCount: Int
     let transcript: String
-    let videoURL: URL
-    let fillerWords: [String: Int]
+    var videoURL: URL
+    var fillerWords: [String: Int]
     
     var studentName: String
     var noteIntro: String
@@ -26,4 +26,5 @@ struct SpeechRecord: Identifiable, Hashable, Codable {
     
     var qualitative: QualitativeMetrics?
     var transcriptSegments: [TranscriptSegment]?
+    var videoRelativePath: String?
 }

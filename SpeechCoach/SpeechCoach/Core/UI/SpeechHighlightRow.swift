@@ -20,7 +20,7 @@ struct SpeechHighlightRow: View {
                 Text(item.title)
                     .font(.subheadline.weight(.semibold))
 
-                Text(item.coachDetail(recordDuration: duration))
+                Text(item.coachLineText())
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

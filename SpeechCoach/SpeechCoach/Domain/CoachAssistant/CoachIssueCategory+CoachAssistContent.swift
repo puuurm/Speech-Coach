@@ -16,6 +16,7 @@ enum HighlightSeverity: Int, CaseIterable, Hashable, Codable {
 enum CoachIssueCategory: String, CaseIterable, Hashable, Codable {
     case paceFast
     case paceSlow
+    case longPause
     case fillerWords
     case monotone
     case unclearStructure
@@ -38,6 +39,12 @@ struct CoachAssistContent: Hashable, Codable {
     var avoidSay: [String]
 
     var drills: [CoachDrill]
+}
+
+extension CoachAssistContent {
+    var isPlaceholder: Bool {
+        problemSummary.contains("준비 중") || coachingOneLiner.isEmpty
+    }
 }
 
 extension CoachAssistContent {

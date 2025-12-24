@@ -7,18 +7,6 @@
 
 import Foundation
 
-struct SpeechHighlight: Codable, Hashable, Identifiable {
-    var id: UUID = UUID()
-    var title: String
-    var detail: String
-    var start: TimeInterval
-    var end: TimeInterval
-    var reason: String
-    
-    var category: CoachIssueCategory
-    var severity: HighlightSeverity
-}
-
 struct CoachDrill: Hashable, Identifiable, Codable {
     let id = UUID()
     let title: String
@@ -42,6 +30,18 @@ struct CoachDrillGuide {
 struct CoachDrillCardData {
     let drill: CoachDrill
     let guide: CoachDrillGuide
+}
+
+struct SpeechHighlight: Codable, Hashable, Identifiable {
+    var id: UUID = UUID()
+    var title: String
+    var detail: String
+    var start: TimeInterval
+    var end: TimeInterval
+    var reason: String
+    
+    var category: CoachIssueCategory
+    var severity: HighlightSeverity
 }
 
 extension SpeechHighlight {
@@ -87,23 +87,19 @@ extension SpeechHighlight {
 }
 
 extension SpeechHighlight {
-
     var timeRangeText: String {
         let s = Self.mmss(start)
         let e = Self.mmss(end)
         return "\(s)–\(e)"
     }
 
-    /// ResultScreen에 보여줄 "짧은 강사용 문장"
-    func coachDetail(recordDuration: TimeInterval) -> String {
-        // detail을 비워둔 상태라면, 기본은 time + reason으로 구성
+    func coachLineText() -> String {
         if detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
             return "\(timeRangeText) · \(detail)"
         }
         if reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
             return "\(timeRangeText) · \(reason)"
         }
-        // 최후 fallback
         return "\(timeRangeText) · 이 구간을 다시 들어보면 좋아요."
     }
 

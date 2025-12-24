@@ -17,12 +17,24 @@ struct CoachAssistantHighlightDetailView: View {
     
     let highlight: SpeechHighlight
     let content: CoachAssistContent
-    
     let onRequestPlay: (TimeInterval) -> Void
     
     @State private var selectedTab: Tab = .script
     @State private var memo: String = ""
     @State private var toastText: String? = nil
+    
+    init(
+        highlight: SpeechHighlight,
+        record: SpeechRecord,
+        onRequestPlay: @escaping (TimeInterval) -> Void,
+    ) {
+        self.highlight = highlight
+        let base = CoachAssistContent.content(for: highlight.category)
+        self.content = base.isPlaceholder
+            ? CoachAssistContent.makeFallback(from: record, highlight: highlight)
+            :base
+        self.onRequestPlay = onRequestPlay
+    }
     
     var body: some View {
         ScrollView {

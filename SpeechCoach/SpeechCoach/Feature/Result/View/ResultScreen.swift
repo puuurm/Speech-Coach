@@ -97,26 +97,38 @@ struct ResultScreen: View {
                 .padding(.vertical, 16)
             }
         }
-        .sheet(isPresented: Binding(
-              get: { hSizeClass == .compact && isCoachAssistantPresented },
-              set: { newValue in
-                  if !newValue { dismissCoachAssistant() }
-              }
-          )) {
-              if let highlight = selectedHighlight {
-                  CoachAssistantHighlightDetailView(
-                    highlight: highlight,
-                    content: CoachAssistContent.makeFallback(from: record, highlight: highlight),
+        .sheet(item: $selectedHighlight) { h in
+            NavigationStack {
+                CoachAssistantHighlightDetailView(
+                    highlight: h,
+                    record: record,
                     onRequestPlay: { sec in
                         onRequestPlay?(sec)
                     }
-                  )
+                )
+            }
+        }
 
-                  // .presentationDetents([.medium, .large]) // 필요하면
-              } else {
-                  EmptyView()
-              }
-          }
+//        .sheet(isPresented: Binding(
+//              get: { hSizeClass == .compact && isCoachAssistantPresented },
+//              set: { newValue in
+//                  if !newValue { dismissCoachAssistant() }
+//              }
+//          )) {
+//              if let highlight = selectedHighlight {
+//                  CoachAssistantHighlightDetailView(
+//                    highlight: highlight,
+//                    record: record,
+//                    onRequestPlay: { sec in
+//                        onRequestPlay?(sec)
+//                    }
+//                  )
+//
+//                  // .presentationDetents([.medium, .large]) // 필요하면
+//              } else {
+//                  EmptyView()
+//              }
+//          }
 //        ScrollView {
 //            VStack(alignment: .leading, spacing: 20) {
 //                headerSection

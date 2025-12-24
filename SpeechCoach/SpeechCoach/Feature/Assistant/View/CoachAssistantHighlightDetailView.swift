@@ -14,8 +14,8 @@ struct CoachAssistantHighlightDetailView: View {
         case script = "개선 스크립트"
         case drill = "연습 드릴"
     }
-    
     let highlight: SpeechHighlight
+    let record: SpeechRecord
     let content: CoachAssistContent
     let onRequestPlay: (TimeInterval) -> Void
     
@@ -29,6 +29,7 @@ struct CoachAssistantHighlightDetailView: View {
         onRequestPlay: @escaping (TimeInterval) -> Void,
     ) {
         self.highlight = highlight
+        self.record = record
         let base = CoachAssistContent.content(for: highlight.category)
         self.content = base.isPlaceholder
             ? CoachAssistContent.makeFallback(from: record, highlight: highlight)
@@ -73,28 +74,34 @@ struct CoachAssistantHighlightDetailView: View {
     }
     
     var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(highlight.title)
-                        .font(.title3).bold()
-                    Text("\(format(highlight.start)) ~ \(format(highlight.end))")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    
-                    Text("심각도 \(highlight.severity)/5 · \(highlight.category.rawValue)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                
-                Button {
-                    onRequestPlay(highlight.start)
-                } label: {
-                    Label("재생", systemImage: "play.fill")
-                }
-                .buttonStyle(.borderedProminent)
+        VStack(alignment: .leading, spacing: 12) {
+            Text(highlight.title)
+                .font(.title3).bold()
+            Text("\(format(highlight.start)) ~ \(format(highlight.end))")
+            Text(highlight.coachDetail(record: record))
+            
+            Spacer()
+            
+            Button {
+                onRequestPlay(highlight.start)
+            } label: {
+                Label("이 구간 재생", systemImage: "play.fill")
             }
+            .buttonStyle(.borderedProminent)
+//            HStack(alignment: .top) {
+//                VStack(alignment: .leading, spacing: 6) {
+//                    Text(highlight.title)
+//                        .font(.title3).bold()
+//                    Text("\(format(highlight.start)) ~ \(format(highlight.end))")
+//                        .font(.subheadline)
+//                        .foregroundStyle(.secondary)
+//                    
+//                    Text("심각도 \(highlight.severity)/5 · \(highlight.category.rawValue)")
+//                        .font(.caption)
+//                        .foregroundStyle(.secondary)
+//                }
+//
+//            }
         }
         .padding(14)
         .background(.thinMaterial)

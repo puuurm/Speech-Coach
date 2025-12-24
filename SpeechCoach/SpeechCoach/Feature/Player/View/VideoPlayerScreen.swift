@@ -109,7 +109,9 @@ struct VideoPlayerScreen: View {
                             pc.seek(to: start, autoplay: true)
                             showFeedbackSheet = false
                         },
-                        onRequestPlay: nil
+                        onRequestPlay: { sec in
+                            pc.seek(to: sec, autoplay: autoplay)
+                        }
                     )
                 }
             }

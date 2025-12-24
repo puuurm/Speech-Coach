@@ -27,7 +27,13 @@ struct ContentView: View {
                         )
                         .environmentObject(pc)
                     case .result(let record):
-                        ResultScreen(record: record, playbackPolicy: .hidden)
+                        ResultScreen(
+                            record: record,
+                            playbackPolicy: .hidden,
+                            onRequestPlay: { sec in
+                                pc.seek(to: sec, autoplay: true)
+                            }
+                        )
 
                     }
                 }

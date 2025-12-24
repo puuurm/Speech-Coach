@@ -19,8 +19,7 @@ extension ResultScreen {
 struct ResultScreen: View {
     let record: SpeechRecord
     let playbackPolicy: HighlightPlaybackPolicy
-    let onRequestPlay: ((TimeInterval) -> Void)?
-//    let onRequestPlay: (TimeInterval) -> Void
+    let onRequestPlay: (TimeInterval) -> Void
     
     @EnvironmentObject private var recordStore: SpeechRecordStore
     @EnvironmentObject private var pc: PlayerController
@@ -56,7 +55,7 @@ struct ResultScreen: View {
     init(
         record: SpeechRecord,
         playbackPolicy: HighlightPlaybackPolicy,
-        onRequestPlay: ((TimeInterval) -> Void)? = nil
+        onRequestPlay: @escaping (TimeInterval) -> Void
     ) {
         self.record = record
         _introText = State(initialValue: record.noteIntro)
@@ -98,37 +97,18 @@ struct ResultScreen: View {
             }
         }
         .sheet(item: $selectedHighlight) { h in
-            NavigationStack {
-                CoachAssistantHighlightDetailView(
-                    highlight: h,
-                    record: record,
-                    onRequestPlay: { sec in
-                        onRequestPlay?(sec)
-                    }
-                )
-            }
+            CoachAssistantHighlightDetailView(
+                highlight: h,
+                record: record,
+                onRequestPlay: { sec in
+                    onRequestPlay(sec)
+                    selectedHighlight = nil
+                    dismiss()
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
-
-//        .sheet(isPresented: Binding(
-//              get: { hSizeClass == .compact && isCoachAssistantPresented },
-//              set: { newValue in
-//                  if !newValue { dismissCoachAssistant() }
-//              }
-//          )) {
-//              if let highlight = selectedHighlight {
-//                  CoachAssistantHighlightDetailView(
-//                    highlight: highlight,
-//                    record: record,
-//                    onRequestPlay: { sec in
-//                        onRequestPlay?(sec)
-//                    }
-//                  )
-//
-//                  // .presentationDetents([.medium, .large]) // 필요하면
-//              } else {
-//                  EmptyView()
-//              }
-//          }
 //        ScrollView {
 //            VStack(alignment: .leading, spacing: 20) {
 //                headerSection
@@ -1313,6 +1293,10 @@ extension ResultScreen {
                                     presentCoachAssistant(for: h)
                                 }
                             )
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedHighlight = h
+                            }
                         }
                     }
                 }

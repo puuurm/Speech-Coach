@@ -51,7 +51,11 @@ struct AnalyzingScreen: View {
         .navigationTitle("분석 중")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $record) { record in
-            ResultScreen(record: record, playbackPolicy: .hidden)
+            ResultScreen(
+                record: record,
+                playbackPolicy: .hidden,
+                onRequestPlay: { _ in}
+            )
         }
         .task {
             await runAnalysis()

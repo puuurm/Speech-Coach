@@ -255,7 +255,7 @@ private extension VideoPlayerScreen {
             let speechType = SpeechTypeSummarizer.summarize(
                 duration: record.duration,
                 wordsPerMinute: record.wordsPerMinute,
-                segments: record.transcriptSegments ?? []   // nil이면 빈 배열 -> 하이라이트 없음
+                segments: record.insight?.transcriptSegments ?? []   // nil이면 빈 배열 -> 하이라이트 없음
             )
             
             if speechType.highlights.isEmpty == false {
@@ -428,7 +428,7 @@ private extension VideoPlayerScreen {
         let recordID = UUID()
         let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
         
-        let record = SpeechRecord(
+        var record = SpeechRecord(
             id: recordID,
             createdAt: Date(),
             title: title,
@@ -436,16 +436,14 @@ private extension VideoPlayerScreen {
             wordsPerMinute: wpm,
             fillerCount: fillerTotal,
             transcript: cleaned,
-            videoURL: VideoStore.shared.resolve(relativePath: relative),
             fillerWords: fillerDict,
             studentName: "희정님",
-            noteIntro: "",
-            noteStrengths: "",
-            noteImprovements: "",
-            noteNextStep: "",
-            transcriptSegments: segments,
-            videoRelativePath: relative
+            videoRelativePath: relative,
+            note: nil,
+            insight: nil,
+            highlights: []
         )
+        record.insight?.transcriptSegments = segments
         
         return record
     }

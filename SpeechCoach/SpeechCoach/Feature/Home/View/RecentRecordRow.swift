@@ -62,32 +62,3 @@ struct RecentRecordRow: View {
         .baselineOffset(1)            // ← 글자 깨짐 방지
     }
 }
-
-#Preview {
-    RecentRecordRow(
-        record: .init(
-            id: UUID(),
-            createdAt: Date(),
-            title: "예시 발표 영상",
-            duration: 120,
-            wordsPerMinute: 150,
-            fillerCount: 5,
-            transcript: """
-            안녕하세요, 저는 iOS 개발자 양희정입니다.
-            오늘은 제가 준비한 스피치 과제를 발표하겠습니다...
-            """,
-            videoURL: URL(fileURLWithPath: "/dev/null"),
-            fillerWords: [
-                "음": 3,
-                "어": 2,
-                "그니까": 1
-            ],
-            studentName: "희정님",
-            noteIntro: "",
-            noteStrengths: "",
-            noteImprovements: "",
-            noteNextStep: ""
-        )
-    )
-
-}

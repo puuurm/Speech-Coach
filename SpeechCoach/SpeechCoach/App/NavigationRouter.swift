@@ -34,7 +34,7 @@ final class NavigationRouter: ObservableObject {
         autoplay: Bool = true
     ) {
         push(.videoPlayer(.init(
-            videoURL: record.videoURL,
+            videoURL: record.resolvedVideoURL ?? .documentsDirectory,
             title: record.title,
             duration: record.duration,
             startTime: startTime,

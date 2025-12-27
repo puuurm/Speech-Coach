@@ -14,6 +14,7 @@ struct AnalyzingScreen: View {
     let onComplete: (SpeechRecord) -> Void
     
     @EnvironmentObject private var router: NavigationRouter
+    @EnvironmentObject var recordStore: SpeechRecordStore
     
     @State private var isLoading = true
     @State private var navigateToResult = false
@@ -74,7 +75,6 @@ struct AnalyzingScreen: View {
                 createdAt: Date()
             )
             
-            print("📄 Transcript:", cleaned)
             let analyzer = TranscriptAnalyzer()
             let wpm = analyzer.wordsPerMinute(
                 transcript: cleaned,
@@ -82,8 +82,9 @@ struct AnalyzingScreen: View {
             )
             let fillerWordsDict = analyzer.fillerWordsDict(from: cleaned)
             let fillers = analyzer.fillerCount(in: cleaned)
+            let relativePath = try await VideoStore.shared.importToSandbox(sourceURL: draft.videoURL, recordID: draft.id)
             
-            let newRecord = SpeechRecord(
+            var newRecord = SpeechRecord(
                 id: draft.id,
                 createdAt: Date(),
                 title: title,
@@ -91,16 +92,17 @@ struct AnalyzingScreen: View {
                 wordsPerMinute: wpm,
                 fillerCount: fillers,
                 transcript: cleaned,
-                videoURL: draft.videoURL,
                 fillerWords: fillerWordsDict,
                 studentName: "희정님",
-                noteIntro: "",
-                noteStrengths: "",
-                noteImprovements: "",
-                noteNextStep: ""
+                videoRelativePath: relativePath,
+                note: nil,
+                insight: nil,
+                highlights: []
             )
             
             await MainActor.run {
+                recordStore.add(newRecord)
+                
                 self.record = newRecord
                 self.isLoading = false
                 self.navigateToResult = true

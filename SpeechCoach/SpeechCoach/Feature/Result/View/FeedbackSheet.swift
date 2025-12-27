@@ -25,10 +25,10 @@ struct FeedbackSheet: View {
          onSave: @escaping (String, String, String, String) -> Void) {
         self.record = record
         self.onSave = onSave
-        _introText = State(initialValue: record.noteIntro ?? "")
-        _strengthsText = State(initialValue: record.noteStrengths ?? "")
-        _improvementsText = State(initialValue: record.noteImprovements ?? "")
-        _nextStepsText = State(initialValue: record.noteNextStep ?? "")
+        _introText = State(initialValue: record.note?.intro ?? "")
+        _strengthsText = State(initialValue: record.note?.strengths ?? "")
+        _improvementsText = State(initialValue: record.note?.improvements ?? "")
+        _nextStepsText = State(initialValue: record.note?.nextStep ?? "")
     }
 
     var body: some View {

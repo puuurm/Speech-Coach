@@ -7,8 +7,3 @@
 
 import Foundation
 
-extension SpeechRecord {
-    var highlights: [SpeechHighlight] {
-        return self.highlights
-    }
-}

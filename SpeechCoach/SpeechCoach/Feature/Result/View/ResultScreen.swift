@@ -69,11 +69,11 @@ struct ResultScreen: View {
         onRequestPlay: @escaping (TimeInterval) -> Void
     ) {
         self.record = record
-        _introText = State(initialValue: record.noteIntro)
-        _strenthsText = State(initialValue: record.noteStrengths)
-        _improvementsText = State(initialValue: record.noteImprovements)
-        _nextStepsText = State(initialValue: record.noteNextStep)
-        let baseQualitative = record.qualitative ?? QualitativeRecommender.recommend(for: record)
+        _introText = State(initialValue: record.note?.intro ?? "")
+        _strenthsText = State(initialValue: record.note?.strengths ?? "")
+        _improvementsText = State(initialValue: record.note?.improvements ?? "")
+        _nextStepsText = State(initialValue: record.note?.nextStep ?? "")
+        let baseQualitative = record.insight?.qualitative ?? QualitativeRecommender.recommend(for: record)
         _qualitative = State(initialValue: baseQualitative)
 //        self.player = player
         self.onRequestPlay = onRequestPlay
@@ -176,13 +176,13 @@ struct ResultScreen: View {
                 transcript: record.transcript,
                 duration: record.duration,
                 fillerCount: record.fillerCount,
-                segments: record.transcriptSegments
+                segments: record.insight?.transcriptSegments
             )
             speechType = SpeechTypeSummarizer
                 .summarize(
                     duration: record.duration,
                     wordsPerMinute: record.wordsPerMinute,
-                    segments: record.transcriptSegments ?? []
+                    segments: record.insight?.transcriptSegments ?? []
                 )
         }
     }

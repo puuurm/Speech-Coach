@@ -14,12 +14,39 @@ struct VideoPlayerScreen: View {
     let title: String
     let startTime: TimeInterval?
     let autoplay: Bool
+    let mode: VideoPlayerScreenMode
     
-    init (videoURL: URL, title: String, startTime: TimeInterval? = nil, autoplay: Bool = false) {
+    init (
+        videoURL: URL,
+        title: String,
+        startTime: TimeInterval? = nil,
+        autoplay: Bool = false,
+        mode: VideoPlayerScreenMode = .normal
+    ) {
         self.videoURL = videoURL
         self.title = title
         self.startTime = startTime
         self.autoplay = autoplay
+        self.mode = mode
+    }
+    
+    init(
+        record: SpeechRecord,
+        startTime: TimeInterval? = nil,
+        autoplay: Bool = true,
+        mode: VideoPlayerScreenMode = .highlightReview(showFeedbackCTA: false)
+    ) {
+        self.videoURL = record.resolvedVideoURL ?? .documentsDirectory
+        self.title = record.title
+        self.startTime = startTime
+        self.autoplay = autoplay
+        self.mode = mode
+        
+        _analyzedRecord = State(initialValue: record)
+        _duration = State(initialValue: record.duration)
+        _isLoadingDuration = State(initialValue: false)
+        _phase = State(initialValue: .ready)
+        _playbackEnded = State(initialValue: true)
     }
     
     @State private var duration: TimeInterval = 0
@@ -28,8 +55,8 @@ struct VideoPlayerScreen: View {
     @State private var phase: AnalysisPhase = .idle
     @State private var playbackEnded: Bool = false
     
-    @State private var isStartingAnalysis: Bool = false   // 중복 요청 방지용
-    @State private var analyzedRecord: SpeechRecord?      // 분석 결과
+    @State private var isStartingAnalysis: Bool = false
+    @State private var analyzedRecord: SpeechRecord?
     @State private var showFeedbackSheet: Bool = false
     
     @State private var appliedStartTime = false
@@ -42,8 +69,29 @@ struct VideoPlayerScreen: View {
     
     @EnvironmentObject private var pc: PlayerController
     
+    var allowsAnalysisStart: Bool {
+        switch mode {
+        case .normal: return true
+        case .highlightReview: return false
+        }
+    }
+    
+    var showsFeedbackCTA: Bool {
+        switch mode {
+        case .normal:
+            return true
+        case .highlightReview(let show):
+            return show
+        }
+    }
+    
     private var canProceed: Bool {
-        playbackEnded && analyzedRecord != nil
+        switch mode {
+        case .normal:
+            return playbackEnded && analyzedRecord != nil
+        case .highlightReview:
+            return analyzedRecord != nil
+        }
     }
     
     var body: some View {
@@ -63,12 +111,10 @@ struct VideoPlayerScreen: View {
             }
         }
         .padding(.horizontal, 20)
-        .navigationTitle("영상 확인")
+        .navigationTitle(mode == .normal ? "영상 확인" : "하이라이트 확인")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             AudioSessionManager.configureForPlayback()
-            print("videoURL:", videoURL)
-            print("exists:", FileManager.default.fileExists(atPath: videoURL.path))
             pc.load(url: videoURL)
 
             if duration == 0 {
@@ -184,28 +230,55 @@ private extension VideoPlayerScreen {
     }
     
     var idleStateView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("영상 재생부터 시작해볼까요?")
-                .font(.subheadline.weight(.medium))
-            Text("재생 버튼을 누르면, 영상과 동시에 아래에서 스크립트를 분석해둘게요.")
-                .font(.footnote)
-                .foregroundColor(.secondary)
-            
-            Button {
-                startPlaybackAndAnalysis()
-            } label: {
-                HStack {
-                    Image(systemName: "play.fill")
-                    Text("영상 재생 & 분석 시작")
+        switch mode {
+        case .normal:
+            VStack(alignment: .leading, spacing: 8) {
+                Text("영상 재생부터 시작해볼까요?")
+                    .font(.subheadline.weight(.medium))
+                Text("재생 버튼을 누르면, 영상과 동시에 아래에서 스크립트를 분석해둘게요.")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                
+                Button {
+                    startPlaybackAndAnalysis()
+                } label: {
+                    HStack {
+                        Image(systemName: "play.fill")
+                        Text("영상 재생 & 분석 시작")
+                    }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.accentColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
                 }
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color.accentColor)
-                .foregroundColor(.white)
-                .cornerRadius(12)
+                .padding(.top, 4)
             }
-            .padding(.top, 4)
+        case .highlightReview:
+            VStack(alignment: .leading, spacing: 8) {
+                 Text("하이라이트 구간을 확인해보세요.")
+                     .font(.subheadline.weight(.medium))
+                 Text("이 화면에서는 분석을 다시 돌리지 않고, 재생/구간 이동만 제공합니다.")
+                     .font(.footnote)
+                     .foregroundColor(.secondary)
+
+                 Button {
+                     pc.player.play()
+                 } label: {
+                     HStack {
+                         Image(systemName: "play.fill")
+                         Text("재생")
+                     }
+                     .font(.headline)
+                     .frame(maxWidth: .infinity)
+                     .padding(.vertical, 12)
+                     .background(Color.accentColor)
+                     .foregroundColor(.white)
+                     .cornerRadius(12)
+                 }
+                 .padding(.top, 4)
+            }
         }
     }
     

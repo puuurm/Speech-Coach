@@ -124,20 +124,23 @@ struct ResultScreen: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-        .fullScreenCover(isPresented: $showPlayer, onDismiss: {
+        .sheet(isPresented: $showPlayer, onDismiss: {
             playerRoute = nil
         }) {
-            if let url = record.resolvedVideoURL,
-               let route = playerRoute {
-                VideoPlayerScreen(
-                    videoURL: url,
-                    title: record.title,
-                    startTime: route.startTime,
-                    autoplay: route.autoplay
-                )
-            } else {
-                // fallback UI
-                VideoReconnectView(record: record)
+            NavigationStack {
+                if let url = record.resolvedVideoURL,
+                   let route = playerRoute {
+                    VideoPlayerScreen(
+                        videoURL: url,
+                        title: record.title,
+                        startTime: route.startTime,
+                        autoplay: route.autoplay,
+                        mode: VideoPlayerScreenMode.highlightReview(showFeedbackCTA: false)
+                    )
+                } else {
+                    // fallback UI
+                    VideoReconnectView(record: record)
+                }
             }
         }
 //        .fullScreenCover(isPresented: $showPlayer) {

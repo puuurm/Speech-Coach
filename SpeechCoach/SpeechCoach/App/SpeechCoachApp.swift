@@ -15,6 +15,11 @@ struct SpeechCoachApp: App {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, coreDataStack.context)
+                .environmentObject(
+                              SpeechRecordStore(
+                                  context: coreDataStack.context
+                              )
+                          )
         }
     }
 }

@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var homeViewModel = HomeViewModel()
-    @StateObject private var recordStore = SpeechRecordStore()
+    @EnvironmentObject private var recordStore: SpeechRecordStore
     @StateObject private var router = NavigationRouter()
     @StateObject private var pc = PlayerController()
     

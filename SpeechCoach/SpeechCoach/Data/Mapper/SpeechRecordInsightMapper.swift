@@ -25,7 +25,7 @@ enum SpeechRecordInsightMapper {
         entity.oneLiner = insight.oneLiner
         entity.problemSummary = insight.problemSummary
         entity.updatedAt = insight.updatedAt
-        
+        entity.generatedAt = Date()
         entity.qualitativeData = CodableStore.encode(insight.qualitative)
         entity.transcriptSegmentsData = CodableStore.encode(insight.transcriptSegments)
         

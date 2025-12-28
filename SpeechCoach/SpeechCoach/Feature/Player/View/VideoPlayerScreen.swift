@@ -440,11 +440,15 @@ private extension VideoPlayerScreen {
             studentName: "희정님",
             videoRelativePath: relative,
             note: nil,
-            insight: nil,
+            insight: .init(
+                oneLiner: "",
+                problemSummary: "",
+                qualitative: nil,
+                transcriptSegments: segments,
+                updatedAt: Date()
+            ),
             highlights: []
         )
-        record.insight?.transcriptSegments = segments
-        
         return record
     }
 }

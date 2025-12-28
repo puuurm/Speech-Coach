@@ -34,6 +34,7 @@ enum SpeechRecordNoteMapper {
          entity.strengths = note.strengths
          entity.improvements = note.improvements
          entity.nextStep = note.nextStep
+         entity.updatedAt = Date()
      }
     
     static func toDomain(_ entity: SpeechRecordNoteEntity?) -> SpeechRecord.Note? {

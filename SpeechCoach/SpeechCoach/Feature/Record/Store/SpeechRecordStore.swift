@@ -12,16 +12,13 @@ import CoreData
 final class SpeechRecordStore: ObservableObject {
     @Published private(set) var records: [SpeechRecord] = []
     
-    private let storageKey = "SpeechRecordStore.recentRecords"
-    private let container: NSPersistentContainer
-    private var context: NSManagedObjectContext { container.viewContext }
-    
+    private var context: NSManagedObjectContext
     private let maxRecentCount: Int = 20
     
-    init(container: NSPersistentContainer = .init(name: "SpeechCoachDataModel")) {
-        self.container = container
-        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-        context.automaticallyMergesChangesFromParent = true
+    init(context: NSManagedObjectContext) {
+        self.context = context
+        self.context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        self.context.automaticallyMergesChangesFromParent = true
         reload()
     }
     

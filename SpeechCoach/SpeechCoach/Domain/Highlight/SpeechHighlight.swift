@@ -40,8 +40,11 @@ struct SpeechHighlight: Codable, Hashable, Identifiable {
     var end: TimeInterval
     var reason: String
     
-    var category: CoachIssueCategory
+    var category: SpeechHighlightCategory
     var severity: HighlightSeverity
+    
+    var score: Double? // 0~1 or zscore etc.
+    var evidence: [String]?  // “입꼬리 변화 거의 없음”, “대본과 92% 일치” 같은 근거 텍스트
 }
 
 extension SpeechHighlight {

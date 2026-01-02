@@ -68,7 +68,7 @@ enum SpeechHighlightMapper {
                 start: entity.start,
                 end: entity.end,
                 reason: entity.reason ?? "",
-                category: CoachIssueCategory(rawValue: entity.category ?? "") ?? .longPause,
+                category: SpeechHighlightCategory(rawValue: entity.category ?? "") ?? .longPause,
                 severity: HighlightSeverity(rawValue: Int(entity.severity)) ?? .medium
             )
         }

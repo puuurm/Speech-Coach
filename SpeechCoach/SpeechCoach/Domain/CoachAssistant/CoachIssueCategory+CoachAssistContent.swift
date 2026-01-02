@@ -11,18 +11,174 @@ enum HighlightSeverity: Int, CaseIterable, Hashable, Codable {
     case low = 1
     case medium
     case high
+    
+    var label: String {
+        switch self {
+        case .low: return "낮음"
+        case .medium: return "보통"
+        case .high: return "높음"
+        }
+    }
 }
 
-enum CoachIssueCategory: String, CaseIterable, Hashable, Codable {
+enum SpeechHighlightCategory: String, CaseIterable, Hashable, Codable, Identifiable {
     case paceFast
     case paceSlow
     case longPause
+
     case fillerWords
+    case repeatedPhrase
+
     case monotone
-    case unclearStructure
-    case weakEmphasis
+    case lowEnergy
+    case tooHighTension
+
     case unclearPronunciation
+    case mumbling
+
+    case offTopic
+    case unclearStructure
+    case weakConclusion
+    case missingKeyPoint
+    case weakEmphasis
+
+    // vision / script 확장
+    case facialTension
+    case poorEyeContact
+    case lowSmile
+    case scriptOverRead
+    case scriptDeviation
+    case keyMessageLoss
+
+    case unknown
+
+    var id: String { rawValue }
+
+    /// Row/Chip에 보여줄 짧은 이름(“표정·경직” 같은)
+    var displayName: String {
+        switch self {
+        case .paceFast: return "속도·빠름"
+        case .paceSlow: return "속도·느림"
+        case .longPause: return "멈춤"
+        case .fillerWords: return "군더더기"
+        case .repeatedPhrase: return "반복"
+        case .monotone: return "톤·단조"
+        case .lowEnergy: return "에너지↓"
+        case .tooHighTension: return "긴장↑"
+        case .unclearPronunciation: return "발음"
+        case .mumbling: return "웅얼"
+        case .offTopic: return "주제이탈"
+        case .unclearStructure: return "구조"
+        case .weakConclusion: return "마무리"
+        case .missingKeyPoint: return "핵심누락"
+        case .weakEmphasis: return "강조부족"
+        case .facialTension: return "표정·경직"
+        case .poorEyeContact: return "시선"
+        case .lowSmile: return "표정·친화"
+        case .scriptOverRead: return "대본·낭독"
+        case .scriptDeviation: return "대본·이탈"
+        case .keyMessageLoss: return "메시지·핵심"
+        case .unknown: return "기타"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .paceFast: return "forward.circle"
+        case .paceSlow: return "tortoise"
+        case .longPause: return "pause.circle"
+        case .fillerWords: return "quote.bubble"
+        case .repeatedPhrase: return "repeat"
+        case .monotone: return "metronome"
+        case .lowEnergy: return "battery.25"
+        case .tooHighTension: return "bolt.heart"
+        case .unclearPronunciation: return "mouth"
+        case .mumbling: return "waveform"
+        case .offTopic: return "arrow.triangle.branch"
+        case .unclearStructure: return "list.bullet.rectangle"
+        case .weakConclusion: return "flag"
+        case .missingKeyPoint: return "exclamationmark.bubble"
+        case .weakEmphasis: return "bold"
+        case .facialTension: return "face.smiling.inverse"
+        case .poorEyeContact: return "eye"
+        case .lowSmile: return "face.smiling"
+        case .scriptOverRead: return "doc.text"
+        case .scriptDeviation: return "arrow.uturn.right"
+        case .keyMessageLoss: return "target"
+        case .unknown: return "questionmark.circle"
+        }
+    }
 }
+
+enum SpeechHighlightSection: String, CaseIterable, Hashable, Identifiable {
+    case paceFlow
+    case clarity
+    case filler
+    case structureMessage
+    case toneEmotion
+    case nonverbal
+    case script
+    case other
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .paceFlow: return "속도·흐름"
+        case .clarity: return "발음·명료"
+        case .filler: return "습관어·군더더기"
+        case .structureMessage: return "구조·메시지"
+        case .toneEmotion: return "톤·감정"
+        case .nonverbal: return "비언어"
+        case .script: return "대본·전달 방식"
+        case .other: return "기타"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .paceFlow: return "speedometer"
+        case .clarity: return "mouth"
+        case .filler: return "quote.bubble"
+        case .structureMessage: return "list.bullet.rectangle"
+        case .toneEmotion: return "waveform.path.ecg"
+        case .nonverbal: return "face.smiling"
+        case .script: return "doc.text"
+        case .other: return "questionmark.circle"
+        }
+    }
+}
+
+extension SpeechHighlightCategory {
+    var section: SpeechHighlightSection {
+        switch self {
+        case .paceFast, .paceSlow, .longPause:
+            return .paceFlow
+
+        case .unclearPronunciation, .mumbling:
+            return .clarity
+
+        case .fillerWords, .repeatedPhrase:
+            return .filler
+
+        case .offTopic, .unclearStructure, .weakConclusion, .missingKeyPoint, .weakEmphasis, .keyMessageLoss:
+            return .structureMessage
+
+        case .monotone, .lowEnergy, .tooHighTension:
+            return .toneEmotion
+
+        case .facialTension, .poorEyeContact, .lowSmile:
+            return .nonverbal
+
+        case .scriptOverRead, .scriptDeviation:
+            return .script
+
+        case .unknown:
+            return .other
+        }
+    }
+}
+
 
 struct CoachAssistContent: Hashable, Codable {
     var problemSummary: String
@@ -49,13 +205,13 @@ extension CoachAssistContent {
 
 extension CoachAssistContent {
 
-    static func content(for category: CoachIssueCategory) -> CoachAssistContent {
+    static func content(for category: SpeechHighlightCategory) -> CoachAssistContent {
         mapping[category] ?? placeholder
     }
 
     // MARK: - Mapping Table
 
-    private static let mapping: [CoachIssueCategory: CoachAssistContent] = [
+    private static let mapping: [SpeechHighlightCategory: CoachAssistContent] = [
 
         // MARK: - Pace Fast
 

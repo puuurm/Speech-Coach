@@ -42,3 +42,9 @@ extension SpeechRecord {
         var updatedAt: Date
     }
 }
+
+extension SpeechRecord {
+    var scriptMatchSummary: ScriptMatchSummary? { nil }
+    var nonverbalSummary: NonverbalSummary? { nil }
+    var scriptMatchSegments: [ScriptMatchSegment]? { nil }
+}

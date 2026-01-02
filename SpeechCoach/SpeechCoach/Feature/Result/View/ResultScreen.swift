@@ -20,6 +20,9 @@ struct ResultScreen: View {
     let record: SpeechRecord
     let playbackPolicy: HighlightPlaybackPolicy
     let onRequestPlay: (TimeInterval) -> Void
+    let scriptMatches: [ScriptMatchSegment] = []
+    
+    @State private var selectedAnchor: ResultSectionAnchor = .summary
     
     @EnvironmentObject private var recordStore: SpeechRecordStore
     @EnvironmentObject private var pc: PlayerController
@@ -81,6 +84,26 @@ struct ResultScreen: View {
     }
     
     var body: some View {
+//        ScrollViewReader { proxy in
+//            ScrollView {
+//                VStack(alignment: .leading, spacing: 16) {
+//
+//                    SummarySection(record: record)
+//                        .id(ResultAnchor.summary)
+//                    
+//                    ScriptMatchSection(segments: scriptMatches)
+//                        .id(ResultAnchor.scriptMatch)
+//                    
+//                    HighlightsSection(record: record)
+//                        .id(ResultAnchor.highlights)
+//                    
+//                    noteSections
+//
+//                }
+//                .padding(.horizontal, 16)
+//                .padding(.bottom, 24)
+//            }
+//        }
         VStack(spacing: 0) {
             headerSection
             
@@ -143,28 +166,6 @@ struct ResultScreen: View {
                 }
             }
         }
-//        .fullScreenCover(isPresented: $showPlayer) {
-//            VideoPlayerScreen(videoURL: record.resolvedVideoURL!, title: record.title)
-//        }
-//        ScrollView {
-//            VStack(alignment: .leading, spacing: 20) {
-//                headerSection
-//                metricsSection
-//                progressSection
-//                qualitativeSection
-//                
-//                if !record.fillerWords.isEmpty {
-//                    fillerDetailSection
-//                }
-//                
-//                suggestionSection
-//                transcriptionSection
-//                noteSections
-//                feedbackActionsSection
-//            }
-//            .padding(.horizontal, 20)
-//            .padding(.vertical, 16)
-//        }
         .navigationTitle("분석 결과")
         .navigationBarTitleDisplayMode(.inline)
         .alert("피드백이 복사되었어요", isPresented: $showCopyAlert) {
@@ -253,18 +254,6 @@ struct ResultScreen: View {
 //            }
 //        }
 //    }
-    
-    private var highlightSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("말하기 하이라이트")
-                .font(.headline)
-            if let speechType {
-                ForEach(speechType.highlights) { item in
-                    highlightRow(item)
-                }
-            }
-        }
-    }
     
     private func highlightRow(_ item: SpeechHighlight) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -643,18 +632,18 @@ struct ResultScreen: View {
         }
     }
     
-    private var summarySection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(record.title)
-                .font(.headline)
-            HStack(spacing: 12) {
-                Label(durationString(record.duration), systemImage: "clock")
-                Text(formattedDate(record.createdAt))
-            }
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
-    }
+//    private var summarySection: some View {
+//        VStack(alignment: .leading, spacing: 6) {
+//            Text(record.title)
+//                .font(.headline)
+//            HStack(spacing: 12) {
+//                Label(durationString(record.duration), systemImage: "clock")
+//                Text(formattedDate(record.createdAt))
+//            }
+//            .font(.caption)
+//            .foregroundColor(.secondary)
+//        }
+//    }
     
     private var feedbackActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -948,56 +937,6 @@ extension ResultScreen {
                 다음 수업에서 이 부분을 원포인트로 같이 점검해보겠습니다.
                 """)
             }
-        
-//            noteCard(
-//                title: "인사 / 전체 인상",
-//                placeholder: "전체적인 인상과 수고 메시지를 적어주세요.",
-//                text: $introText
-//            ) {
-//                appendTemplate(
-//                    &introText,
-//                    template:
-//                    """
-//                    \(record.studentName.isEmpty ? "학생님" : record.studentName). 안녕하세요 :)
-//                    보내주신 과제 영상에 대한 피드백 남겨드립니다.
-//                    """
-//                )
-//            }
-//            
-//            noteCard(
-//                title: "잘된 점 / 강점",
-//                placeholder: "좋았던 점을 bullet로 정리해보세요.",
-//                text: $strenthsText
-//            ) {
-//                let template =
-//                """
-//                전반적으로 차분하게 잘 해주셨습니다. 
-//                특히 \(wpmStrengthHighlight) 부분에서 전달력이 좋게 느껴집니다.
-//                """
-//                appendTemplate(&strenthsText, template: template)
-//            }
-//            
-//            noteCard(
-//                title: "개선할 점",
-//                placeholder: "개선 포인트를 구체적으로 적어주세요.",
-//                text: $improvementsText
-//            ) {
-//                appendTemplate(&improvementsText, template: wpmImprovementTemplate)
-//            }
-//            
-//            noteCard(
-//                title: "다음 연습 / 수업 방향",
-//                placeholder: "다음 과제 방향/원포인트를 적어주세요.",
-//                text: $nextStepsText
-//            ) {
-//                appendTemplate(
-//                    &nextStepsText,
-//                    template:
-//                    """
-//                    다음 수업에서는 오늘 내용을 바탕으로 한 번 더 실전 답변처럼 다듬어보겠습니다.
-//                    """
-//                )
-//            }
         }
     }
     
@@ -1111,27 +1050,12 @@ extension ResultScreen {
 extension ResultScreen {
     var feedbackTab: some View {
         VStack(alignment: .leading, spacing: 18) {
-            primaryActionsRow
+            
             suggestionSection
             noteSectionsRedesigned
             
-            DisclosureGroup(
-                isExpanded: $showQualitative,
-                content: { qualitativeSectionCompact },
-                label: {
-                    HStack {
-                        Text("정성 지표 (옵션)")
-                            .font(.headline)
-                        Spacer()
-                        Text(showQualitative ? "접기" : "펼치기")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            )
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
-            saveOnlyButton
+            primaryActionsRow
+//            saveOnlyButton
         }
     }
     
@@ -1223,8 +1147,6 @@ extension ResultScreen {
             )
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
-
-            
         }
     }
 }
@@ -1359,4 +1281,53 @@ extension ResultScreen {
             improvementsText += "\n\n" + s
         }
     }
+}
+
+extension ResultScreen {
+    var anchorItems: [ResultSectionAnchor] {
+        var items: [ResultSectionAnchor] = [.summary]
+        if hasPaceHighlights { items.append(.highlightPace) }
+        if hasToneHighlights { items.append(.highlightTone) }
+        if hasFaceHighlights { items.append(.highlightFace) }
+        if hasScriptHighlights { items.append(.highlightScript) }
+        if !scriptMatches.isEmpty { items.append(.scriptCompare) }
+        return items
+    }
+    
+    private var hasPaceHighlights: Bool {
+        guard let highlights = speechType?.highlights else { return false }
+        return highlights.contains { [.paceFast, .paceSlow, .longPause].contains($0.category) }
+    }
+    
+    private var hasToneHighlights: Bool {
+        guard let highlights = speechType?.highlights else { return false }
+        return highlights.contains { [.monotone, .weakEmphasis].contains($0.category) }
+    }
+    
+    private var hasFaceHighlights: Bool {
+        guard let highlights = speechType?.highlights else { return false }
+        return highlights.contains { [.facialTension, .lowSmile].contains($0.category) }
+    }
+    
+    private var hasScriptHighlights: Bool {
+        guard let highlights = speechType?.highlights else { return false }
+        return highlights.contains { [.scriptOverRead, .scriptDeviation, .keyMessageLoss].contains($0.category) }
+    }
+    
+    private var scriptCompareSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("대본/발화 비교")
+                    .font(.headline)
+                Spacer()
+            }
+            VStack(spacing: 10) {
+                ForEach(scriptMatches) { segment in
+                    ScriptMatchRow(segment: segment)
+                }
+            }
+        }
+        .padding(.top, 6)
+    }
+    
 }

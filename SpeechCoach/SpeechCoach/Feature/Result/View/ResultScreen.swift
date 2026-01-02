@@ -22,8 +22,12 @@ struct ResultScreen: View {
     let onRequestPlay: (TimeInterval) -> Void
     let scriptMatches: [ScriptMatchSegment] = []
     
-    @State private var selectedAnchor: ResultSectionAnchor = .summary
+//    @StateObject private var recordVM: ResultRecordViewModel
+//    @StateObject private var metricsVM: ResultMetricsViewModel
     
+    @StateObject private var recVM = ResultRecommendationsViewModel()
+    @StateObject private var typeVM = SpeechTypeSummaryViewModel()
+        
     @EnvironmentObject private var recordStore: SpeechRecordStore
     @EnvironmentObject private var pc: PlayerController
     @EnvironmentObject var router: NavigationRouter
@@ -78,32 +82,11 @@ struct ResultScreen: View {
         _nextStepsText = State(initialValue: record.note?.nextStep ?? "")
         let baseQualitative = record.insight?.qualitative ?? QualitativeRecommender.recommend(for: record)
         _qualitative = State(initialValue: baseQualitative)
-//        self.player = player
         self.onRequestPlay = onRequestPlay
         self.playbackPolicy = playbackPolicy
     }
     
     var body: some View {
-//        ScrollViewReader { proxy in
-//            ScrollView {
-//                VStack(alignment: .leading, spacing: 16) {
-//
-//                    SummarySection(record: record)
-//                        .id(ResultAnchor.summary)
-//                    
-//                    ScriptMatchSection(segments: scriptMatches)
-//                        .id(ResultAnchor.scriptMatch)
-//                    
-//                    HighlightsSection(record: record)
-//                        .id(ResultAnchor.highlights)
-//                    
-//                    noteSections
-//
-//                }
-//                .padding(.horizontal, 16)
-//                .padding(.bottom, 24)
-//            }
-//        }
         VStack(spacing: 0) {
             headerSection
             
@@ -129,6 +112,20 @@ struct ResultScreen: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
             }
+        }
+        .task {
+            let series = SpeedSeriesBuilder.make(
+                duration: record.duration,
+                transcript: record.transcript,
+                segments: record.insight?.transcriptSegments,
+                binSeconds: 5
+            )
+
+            recVM.buildSuggestions(
+                recordID: record.id,
+                averageWPM: record.wordsPerMinute,
+                speedSeries: series
+            )
         }
         .sheet(item: $selectedHighlight) { h in
             CoachAssistantHighlightDetailView(
@@ -1052,6 +1049,9 @@ extension ResultScreen {
         VStack(alignment: .leading, spacing: 18) {
             
             suggestionSection
+//            ScrollView {
+//                SignalTemplateChips(suggestions: recVM.suggestions)
+//            }
             noteSectionsRedesigned
             
             primaryActionsRow
@@ -1283,51 +1283,25 @@ extension ResultScreen {
     }
 }
 
-extension ResultScreen {
-    var anchorItems: [ResultSectionAnchor] {
-        var items: [ResultSectionAnchor] = [.summary]
-        if hasPaceHighlights { items.append(.highlightPace) }
-        if hasToneHighlights { items.append(.highlightTone) }
-        if hasFaceHighlights { items.append(.highlightFace) }
-        if hasScriptHighlights { items.append(.highlightScript) }
-        if !scriptMatches.isEmpty { items.append(.scriptCompare) }
-        return items
-    }
-    
-    private var hasPaceHighlights: Bool {
-        guard let highlights = speechType?.highlights else { return false }
-        return highlights.contains { [.paceFast, .paceSlow, .longPause].contains($0.category) }
-    }
-    
-    private var hasToneHighlights: Bool {
-        guard let highlights = speechType?.highlights else { return false }
-        return highlights.contains { [.monotone, .weakEmphasis].contains($0.category) }
-    }
-    
-    private var hasFaceHighlights: Bool {
-        guard let highlights = speechType?.highlights else { return false }
-        return highlights.contains { [.facialTension, .lowSmile].contains($0.category) }
-    }
-    
-    private var hasScriptHighlights: Bool {
-        guard let highlights = speechType?.highlights else { return false }
-        return highlights.contains { [.scriptOverRead, .scriptDeviation, .keyMessageLoss].contains($0.category) }
-    }
-    
-    private var scriptCompareSection: some View {
+struct SpeechTypeSummarySection: View {
+    let speechType: SpeechTypeSummary
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("대본/발화 비교")
-                    .font(.headline)
-                Spacer()
+            Text("말하기 타입 요약")
+                .font(.headline)
+
+            Text(speechType.oneLiner)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            // 필요하면 paceType/paceStability 등을 Chip/Card로
+            HStack(spacing: 8) {
+                Text(speechType.paceType.label)
+                Text("·")
+                Text(speechType.paceStability.label)
             }
-            VStack(spacing: 10) {
-                ForEach(scriptMatches) { segment in
-                    ScriptMatchRow(segment: segment)
-                }
-            }
+            .font(.footnote)
         }
-        .padding(.top, 6)
     }
-    
 }

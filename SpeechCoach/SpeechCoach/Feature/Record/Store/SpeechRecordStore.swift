@@ -22,6 +22,108 @@ final class SpeechRecordStore: ObservableObject {
         reload()
     }
     
+    func record(with id: UUID) -> SpeechRecord? {
+        var result: SpeechRecord?
+        context.performAndWait {
+            do {
+                guard let entity = try fetchRecordEntity(id: id) else {
+                    result = nil
+                    return
+                }
+                result = SpeechRecordMapper.toDomain(entity)
+            } catch {
+                assertionFailure("❌ record(with:) fetch failed: \(error)")
+                result = nil
+            }
+        }
+        return result
+    }
+    
+    func metrics(with recordID: UUID) -> SpeechMetrics? {
+        var result: SpeechMetrics?
+        context.performAndWait {
+            do {
+                guard let entity = try fetchMetricsEntity(recordID: recordID) else {
+                    result = nil
+                    return
+                }
+                result = SpeechMetricsMapper.toDomain(entity)
+            } catch {
+                assertionFailure("❌ metrics(with:) fetch failed: \(error)")
+                result = nil
+            }
+        }
+        return result
+    }
+    
+    func upsertBundle(
+        record: SpeechRecord,
+        metrics: SpeechMetrics?
+    ) {
+        context.perform {
+            do {
+                let recordEntity = try self.fetchOrCreateRecordEntity(id: record.id)
+                SpeechRecordMapper.apply(
+                    record,
+                    to: recordEntity,
+                    context: self.context
+                )
+                if let metrics {
+                    let metricsEntity = recordEntity.metrics ?? SpeechMetricsEntity(context: self.context)
+                    metricsEntity.record = recordEntity
+                    recordEntity.metrics = metricsEntity
+                    SpeechMetricsMapper.apply(
+                        metrics,
+                        to: metricsEntity
+                    )
+                    recordEntity.summaryWPM = Int32(metrics.wordsPerMinute)
+                    recordEntity.summaryFillerCount = Int32(metrics.fillerCount)
+                    recordEntity.metricsGeneratedAt = metrics.generatedAt
+                }
+                try self.context.save()
+            } catch {
+                assertionFailure("❌ upsertBundle failed: \(error)")
+            }
+        }
+    }
+    
+    func loadRecentRecords(limit: Int = 20) -> [SpeechRecord] {
+        var results: [SpeechRecord] = []
+        context.performAndWait {
+            do {
+                let req = SpeechRecordEntity.fetchRequest()
+                req.fetchLimit = limit
+                req.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+                // ✅ 분석 완료만:
+                // req.predicate = NSPredicate(format: "metricsGeneratedAt != nil")
+
+                let entities = try self.context.fetch(req)
+                results = entities.map(SpeechRecordMapper.toDomain)
+            } catch {
+                assertionFailure("❌ loadRecentRecords failed: \(error)")
+            }
+        }
+        return results
+    }
+    
+    func loadBundle(
+        recordID: UUID
+    ) -> (record: SpeechRecord, metrics: SpeechMetrics?)? {
+        var result: (SpeechRecord, SpeechMetrics?)?
+        context.performAndWait {
+            do {
+                guard let recordEntity = try fetchRecordEntity(id: recordID)
+                else { return }
+                let record = SpeechRecordMapper.toDomain(recordEntity)
+                let metrics = recordEntity.metrics.flatMap(SpeechMetricsMapper.toDomain)
+                result = (record, metrics)
+            } catch {
+                assertionFailure("❌ loadBundle failed: \(error)")
+            }
+        }
+        return result
+    }
+    
     func add(_ record: SpeechRecord) {
         context.perform {
             do {
@@ -93,6 +195,20 @@ final class SpeechRecordStore: ObservableObject {
         return records[nextIndex]
     }
     
+    func delete(recordID: UUID) {
+        context.perform {
+            do {
+                if let entity = try self.fetchRecordEntity(id: recordID) {
+                    self.context.delete(entity)
+                    try self.context.save()
+                    self.reload()
+                }
+            } catch {
+                assertionFailure("❌ delete failed: \(error)")
+            }
+        }
+    }
+    
     func delete(_ record: SpeechRecord) {
         context.perform {
             do {
@@ -154,6 +270,23 @@ final class SpeechRecordStore: ObservableObject {
         let request = SpeechRecordEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
         request.fetchLimit = 1
+        return try context.fetch(request).first
+    }
+    
+    func fetchOrCreateRecordEntity(id: UUID) throws -> SpeechRecordEntity {
+        if let existing = try fetchRecordEntity(id: id) {
+            return existing
+        }
+        let entity = SpeechRecordEntity(context: context)
+        entity.id = id
+        return entity
+    }
+    
+    private func fetchMetricsEntity(recordID: UUID) throws -> SpeechMetricsEntity? {
+        let request = SpeechMetricsEntity.fetchRequest()
+        request.fetchLimit = 1
+        request.predicate = NSPredicate(format: "recordID == %@", recordID as CVarArg)
+        request.sortDescriptors = [NSSortDescriptor(key: "generatedAt", ascending: false)]
         return try context.fetch(request).first
     }
     

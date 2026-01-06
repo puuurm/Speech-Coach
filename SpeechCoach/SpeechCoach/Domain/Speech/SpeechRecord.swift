@@ -12,11 +12,10 @@ struct SpeechRecord: Identifiable, Hashable, Codable {
     let createdAt: Date
     var title: String
     let duration: TimeInterval
-    let wordsPerMinute: Int
-    let fillerCount: Int
+    let summaryWPM: Int?
+    let summaryFillerCount: Int?
+    var metricsGeneratedAt: Date?
     let transcript: String
-//    var videoURL: URL
-    var fillerWords: [String: Int]
     var studentName: String
     var videoRelativePath: String?
 

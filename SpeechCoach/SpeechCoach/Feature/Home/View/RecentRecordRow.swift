@@ -13,7 +13,6 @@ struct RecentRecordRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
 
-            // 썸네일
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(.systemGray5))
                 .frame(width: 51, height: 51)
@@ -23,20 +22,28 @@ struct RecentRecordRow: View {
                         .foregroundColor(.secondary)
                 )
 
-            // 텍스트 영역
             VStack(alignment: .leading, spacing: 6) {
-                // 제목
                 Text(record.title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
-                // 메트릭 라인
                 HStack(spacing: 10) {
 
                     metric(icon: "clock", text: durationString(record.duration))
-                    metric(icon: "speedometer", text: "\(record.wordsPerMinute) wpm")
-                    metric(icon: "quote.bubble", text: "필러 \(record.fillerCount)")
+                    if let wpm = record.summaryWPM {
+                        metric(icon: "speedometer", text: "\(wpm) wpm")
+                    } else {
+                        metric(icon: "speedometer", text: "— wpm")
+                    }
+                    
+                    if let fillerCount = record.summaryFillerCount {
+                        metric(icon: "quote.bubble", text: "필러 \(fillerCount)")
+                    } else {
+                        metric(icon: "quote.bubble", text: "필러 —")
+                    }
+//                    metric(icon: "speedometer", text: "\(record.wordsPerMinute) wpm")
+//                    metric(icon: "quote.bubble", text: "필러 \(record.fillerCount)")
                 }
                 .lineSpacing(2)
                 .padding(.top, 2)
@@ -57,8 +64,8 @@ struct RecentRecordRow: View {
             Image(systemName: icon)
             Text(text)
         }
-        .font(.caption)               // ← caption2보다 훨씬 안정적
+        .font(.caption)
         .foregroundColor(.secondary)
-        .baselineOffset(1)            // ← 글자 깨짐 방지
+        .baselineOffset(1)
     }
 }

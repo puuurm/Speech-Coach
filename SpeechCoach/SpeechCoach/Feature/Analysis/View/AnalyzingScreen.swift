@@ -53,7 +53,7 @@ struct AnalyzingScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $record) { record in
             ResultScreen(
-                record: record,
+                recordID: record.id,
                 playbackPolicy: .hidden,
                 onRequestPlay: { _ in}
             )
@@ -82,17 +82,19 @@ struct AnalyzingScreen: View {
             )
             let fillerWordsDict = analyzer.fillerWordsDict(from: cleaned)
             let fillers = analyzer.fillerCount(in: cleaned)
-            let relativePath = try await VideoStore.shared.importToSandbox(sourceURL: draft.videoURL, recordID: draft.id)
+            let relativePath = try VideoStore.shared.importToSandbox(sourceURL: draft.videoURL, recordID: draft.id)
             
-            var newRecord = SpeechRecord(
+            let now = Date()
+            
+            let newRecord = SpeechRecord(
                 id: draft.id,
-                createdAt: Date(),
+                createdAt: now,
                 title: title,
                 duration: draft.duration,
-                wordsPerMinute: wpm,
-                fillerCount: fillers,
+                summaryWPM: wpm,
+                summaryFillerCount: fillers,
+                metricsGeneratedAt: now,
                 transcript: cleaned,
-                fillerWords: fillerWordsDict,
                 studentName: "희정님",
                 videoRelativePath: relativePath,
                 note: nil,
@@ -100,9 +102,21 @@ struct AnalyzingScreen: View {
                 highlights: []
             )
             
+            let newMetrics = SpeechMetrics(
+                recordID: draft.id,
+                generatedAt: now,
+                wordsPerMinute: wpm,
+                fillerCount: fillers,
+                fillerWords: fillerWordsDict,
+                paceVariability: nil,
+                spikeCount: nil
+            )
+            
             await MainActor.run {
-                recordStore.add(newRecord)
-                
+                recordStore.upsertBundle(
+                    record: newRecord,
+                    metrics: newMetrics
+                )
                 self.record = newRecord
                 self.isLoading = false
                 self.navigateToResult = true
@@ -116,8 +130,6 @@ struct AnalyzingScreen: View {
             }
         }
     }
-    
-
 }
 
 #Preview {

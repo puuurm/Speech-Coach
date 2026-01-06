@@ -26,9 +26,9 @@ struct ContentView: View {
                             autoplay: payload.autoplay
                         )
                         .environmentObject(pc)
-                    case .result(let record):
+                    case .result(let id):
                         ResultScreen(
-                            record: record,
+                            recordID: id,
                             playbackPolicy: .hidden,
                             onRequestPlay: { sec in
                                 pc.seek(to: sec, autoplay: true)

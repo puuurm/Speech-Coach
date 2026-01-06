@@ -108,37 +108,29 @@ struct PaceClassifier {
 @MainActor
 final class ResultMetricsViewModel: ObservableObject {
 
-    // Output for UI
     @Published private(set) var metrics: SpeechMetrics?
+    @Published private(set) var previousMetrics: SpeechMetrics?
     @Published private(set) var isLoading: Bool = false
     @Published private(set) var errorMessage: String?
 
     private let recordID: UUID
-    private let repo: SpeechMetricsRepository
-
-    init(recordID: UUID, repo: SpeechMetricsRepository) {
+    
+    init(recordID: UUID) {
         self.recordID = recordID
-        self.repo = repo
     }
-
-    func load() {
+    
+    func load(using store: SpeechRecordStore, previousRecordID: UUID?) async {
         isLoading = true
-        errorMessage = nil
-
-        Task {
-            do {
-                let m = try await repo.fetch(recordID: recordID)
-                self.metrics = m
-                self.isLoading = false
-            } catch {
-                self.metrics = nil
-                self.isLoading = false
-                self.errorMessage = error.localizedDescription
-            }
+        defer { isLoading = false }
+        self.metrics = store.metrics(with: recordID)
+        
+        if let prevID = previousRecordID {
+            self.previousMetrics = store.metrics(with: prevID)
+        } else {
+            self.previousMetrics = nil
         }
     }
 
-    /// ResultScreen에서 카드/섹션을 쉽게 그리기 위한 파생값들
     var wpmText: String {
         guard let m = metrics else { return "—" }
         return "\(m.wordsPerMinute) WPM"

@@ -137,7 +137,7 @@ struct HomeView: View {
                         Section {
                             ForEach(sortedRecords) { record in
                                 Button {
-                                    router.push(.result(record))
+                                    router.push(.result(recordID: record.id))
                                 } label: {
                                     RecentRecordRow(record: record)
                                 }

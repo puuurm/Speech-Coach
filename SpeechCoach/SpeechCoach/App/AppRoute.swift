@@ -17,5 +17,5 @@ struct VideoPlayerRoutePayload: Hashable {
 
 enum AppRoute: Hashable {
     case videoPlayer(VideoPlayerRoutePayload)
-    case result(SpeechRecord)
+    case result(recordID: UUID)
 }

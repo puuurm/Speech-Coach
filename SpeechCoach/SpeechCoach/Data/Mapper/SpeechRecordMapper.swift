@@ -8,7 +8,10 @@
 import CoreData
 
 enum SpeechRecordMapper {
-    static func upsert(_ record: SpeechRecord, in context: NSManagedObjectContext) -> SpeechRecordEntity {
+    static func upsert(
+        _ record: SpeechRecord,
+        in context: NSManagedObjectContext
+    ) -> SpeechRecordEntity {
         let entity = fetch(by: record.id, in: context) ?? SpeechRecordEntity(context: context)
         apply(record, to: entity, context: context)
         return entity
@@ -23,14 +26,20 @@ enum SpeechRecordMapper {
         entity.createdAt = record.createdAt
         entity.title = record.title
         entity.duration = record.duration
-        entity.wordsPerMinute = Int32(record.wordsPerMinute)
-        entity.fillerCount = Int32(record.fillerCount)
         entity.transcript = record.transcript
         entity.studentName = record.studentName
         entity.videoRelativePath = record.videoRelativePath
         
-        entity.fillerWordsData = CodableStore.encode(record.fillerWords)
-        
+        if let wpm = record.summaryWPM {
+            entity.summaryWPM = Int32(wpm)
+        }
+        if let fillers = record.summaryFillerCount {
+            entity.summaryFillerCount = Int32(fillers)
+        }
+        if let generatedAt = record.metricsGeneratedAt {
+            entity.metricsGeneratedAt = generatedAt
+        }
+                
         SpeechRecordNoteMapper.upsert(record.note, into: entity, in: context)
         SpeechRecordInsightMapper.upsert(record.insight, into: entity, in: context)
         
@@ -58,7 +67,7 @@ enum SpeechRecordMapper {
         
         for highlight in highlights {
             let entity = SpeechHighlightEntity(context: context)
-            SpeechHighlightMapper.toEntity(highlight, context: context)
+            SpeechHighlightMapper.apply(highlight, to: entity)
             entity.record = recordEntity
         }
     }
@@ -66,18 +75,18 @@ enum SpeechRecordMapper {
     static func toDomain(_ entity: SpeechRecordEntity) -> SpeechRecord {
         let id = entity.id ?? UUID()
         let createdAt = entity.createdAt ?? Date()
-        
-        let fillerWords: [String: Int] = CodableStore.decode([String: Int].self, from: entity.fillerWordsData) ?? [:]
+        let wpm: Int? = (entity.summaryWPM == -1) ? nil : Int(entity.summaryWPM)
+        let fillers: Int? = (entity.summaryFillerCount == -1) ? nil : Int(entity.summaryFillerCount)
         
         return SpeechRecord(
             id: id,
             createdAt: createdAt,
             title: entity.title ?? "",
             duration: entity.duration,
-            wordsPerMinute: Int(entity.wordsPerMinute),
-            fillerCount: Int(entity.fillerCount),
+            summaryWPM: wpm,
+            summaryFillerCount: fillers,
+            metricsGeneratedAt: entity.metricsGeneratedAt,
             transcript: entity.transcript ?? "",
-            fillerWords: fillerWords,
             studentName: entity.studentName ?? "",
             videoRelativePath: entity.videoRelativePath,
             note: SpeechRecordNoteMapper.toDomain(entity.note),

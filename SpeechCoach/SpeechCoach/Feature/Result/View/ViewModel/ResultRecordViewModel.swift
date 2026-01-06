@@ -10,21 +10,28 @@ import Combine
 
 @MainActor
 final class ResultRecordViewModel: ObservableObject {
+    private let recordID: UUID
 
     @Published private(set) var record: SpeechRecord?
     @Published private(set) var isLoading = false
 
-    private let recordID: UUID
-    private let store: SpeechRecordStore
-
-    init(recordID: UUID, store: SpeechRecordStore) {
+    init(recordID: UUID) {
         self.recordID = recordID
-        self.store = store
     }
 
     func load() {
         isLoading = true
 //        record = store.fetch(recordID: recordID)
         isLoading = false
+    }
+    
+    func load(using store: SpeechRecordStore) async {
+        isLoading = true
+        defer { isLoading = false }
+        if let record = store.record(with: recordID) {
+            self.record = record
+        } else {
+            self.record = store.records.first(where: { $0.id == recordID })
+        }
     }
 }

@@ -9,17 +9,23 @@ import Foundation
 
 enum QualitativeRecommender {
     
-    static func makeFeatures(from record: SpeechRecord) -> SpeechFeatures {
+    static func makeFeatures(
+        record: SpeechRecord,
+        metrics: SpeechMetrics
+    ) -> SpeechFeatures {
         SpeechFeatures(
             duration: record.duration,
-            wpm: record.wordsPerMinute,
-            fillerCount: record.fillerCount,
+            wpm: metrics.wordsPerMinute,
+            fillerCount: metrics.fillerCount,
             transcriptLength: record.transcript.count
         )
     }
     
-    static func recommend(for record: SpeechRecord) -> QualitativeMetrics {
-        let feature = makeFeatures(from: record)
+    static func recommend(
+        record: SpeechRecord,
+        metrics: SpeechMetrics
+    ) -> QualitativeMetrics {
+        let feature = makeFeatures(record: record, metrics: metrics)
         
         let delivery = recommendDelivery(from: feature)
         let clarity = recommendClarity(from: feature)

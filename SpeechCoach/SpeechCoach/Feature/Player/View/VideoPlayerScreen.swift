@@ -57,6 +57,7 @@ struct VideoPlayerScreen: View {
     
     @State private var isStartingAnalysis: Bool = false
     @State private var analyzedRecord: SpeechRecord?
+    @State private var analyzedMetrics: SpeechMetrics?
     @State private var showFeedbackSheet: Bool = false
     
     @State private var appliedStartTime = false
@@ -152,7 +153,7 @@ struct VideoPlayerScreen: View {
             if let record = analyzedRecord {
                 NavigationStack {
                     ResultScreen(
-                        record: record,
+                        recordID: record.id,
                         playbackPolicy: .playable { start in
                             pc.seek(to: start, autoplay: true)
                             showFeedbackSheet = false
@@ -317,17 +318,17 @@ private extension VideoPlayerScreen {
                 )
                 metricBadge(
                     title: "속도",
-                    value: "\(record.wordsPerMinute) wpm"
+                    value: "\(record.summaryWPM) wpm"
                 )
                 metricBadge(
                     title: "필러",
-                    value: "\(record.fillerCount)회"
+                    value: "\(record.summaryFillerCount)회"
                 )
             }
             
             let speechType = SpeechTypeSummarizer.summarize(
                 duration: record.duration,
-                wordsPerMinute: record.wordsPerMinute,
+                wordsPerMinute: record.summaryWPM ?? .zero,
                 segments: record.insight?.transcriptSegments ?? []   // nil이면 빈 배열 -> 하이라이트 없음
             )
             
@@ -442,13 +443,16 @@ private extension VideoPlayerScreen {
         
         Task {
             do {
-                let record = try await runAnalysis()
+                let (record, metrics) = try await runAnalysis()
+//                recordStore.add(record)
+                recordStore.upsertBundle(record: record, metrics: metrics)
+                let bundle = recordStore.loadBundle(recordID: record.id)
                 
                 await MainActor.run {
                     // Store에 저장
-                    recordStore.add(record)
-                    
-                    analyzedRecord = record
+     
+                    analyzedRecord = bundle?.record
+                    analyzedMetrics = bundle?.metrics
                     
                     if playbackEnded {
                         phase = .ready
@@ -471,7 +475,7 @@ private extension VideoPlayerScreen {
         startPlaybackAndAnalysis()
     }
     
-    func runAnalysis() async throws -> SpeechRecord {
+    func runAnalysis() async throws -> (SpeechRecord, SpeechMetrics) {
         let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko_RK"))!
         let audioURL = try await speechService.exportAudio(from: videoURL)
         let rawTranscript = try await speechService.transcribe(videoURL: videoURL)
@@ -500,16 +504,17 @@ private extension VideoPlayerScreen {
         )
         let recordID = UUID()
         let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
+        let now = Date()
         
-        var record = SpeechRecord(
+        let record = SpeechRecord(
             id: recordID,
-            createdAt: Date(),
+            createdAt: now,
             title: title,
             duration: duration,
-            wordsPerMinute: wpm,
-            fillerCount: fillerTotal,
+            summaryWPM: wpm,
+            summaryFillerCount: fillerTotal,
+            metricsGeneratedAt: now,
             transcript: cleaned,
-            fillerWords: fillerDict,
             studentName: "희정님",
             videoRelativePath: relative,
             note: nil,
@@ -518,11 +523,22 @@ private extension VideoPlayerScreen {
                 problemSummary: "",
                 qualitative: nil,
                 transcriptSegments: segments,
-                updatedAt: Date()
+                updatedAt: now
             ),
             highlights: []
         )
-        return record
+        
+        let metrics = SpeechMetrics(
+            recordID: recordID,
+            generatedAt: now,
+            wordsPerMinute: wpm,
+            fillerCount: fillerTotal,
+            fillerWords: fillerDict,
+            paceVariability: nil,
+            spikeCount: nil
+        )
+
+        return (record, metrics)
     }
 }
     

@@ -30,25 +30,6 @@ struct VideoPlayerScreen: View {
         self.mode = mode
     }
     
-    init(
-        record: SpeechRecord,
-        startTime: TimeInterval? = nil,
-        autoplay: Bool = true,
-        mode: VideoPlayerScreenMode = .highlightReview(showFeedbackCTA: false)
-    ) {
-        self.videoURL = record.resolvedVideoURL ?? .documentsDirectory
-        self.title = record.title
-        self.startTime = startTime
-        self.autoplay = autoplay
-        self.mode = mode
-        
-        _analyzedRecord = State(initialValue: record)
-        _duration = State(initialValue: record.duration)
-        _isLoadingDuration = State(initialValue: false)
-        _phase = State(initialValue: .ready)
-        _playbackEnded = State(initialValue: true)
-    }
-    
     @State private var duration: TimeInterval = 0
     @State private var isLoadingDuration = true
     
@@ -318,11 +299,11 @@ private extension VideoPlayerScreen {
                 )
                 metricBadge(
                     title: "속도",
-                    value: "\(record.summaryWPM) wpm"
+                    value: wpmText(record.summaryWPM)
                 )
                 metricBadge(
                     title: "필러",
-                    value: "\(record.summaryFillerCount)회"
+                    value: fillerCountText(record.summaryFillerCount)
                 )
             }
             
@@ -427,16 +408,11 @@ private extension VideoPlayerScreen {
 private extension VideoPlayerScreen {
     
     func startPlaybackAndAnalysis() {
-        // 재생 시작
         pc.player.play()
         playbackEnded = false
         
-        // 분석 중복 시작 방지
-        guard isStartingAnalysis == false,
-              analyzedRecord == nil else {
-            phase = .analyzing
-            return
-        }
+        guard !isStartingAnalysis else { return }
+        guard analyzedRecord == nil else { return }
         
         phase = .analyzing
         isStartingAnalysis = true
@@ -444,21 +420,12 @@ private extension VideoPlayerScreen {
         Task {
             do {
                 let (record, metrics) = try await runAnalysis()
-//                recordStore.add(record)
                 recordStore.upsertBundle(record: record, metrics: metrics)
-                let bundle = recordStore.loadBundle(recordID: record.id)
                 
                 await MainActor.run {
-                    // Store에 저장
-     
-                    analyzedRecord = bundle?.record
-                    analyzedMetrics = bundle?.metrics
-                    
-                    if playbackEnded {
-                        phase = .ready
-                    } else {
-                        phase = .waitingForPlaybackEnd
-                    }
+                    analyzedRecord = record
+                    analyzedMetrics = metrics
+                    phase = playbackEnded ? .ready : .waitingForPlaybackEnd
                     isStartingAnalysis = false
                 }
             } catch {

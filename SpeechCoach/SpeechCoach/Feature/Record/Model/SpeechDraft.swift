@@ -21,6 +21,16 @@ func durationString(_ seconds: TimeInterval) -> String {
     return String(format: "%d:%02d", minutes, sec)
 }
 
+func wpmText(_ wpm: Int?) -> String {
+    guard let wpm else { return "—" }
+    return "\(wpm) wpm"
+}
+
+func fillerCountText(_ count: Int?) -> String {
+    guard let count else { return "—" }
+    return "\(count)회"
+}
+
 func cleanTitle(from raw: String) -> String {
     // 확장자 제거
     let base = raw

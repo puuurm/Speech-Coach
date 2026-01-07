@@ -24,23 +24,15 @@ final class SpeechTypeSummaryViewModel: ObservableObject {
         // 1) paceType: 평균 WPM 기반 “느림/적절/빠름”
         let paceType = paceClassifier.paceType(from: metrics.wordsPerMinute)
 
-        // 2) paceStability: 변동성/스파이크 기반 “안정/흔들림”
         let paceStability = paceClassifier.stability(
             variability: metrics.paceVariability,
             spikeCount: metrics.spikeCount
         )
-
-        // 3) 나머지( pause/structure/confidence )는 현재 metrics에 없으니 기본값/placeholder
-        //    (추후 SpeechMetrics에 pauseSeries / structureScore 등을 넣으면 여기서 분류)
         let pauseType: PauseType = .thinkingPause
         let structureType: StructureType = .partial
         let confidenceType: ConfidenceType = .neutral
 
-        // 4) oneLiner: UI 요약 문구 (분석탭 “말하기 타입 요약”용)
         let oneLiner = paceClassifier.oneLiner(paceType: paceType, stability: paceStability)
-
-        // 5) highlights: “타입 요약 섹션에서 같이 보여줄” 하이라이트가 있다면 외부에서 주입하는 편이 더 깔끔
-        //    (지금 요청 범위에서는 metrics 기반만이라 빈 배열로 둠)
         let highlights: [SpeechHighlight] = []
 
         self.speechType = SpeechTypeSummary(
@@ -52,6 +44,10 @@ final class SpeechTypeSummaryViewModel: ObservableObject {
             oneLiner: oneLiner,
             highlights: highlights
         )
+    }
+    
+    func reset() {
+        speechType = nil
     }
 }
 

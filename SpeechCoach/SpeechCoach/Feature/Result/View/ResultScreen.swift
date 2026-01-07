@@ -95,23 +95,28 @@ struct ResultScreen: View {
         .task {
             await recordVM.load(using: recordStore)
             
-            if let record = recordVM.record {
-                previousRecord = recordStore.previousRecord(before: record.id)
-                await metricsVM.load(using: recordStore, previousRecordID: previousRecord?.id)
-                
-                let series = SpeedSeriesBuilder.make(
-                    duration: recordVM.record?.duration ?? .zero,
-                    transcript: record.transcript,
-                    segments: record.insight?.transcriptSegments,
-                    binSeconds: 5
-                )
-                
-                recVM.buildSuggestions(
-                    recordID: recordID,
-                    averageWPM: metricsVM.metrics?.wordsPerMinute ?? .zero,
-                    speedSeries: series
-                )
+            guard let record = recordVM.record else { return }
+            previousRecord = recordStore.previousRecord(before: record.id)
+            await metricsVM.load(using: recordStore, previousRecordID: previousRecord?.id)
+
+            if let metrics = metricsVM.metrics {
+                typeVM.load(from: metrics)
+            } else {
+                typeVM.reset()
             }
+            
+            let series = SpeedSeriesBuilder.make(
+                duration: recordVM.record?.duration ?? .zero,
+                transcript: record.transcript,
+                segments: record.insight?.transcriptSegments,
+                binSeconds: 5
+            )
+            
+            recVM.buildSuggestions(
+                recordID: recordID,
+                averageWPM: metricsVM.metrics?.wordsPerMinute ?? .zero,
+                speedSeries: series
+            )
         }
         .sheet(item: $selectedHighlight) { h in
             if let record = recordVM.record {

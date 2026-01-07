@@ -63,6 +63,7 @@ extension SpeakingTypeSection {
     private func oneLinerCard(text: String) -> some View {
         Text(text)
             .font(.subheadline.weight(.semibold))
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 12)

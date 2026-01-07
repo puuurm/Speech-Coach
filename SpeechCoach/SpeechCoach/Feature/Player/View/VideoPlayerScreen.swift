@@ -180,7 +180,6 @@ private extension VideoPlayerScreen {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
-    /// 영상 아래에 나오는 분석 상태 / 결과 / 피드백 버튼
     var analysisStatusSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             switch phase {
@@ -307,18 +306,12 @@ private extension VideoPlayerScreen {
                 )
             }
             
-            let speechType = SpeechTypeSummarizer.summarize(
-                duration: record.duration,
-                wordsPerMinute: record.summaryWPM ?? .zero,
-                segments: record.insight?.transcriptSegments ?? []   // nil이면 빈 배열 -> 하이라이트 없음
-            )
-            
-            if speechType.highlights.isEmpty == false {
+            if record.highlights.isEmpty == false {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("체크할 구간")
                         .font(.subheadline.weight(.semibold))
                     
-                    ForEach(speechType.highlights.prefix(3)) { h in
+                    ForEach(record.highlights.prefix(3)) { h in
                         SpeechHighlightRow(
                             item: h,
                             duration: record.duration,
@@ -473,7 +466,7 @@ private extension VideoPlayerScreen {
         let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
         let now = Date()
         
-        let record = SpeechRecord(
+        var record = SpeechRecord(
             id: recordID,
             createdAt: now,
             title: title,
@@ -494,6 +487,14 @@ private extension VideoPlayerScreen {
             ),
             highlights: []
         )
+
+        let highlights = SpeechHighlightBuilder
+            .makeHighlights(
+                duration: duration,
+                segments: record.insight?.transcriptSegments ?? []
+            )
+        record.highlights = highlights
+        record.metricsGeneratedAt = now
         
         let metrics = SpeechMetrics(
             recordID: recordID,

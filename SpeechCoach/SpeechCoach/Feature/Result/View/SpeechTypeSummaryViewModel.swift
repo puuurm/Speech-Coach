@@ -33,7 +33,6 @@ final class SpeechTypeSummaryViewModel: ObservableObject {
         let confidenceType: ConfidenceType = .neutral
 
         let oneLiner = paceClassifier.oneLiner(paceType: paceType, stability: paceStability)
-        let highlights: [SpeechHighlight] = []
 
         self.speechType = SpeechTypeSummary(
             paceType: paceType,
@@ -41,8 +40,7 @@ final class SpeechTypeSummaryViewModel: ObservableObject {
             pauseType: pauseType,
             structureType: structureType,
             confidenceType: confidenceType,
-            oneLiner: oneLiner,
-            highlights: highlights
+            oneLiner: oneLiner
         )
     }
     

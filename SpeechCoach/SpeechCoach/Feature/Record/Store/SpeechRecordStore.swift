@@ -285,7 +285,7 @@ final class SpeechRecordStore: ObservableObject {
     private func fetchMetricsEntity(recordID: UUID) throws -> SpeechMetricsEntity? {
         let request = SpeechMetricsEntity.fetchRequest()
         request.fetchLimit = 1
-        request.predicate = NSPredicate(format: "recordID == %@", recordID as CVarArg)
+        request.predicate = NSPredicate(format: "record.id == %@", recordID as CVarArg)
         request.sortDescriptors = [NSSortDescriptor(key: "generatedAt", ascending: false)]
         return try context.fetch(request).first
     }

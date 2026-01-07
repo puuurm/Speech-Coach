@@ -89,7 +89,7 @@ struct ResultScreen: View {
             case let (.some(record), .some(metrics)):
                 content(record: record, metrics: metrics)
             default:
-                EmptyView()
+                ProgressView("불러오는 중...")
             }
         }
         .task {

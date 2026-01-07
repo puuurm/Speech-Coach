@@ -1258,7 +1258,6 @@ struct SpeechTypeSummarySection: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
 
-            // 필요하면 paceType/paceStability 등을 Chip/Card로
             HStack(spacing: 8) {
                 Text(speechType.paceType.label)
                 Text("·")

@@ -48,7 +48,7 @@ struct SpeakingTypeSection: View {
                 .buttonStyle(.plain)
                 .foregroundColor(.accentColor)
                 
-                highlightsSection(highlights: speechType.highlights)
+                highlightsSection(highlights: record.highlights)
                 
             } else {
                 Text("요약을 만들 데이터가 아직 부족해요.")

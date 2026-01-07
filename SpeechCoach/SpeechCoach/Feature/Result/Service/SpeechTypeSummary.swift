@@ -13,10 +13,7 @@ struct SpeechTypeSummary: Codable, Hashable {
     var pauseType: PauseType
     var structureType: StructureType
     var confidenceType: ConfidenceType
-    
     var oneLiner: String
-    
-    var highlights: [SpeechHighlight]
 }
 
 extension SpeechTypeSummary {
@@ -32,10 +29,10 @@ extension SpeechTypeSummary {
         lines.append("· 구조: \(structureType.label)")
         lines.append("· 자신감: \(confidenceType.label)")
 
-        if highlights.isEmpty == false {
+        if record.highlights.isEmpty == false {
             lines.append("")
             lines.append("체크할 구간")
-            for h in highlights.prefix(3) {
+            for h in record.highlights.prefix(3) {
                 lines.append("· \(h.coachDetail(record: record))")
             }
         }
@@ -46,7 +43,7 @@ extension SpeechTypeSummary {
     func memoSnippet(for record: SpeechRecord) -> String {
         var parts: [String] = []
         parts.append("【말하기 타입 요약】 \(oneLiner)")
-        if let h = highlights.first {
+        if let h = record.highlights.first {
             parts.append("체크 구간: \(h.coachDetail(record: record))")
         }
         return parts.joined(separator: "\n")
@@ -64,9 +61,7 @@ enum SpeechTypeSummarizer {
         let pauseType = inferPauseType(duration: duration, segments: segments)
         let structureType = inferStructureType(segments: segments)
         let confidenceType = inferConfidenceType(segments: segments)
-        
-        let highlights = makeHighlights(duration: duration, segments: segments)
-        
+                
         let oneLiner = makeOneLiner(
             paceType: paceType,
             stability: stability,
@@ -81,8 +76,7 @@ enum SpeechTypeSummarizer {
             pauseType: pauseType,
             structureType: structureType,
             confidenceType: confidenceType,
-            oneLiner: oneLiner,
-            highlights: highlights
+            oneLiner: oneLiner
         )
     }
     
@@ -150,6 +144,10 @@ enum SpeechTypeSummarizer {
     ) -> String {
         return "\(paceType.rawValue) 속도 / \(stability.rawValue) / \(pauseType.rawValue) / \(structure.rawValue) / \(confidence.rawValue)"
     }
+    
+}
+
+enum SpeechHighlightBuilder {
     
     static func makeHighlights(
         duration: TimeInterval,
@@ -240,4 +238,5 @@ enum SpeechTypeSummarizer {
         }
         return Array(result.prefix(3))
     }
+    
 }

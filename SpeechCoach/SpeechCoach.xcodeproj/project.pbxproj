@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B0CF99D42F0FB936009FE2F9 /* SwiftUITooltip in Frameworks */ = {isa = PBXBuildFile; productRef = B0CF99D32F0FB936009FE2F9 /* SwiftUITooltip */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		B082C2C72ED0178C00B07A71 /* SpeechCoach.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpeechCoach.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B0CF99D42F0FB936009FE2F9 /* SwiftUITooltip in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = SpeechCoach;
 			packageProductDependencies = (
+				B0CF99D32F0FB936009FE2F9 /* SwiftUITooltip */,
 			);
 			productName = SpeechCoach;
 			productReference = B082C2C72ED0178C00B07A71 /* SpeechCoach.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = B082C2BE2ED0178C00B07A71;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B0CF99D22F0FB936009FE2F9 /* XCRemoteSwiftPackageReference "SwiftUI-Tooltip" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B082C2C82ED0178C00B07A71 /* Products */;
 			projectDirPath = "";
@@ -336,6 +345,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B0CF99D22F0FB936009FE2F9 /* XCRemoteSwiftPackageReference "SwiftUI-Tooltip" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/quassum/SwiftUI-Tooltip.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B0CF99D32F0FB936009FE2F9 /* SwiftUITooltip */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B0CF99D22F0FB936009FE2F9 /* XCRemoteSwiftPackageReference "SwiftUI-Tooltip" */;
+			productName = SwiftUITooltip;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B082C2BF2ED0178C00B07A71 /* Project object */;
 }

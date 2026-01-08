@@ -164,22 +164,6 @@ struct ResultScreen: View {
         } message: {
             Text("카톡에 붙여넣기 하면 바로 보낼 수 있어요.")
         }
-        .onAppear {
-//            previousRecord = recordStore.previousRecord(before: record.id)
-//            editedTranscript = record.transcript
-//            suggestions = QualitativeRecommender.makeSuggestions(
-//                transcript: record.transcript,
-//                duration: record.duration,
-//                fillerCount: metricsVM.metrics?.fillerCount ?? .zero,
-//                segments: record.insight?.transcriptSegments
-//            )
-//            speechType = SpeechTypeSummarizer
-//                .summarize(
-//                    duration: record.duration,
-//                    wordsPerMinute: metricsVM.metrics?.wordsPerMinute ?? .zero,
-//                    segments: record.insight?.transcriptSegments ?? []
-//                )
-        }
     }
     
     @ViewBuilder

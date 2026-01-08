@@ -15,9 +15,13 @@ final class PlayerController: ObservableObject {
     @Published var isReadyToPlay: Bool = false
     @Published var didReachEnd: Bool = false
     
+    @Published var isPlaying: Bool = false
+    
     private var endObserver: NSObjectProtocol?
     private var statusObserver: NSKeyValueObservation?
     
+    private var timeControlObserver: NSKeyValueObservation?
+
     func bindPlaybackEnd() {
         if let endObserver {
             NotificationCenter.default.removeObserver(endObserver)
@@ -32,10 +36,25 @@ final class PlayerController: ObservableObject {
                 queue: .main
             ) { [weak self] _ in
                 self?.didReachEnd = true
+                self?.isPlaying = false
             }
     }
     
+    private func bindPlaybackState() {
+        timeControlObserver = player.observe(
+            \.timeControlStatus,
+             options: [.initial, .new]
+        ) { [weak self] player, _ in
+            DispatchQueue.main.async {
+                self?.isPlaying = (player.timeControlStatus == .playing)
+            }
+        }
+    }
+    
     func load(url: URL) {
+        if timeControlObserver == nil {
+            bindPlaybackState()
+        }
         let item = AVPlayerItem(url: url)
         player.replaceCurrentItem(with: item)
         isReadyToPlay = false
@@ -45,6 +64,7 @@ final class PlayerController: ObservableObject {
             }
         }
         bindPlaybackEnd()
+        didReachEnd = false
     }
     
     func duration() -> TimeInterval {

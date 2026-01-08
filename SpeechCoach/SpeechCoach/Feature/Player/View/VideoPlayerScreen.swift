@@ -8,6 +8,7 @@
 import SwiftUI
 import AVKit
 import Speech
+import SwiftUITooltip
 
 struct VideoPlayerScreen: View {
     let videoURL: URL
@@ -15,6 +16,7 @@ struct VideoPlayerScreen: View {
     let startTime: TimeInterval?
     let autoplay: Bool
     let mode: VideoPlayerScreenMode
+    var tooltipConfig = DefaultTooltipConfig()
     
     init (
         videoURL: URL,
@@ -28,6 +30,10 @@ struct VideoPlayerScreen: View {
         self.startTime = startTime
         self.autoplay = autoplay
         self.mode = mode
+        
+        self.tooltipConfig.enableAnimation = true
+        self.tooltipConfig.animationOffset = 10
+        self.tooltipConfig.animationTime = 1
     }
     
     @State private var duration: TimeInterval = 0
@@ -37,11 +43,15 @@ struct VideoPlayerScreen: View {
     @State private var playbackEnded: Bool = false
     
     @State private var isStartingAnalysis: Bool = false
+    @State private var tapAnalysisButton: Bool = false
+
     @State private var analyzedRecord: SpeechRecord?
     @State private var analyzedMetrics: SpeechMetrics?
     @State private var showFeedbackSheet: Bool = false
     
     @State private var appliedStartTime = false
+    
+    @State private var tooltipVisible = false
     
     @EnvironmentObject var router: NavigationRouter
     @EnvironmentObject var recordStore: SpeechRecordStore
@@ -78,9 +88,12 @@ struct VideoPlayerScreen: View {
     
     var body: some View {
         VStack {
-            VideoPlayer(player: pc.player)
-                .aspectRatio(16/9, contentMode: .fit)
-                .cornerRadius(16)
+            ZStack(alignment: .bottom) {
+                VideoPlayer(player: pc.player)
+                    .aspectRatio(16/9, contentMode: .fit)
+                    .cornerRadius(16)
+            }
+            
             ScrollView {
                 VStack(spacing: 16) {
                     if pc.isReadyToPlay {
@@ -125,6 +138,11 @@ struct VideoPlayerScreen: View {
             
             if case .waitingForPlaybackEnd = phase {
                 phase = .ready
+            }
+        }
+        .onChange(of: pc.isPlaying) { playing in
+            if !tapAnalysisButton {
+                tooltipVisible = true
             }
         }
         .onDisappear {
@@ -211,54 +229,62 @@ private extension VideoPlayerScreen {
     }
     
     var idleStateView: some View {
-        switch mode {
-        case .normal:
-            VStack(alignment: .leading, spacing: 8) {
-                Text("영상 재생부터 시작해볼까요?")
-                    .font(.subheadline.weight(.medium))
-                Text("재생 버튼을 누르면, 영상과 동시에 아래에서 스크립트를 분석해둘게요.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                
-                Button {
-                    startPlaybackAndAnalysis()
-                } label: {
-                    HStack {
-                        Image(systemName: "play.fill")
-                        Text("영상 재생 & 분석 시작")
+        Group {
+            switch mode {
+            case .normal:
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("영상 재생부터 시작해볼까요?")
+                        .font(.subheadline.weight(.medium))
+                    Text("재생 버튼을 누르면, 영상과 동시에 아래에서 스크립트를 분석해둘게요.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                    
+                    Button {
+                        tooltipVisible = false
+                        tapAnalysisButton = true
+                        startPlaybackAndAnalysis()
+                    } label: {
+                        HStack {
+                            Image(systemName: "play.fill")
+                            Text("영상 재생 & 분석 시작")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
                     }
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+                    .padding(.top, 4)
+                    .tooltip(self.tooltipVisible, side: .bottom, config: tooltipConfig) {
+                        Text("이 영상으로 말하기 분석을 \n시작할 수 있어요")
+                            .padding(5)
+                    }
                 }
-                .padding(.top, 4)
-            }
-        case .highlightReview:
-            VStack(alignment: .leading, spacing: 8) {
-                 Text("하이라이트 구간을 확인해보세요.")
-                     .font(.subheadline.weight(.medium))
-                 Text("이 화면에서는 분석을 다시 돌리지 않고, 재생/구간 이동만 제공합니다.")
-                     .font(.footnote)
-                     .foregroundColor(.secondary)
+            case .highlightReview:
+                VStack(alignment: .leading, spacing: 8) {
+                     Text("하이라이트 구간을 확인해보세요.")
+                         .font(.subheadline.weight(.medium))
+                     Text("이 화면에서는 분석을 다시 돌리지 않고, 재생/구간 이동만 제공합니다.")
+                         .font(.footnote)
+                         .foregroundColor(.secondary)
 
-                 Button {
-                     pc.player.play()
-                 } label: {
-                     HStack {
-                         Image(systemName: "play.fill")
-                         Text("재생")
+                     Button {
+                         pc.player.play()
+                     } label: {
+                         HStack {
+                             Image(systemName: "play.fill")
+                             Text("재생")
+                         }
+                         .font(.headline)
+                         .frame(maxWidth: .infinity)
+                         .padding(.vertical, 12)
+                         .background(Color.accentColor)
+                         .foregroundColor(.white)
+                         .cornerRadius(12)
                      }
-                     .font(.headline)
-                     .frame(maxWidth: .infinity)
-                     .padding(.vertical, 12)
-                     .background(Color.accentColor)
-                     .foregroundColor(.white)
-                     .cornerRadius(12)
-                 }
-                 .padding(.top, 4)
+                     .padding(.top, 4)
+                }
             }
         }
     }

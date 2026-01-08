@@ -360,6 +360,7 @@ private extension VideoPlayerScreen {
                     .font(.footnote)
                     .foregroundColor(.secondary)
                     .lineLimit(nil)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(12)

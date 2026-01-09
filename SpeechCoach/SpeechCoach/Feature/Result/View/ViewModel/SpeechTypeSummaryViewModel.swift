@@ -21,9 +21,7 @@ final class SpeechTypeSummaryViewModel: ObservableObject {
     }
 
     func load(from metrics: SpeechMetrics) {
-        // 1) paceType: 평균 WPM 기반 “느림/적절/빠름”
         let paceType = paceClassifier.paceType(from: metrics.wordsPerMinute)
-
         let paceStability = paceClassifier.stability(
             variability: metrics.paceVariability,
             spikeCount: metrics.spikeCount
@@ -31,73 +29,34 @@ final class SpeechTypeSummaryViewModel: ObservableObject {
         let pauseType: PauseType = .thinkingPause
         let structureType: StructureType = .partial
         let confidenceType: ConfidenceType = .neutral
-
-        let oneLiner = paceClassifier.oneLiner(paceType: paceType, stability: paceStability)
-
-        self.speechType = SpeechTypeSummary(
+        
+        var summary = SpeechTypeSummary(
             paceType: paceType,
             paceStability: paceStability,
             pauseType: pauseType,
             structureType: structureType,
             confidenceType: confidenceType,
-            oneLiner: oneLiner
+            oneLiner: ""
         )
+        
+        summary.oneLiner = SpeechTypeOneLinerBuilder.make(from: summary)
+        self.speechType = summary
+    }
+    
+    func load(duration: TimeInterval, wordsPerMinute: Int, segments: [TranscriptSegment]) {
+        var summary = SpeechTypeSummarizer.summarize(
+            duration: duration,
+            wordsPerMinute: wordsPerMinute,
+            segments: segments
+        )
+        summary.oneLiner = SpeechTypeOneLinerBuilder.make(from: summary)
+        self.speechType = summary
     }
     
     func reset() {
         speechType = nil
     }
 }
-
-// MARK: - Classifier (metrics-based rules)
-
-struct PaceClassifier {
-    // 앱 내 “적절한 말하기 속도” 기준을 한 곳에서 관리
-    var slowWPM: Int = 120
-    var fastWPM: Int = 170
-
-    // 안정성 기준(없으면 conservative)
-    var variabilityStableMax: Double = 0.18
-    var spikeStableMax: Int = 2
-
-    func paceType(from avgWPM: Int) -> PaceType {
-        if avgWPM < slowWPM { return .slow }
-        if avgWPM > fastWPM { return .fast }
-        return .comfortable
-    }
-
-    func stability(variability: Double?, spikeCount: Int?) -> StabilityLevel {
-        let v = variability ?? 0
-        let s = spikeCount ?? 0
-
-        // “둘 중 하나라도 불안정 기준 넘으면” 흔들림으로
-        if v > variabilityStableMax || s > spikeStableMax {
-            return .unstable
-        } else {
-            return .stable
-        }
-    }
-
-    func oneLiner(paceType: PaceType, stability: StabilityLevel) -> String {
-        switch (paceType, stability) {
-        case (.slow, .stable):
-            return "전반적으로 천천히, 속도는 비교적 일정해요."
-        case (.slow, .unstable):
-            return "전반적으로 천천히, 구간별 속도 흔들림이 있어요."
-        case (.comfortable, .stable):
-            return "속도는 적절하고, 구간별 페이스도 안정적이에요."
-        case (.comfortable, .unstable):
-            return "속도는 적절하지만, 구간별 페이스가 흔들릴 수 있어요."
-        case (.fast, .stable):
-            return "전반적으로 빠르게, 속도는 비교적 일정해요."
-        case (.fast, .unstable):
-            return "전반적으로 빠르게, 구간별 속도 변화가 커요."
-        default:
-            return "말하기 속도 특성을 요약했어요."
-        }
-    }
-}
-
 
 @MainActor
 final class ResultMetricsViewModel: ObservableObject {

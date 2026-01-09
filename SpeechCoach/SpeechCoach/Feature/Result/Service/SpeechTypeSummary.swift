@@ -105,26 +105,49 @@ enum SpeechTypeSummarizer {
     
     static func inferPauseType(duration: TimeInterval, segments: [TranscriptSegment]) -> PauseType {
         let gaps = PauseAnalyzer.gaps(from: segments, duration: duration)
+        guard duration > 0 else { return .smooth }
+
         let longPauses = gaps.filter { $0.duration >= 1.0 }
         let veryLong = gaps.filter { $0.duration >= 2.0 }
-        
-        if veryLong.count >= 2 { return .thinkingPause }
-        if longPauses.count >= 4 { return .choppy }
+
+        let minutes = max(duration / 60.0, 0.5)
+        let longPerMin = Double(longPauses.count) / minutes
+        let veryLongPerMin = Double(veryLong.count) / minutes
+
+        if veryLongPerMin >= 0.6 { return .thinkingPause }
+        if longPerMin >= 1.5 { return .choppy }
         return .smooth
     }
+
+    
+//    static func inferStructureType(segments: [TranscriptSegment]) -> StructureType {
+//        let text = segments.map(\.text).joined(separator: " ")
+//        let hasIntro = text.contains("결론") || text.contains("먼저") || text.contains("첫째")
+//        let hasWrap = text.contains("정리") || text.contains("마무리") || text.contains("결과적으로")
+//        
+//        switch (hasIntro, hasWrap) {
+//        case (true, true): return .clear
+//        case (true, false), (false, true): return .partial
+//        default: return .unclear
+//        }
+//    }
     
     static func inferStructureType(segments: [TranscriptSegment]) -> StructureType {
         let text = segments.map(\.text).joined(separator: " ")
-        let hasIntro = text.contains("결론") || text.contains("먼저") || text.contains("첫째")
-        let hasWrap = text.contains("정리") || text.contains("마무리") || text.contains("결과적으로")
-        
+
+        let introSignals = ["먼저", "첫째", "우선", "오늘", "주제", "결론부터"]
+        let wrapSignals = ["정리", "마무리", "결론", "요약", "결과적으로", "즉"]
+
+        let hasIntro = introSignals.contains { text.contains($0) }
+        let hasWrap = wrapSignals.contains { text.contains($0) }
+
         switch (hasIntro, hasWrap) {
         case (true, true): return .clear
         case (true, false), (false, true): return .partial
         default: return .unclear
         }
     }
-    
+
     static func inferConfidenceType(segments: [TranscriptSegment]) -> ConfidenceType {
         let confidences = segments.compactMap(\.confidence)
         guard segments.isEmpty == false, confidences.isEmpty == false else { return .neutral }

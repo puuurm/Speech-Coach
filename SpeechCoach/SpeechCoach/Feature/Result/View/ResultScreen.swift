@@ -25,8 +25,8 @@ struct ResultScreen: View {
     @StateObject private var recordVM: ResultRecordViewModel
     @StateObject private var metricsVM: ResultMetricsViewModel
     
-    @StateObject private var recVM = ResultRecommendationsViewModel()
-    @StateObject private var typeVM = SpeechTypeSummaryViewModel()
+    @StateObject private var recommendVM = ResultRecommendationsViewModel()
+    @StateObject private var summaryVM = SpeechTypeSummaryViewModel()
         
     @EnvironmentObject private var recordStore: SpeechRecordStore
     @EnvironmentObject private var pc: PlayerController
@@ -49,7 +49,6 @@ struct ResultScreen: View {
     @State private var suggestions: [TemplateSuggestion] = []
     
     @State private var selectedTab: ResultTab = .feedback
-//    @State private var showAllTranscript: Bool = false
     @State private var showAdvanced: Bool = false
     @State private var showQualitative: Bool = false
     
@@ -100,9 +99,17 @@ struct ResultScreen: View {
             await metricsVM.load(using: recordStore, previousRecordID: previousRecord?.id)
 
             if let metrics = metricsVM.metrics {
-                typeVM.load(from: metrics)
+                if let segments = record.insight?.transcriptSegments, !segments.isEmpty {
+                    summaryVM.load(
+                        duration: record.duration,
+                        wordsPerMinute: metrics.wordsPerMinute,
+                        segments: segments
+                    )
+                } else {
+//                    summaryVM.load(from: metrics)
+                }
             } else {
-                typeVM.reset()
+                summaryVM.reset()
             }
             
             let series = SpeedSeriesBuilder.make(
@@ -112,7 +119,7 @@ struct ResultScreen: View {
                 binSeconds: 5
             )
             
-            recVM.buildSuggestions(
+            recommendVM.buildSuggestions(
                 recordID: recordID,
                 averageWPM: metricsVM.metrics?.wordsPerMinute ?? .zero,
                 speedSeries: series
@@ -192,13 +199,12 @@ struct ResultScreen: View {
                             metrics: metrics,
                             previousRecord: previousRecord,
                             previousMetrics: metricsVM.previousMetrics,
-                            speechType: typeVM.speechType,
+                            speechType: summaryVM.speechType,
                             playbackPolicy: playbackPolicy,
                             selectedHighlight: $selectedHighlight,
                             insertIntoImprovements: insertIntoImprovements,
                             presentCoachAssistant: presentCoachAssistant
                         )
-//                        AnalysisTab(record: record, metrics: metrics, previousRecord: previousRecord)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -259,14 +265,14 @@ struct ResultScreen: View {
             Text("추천 템플릿")
                 .font(.subheadline.weight(.semibold))
             
-            if recVM.suggestions.isEmpty {
+            if recommendVM.suggestions.isEmpty {
                 Text("추천을 생성할 데이터가 아직 부족해요")
                     .font(.caption)
                     .foregroundColor(.secondary)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 3) {
-                        ForEach(recVM.suggestions) { suggestion in
+                        ForEach(recommendVM.suggestions) { suggestion in
                             Button {
                                 applySuggestion(suggestion)
                             } label: {
@@ -1038,23 +1044,6 @@ extension ResultScreen {
             .buttonStyle(.plain)
         }
     }
-    
-//    var saveOnlyButton: some View {
-//        Button {
-//            saveNotes()
-//            dismiss()
-//            router.popToRoot()
-//        } label: {
-//            Text("메모 저장하고 홈으로")
-//                .font(.subheadline.weight(.semibold))
-//                .frame(maxWidth: .infinity)
-//                .padding(.vertical, 12)
-//                .background(Color(.systemGray6))
-//                .cornerRadius(12)
-//        }
-//        .buttonStyle(.plain)
-//        .padding(.top, 2)
-//    }
 }
 
 extension ResultScreen {

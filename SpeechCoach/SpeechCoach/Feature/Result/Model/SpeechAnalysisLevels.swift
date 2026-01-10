@@ -32,9 +32,9 @@ enum StabilityLevel: String, Codable, CaseIterable {
 extension StabilityLevel {
     var displayName: String {
         switch self {
-        case .stable: return "안정"
-        case .mixed: return "변동"
-        case .unstable: return "불안정"
+        case .stable: return "페이스 안정적"
+        case .mixed: return "페이스 약간 흔들림"
+        case .unstable: return "페이스 흔들림"
         }
     }
 }

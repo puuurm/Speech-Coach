@@ -30,15 +30,11 @@ struct SpeakingTypeSection: View {
 
                 Spacer()
 
-//                Button("요약 복사") {
-//                    send(.copy)
-//                }
-//                .font(.caption.weight(.semibold))
                 Button {
                     withAnimation(.easeInOut(duration: 0.18)) { expanded.toggle() }
                 } label: {
                     HStack(spacing: 4) {
-                        Text(expanded ? "접기" : "자세히 보기")
+                        Text(expanded ? "접기" : "펼치기")
                         Image(systemName: "chevron.down")
                             .rotationEffect(.degrees(expanded ? 180 : 0))
                     }
@@ -47,17 +43,10 @@ struct SpeakingTypeSection: View {
             }
 
             if let speechType {
-                oneLinerCard(text: speechType.oneLiner)
-                
-                if expanded {
-                    VStack(alignment: .leading, spacing: 6) {
-                        row("속도", "\(speechType.paceType.displayName) · \(speechType.paceStability.displayName)")
-                        row("쉬는 습관", speechType.pauseType.displayName)
-                        row("구조", speechType.structureType.displayName)
-                        row("자신감", speechType.confidenceType.displayName)
-                    }
-                }
-//
+                expandableSummaryCard(
+                    speechType: speechType,
+                    expanded: expanded
+                )
 //                Button {
 //                    let snippet = speechType.memoSnippet(for: record)
 //                    send(.insertMemo(snippet))
@@ -80,15 +69,37 @@ struct SpeakingTypeSection: View {
 }
 
 extension SpeakingTypeSection {
-    private func oneLinerCard(text: String) -> some View {
-        Text(text)
-            .font(.subheadline.weight(.semibold))
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.secondarySystemBackground))
-            )
+    func expandableSummaryCard(
+        speechType: SpeechTypeSummary,
+        expanded: Bool
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(speechType.oneLiner)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.primary)
+            if expanded {
+                Divider()
+                    .opacity(0.4)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("왜 이렇게 판단했나요?")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundColor(.secondary)
+                    
+                    ForEach(speechType.displayReasons(), id: \.self) { reason in
+                        Text("• \(reason)")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .animation(.easeInOut(duration: 0.18), value: expanded)
     }
     
     @ViewBuilder
@@ -104,13 +115,11 @@ extension SpeakingTypeSection {
                         duration: record.duration,
                         playbackPolicy: playbackPolicy,
                         onPlay: {
-//                            presentCoachAssistant(for: h)
                             send(.playHighlight(highlight))
                         }
                     )
                     .contentShape(Rectangle())
                     .onTapGesture {
-//                        selectedHighlight = h
                         send(.selectHighlight(highlight))
                     }
                 }
@@ -118,13 +127,4 @@ extension SpeakingTypeSection {
         }
     }
     
-    private func row(_ title: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(title)
-                .frame(width: 70, alignment: .leading)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .foregroundStyle(.primary)
-        }
-    }
 }

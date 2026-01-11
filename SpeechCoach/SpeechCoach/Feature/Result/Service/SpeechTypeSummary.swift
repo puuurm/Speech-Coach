@@ -50,6 +50,40 @@ extension SpeechTypeSummary {
     }
 }
 
+extension SpeechTypeSummary {
+    func displayReasons() -> [String] {
+        var result: [String] = []
+        switch paceType {
+        case .slow:
+            result.append("평균 말하기 속도가 느린 편이에요")
+        case .comfortable:
+            result.append("평균 말하기 속도가 적정 범위에 있어요")
+        case .fast:
+            result.append("평균 말하기 속도가 빠른 편이에요")
+        }
+        
+        switch paceStability {
+        case .stable:
+            result.append("구간별 속도 변화가 크지 않아요")
+        case .unstable:
+            result.append("구간별 속도 변화가 느껴질 수 있어요")
+        default: break
+        }
+        return Array(result.prefix(2))
+    }
+    
+    func clipboardText() -> String {
+        var lines = [oneLiner]
+        let reasons = displayReasons()
+        if reasons.isEmpty {
+            lines.append("")
+            lines.append("왜 이렇게 판단했나요?")
+            lines.append(contentsOf: reasons.map { "• \($0)" })
+        }
+        return lines.joined(separator: "\n")
+    }
+}
+
 enum SpeechTypeSummarizer {
     static func summarize(
         duration: TimeInterval,

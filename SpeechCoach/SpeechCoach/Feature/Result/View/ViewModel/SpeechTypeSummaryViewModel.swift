@@ -13,37 +13,14 @@ import Combine
 @MainActor
 final class SpeechTypeSummaryViewModel: ObservableObject {
     @Published private(set) var speechType: SpeechTypeSummary?
-
-    private let paceClassifier: PaceClassifier
-
-    init(paceClassifier: PaceClassifier = .init()) {
-        self.paceClassifier = paceClassifier
-    }
-
-    func load(from metrics: SpeechMetrics) {
-        let paceType = paceClassifier.paceType(from: metrics.wordsPerMinute)
-        let paceStability = paceClassifier.stability(
-            variability: metrics.paceVariability,
-            spikeCount: metrics.spikeCount
-        )
-        let pauseType: PauseType = .thinkingPause
-        let structureType: StructureType = .partial
-        let confidenceType: ConfidenceType = .neutral
-        
-        var summary = SpeechTypeSummary(
-            paceType: paceType,
-            paceStability: paceStability,
-            pauseType: pauseType,
-            structureType: structureType,
-            confidenceType: confidenceType,
-            oneLiner: ""
-        )
-        
-        summary.oneLiner = SpeechTypeOneLinerBuilder.make(from: summary)
-        self.speechType = summary
-    }
     
-    func load(duration: TimeInterval, wordsPerMinute: Int, segments: [TranscriptSegment]) {
+    private let paceClassifier = PaceClassifier()
+    
+    func load(
+        duration: TimeInterval,
+        wordsPerMinute: Int,
+        segments: [TranscriptSegment]
+    ) {
         var summary = SpeechTypeSummarizer.summarize(
             duration: duration,
             wordsPerMinute: wordsPerMinute,

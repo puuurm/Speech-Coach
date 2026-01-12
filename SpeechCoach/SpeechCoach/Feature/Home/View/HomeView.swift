@@ -230,7 +230,3 @@ extension HomeView {
         }
     }
 }
-
-//#Preview {
-//    HomeView(path: [], viewModel: .init())
-//}

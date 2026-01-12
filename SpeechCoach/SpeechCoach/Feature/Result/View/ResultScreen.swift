@@ -125,18 +125,15 @@ struct ResultScreen: View {
                 speedSeries: series
             )
         }
-        .sheet(item: $selectedHighlight) { h in
+        .sheet(item: $selectedHighlight) { highlight in
             if let record = recordVM.record {
                 CoachAssistantHighlightDetailView(
-                    highlight: h,
+                    highlight: highlight,
                     record: record,
                     onRequestPlay: { sec in
-                        onRequestPlay(sec)
                         selectedHighlight = nil
-                        pendingSeek = sec
-                        playerRoute = .init(recordID: record.id, startTime: sec, autoplay: true)
                         DispatchQueue.main.async {
-                            showPlayer = true
+                            onRequestPlay(sec)
                         }
                     }
                 )
@@ -1203,6 +1200,7 @@ extension ResultScreen {
 //        }
 //    }
     private func presentCoachAssistant(for highlight: SpeechHighlight) {
+        guard case .playable = playbackPolicy else { return }
         selectedHighlight = highlight
         isCoachAssistantPresented = true
     }

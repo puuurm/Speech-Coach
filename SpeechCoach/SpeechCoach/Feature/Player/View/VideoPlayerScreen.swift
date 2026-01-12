@@ -59,6 +59,8 @@ struct VideoPlayerScreen: View {
     private let speechService = RealSpeechService()
     private let analyzer = TranscriptAnalyzer()
     
+    @State private var pendingSeek: Double? = nil
+    
     @EnvironmentObject private var pc: PlayerController
     
     var allowsAnalysisStart: Bool {
@@ -148,7 +150,12 @@ struct VideoPlayerScreen: View {
         .onDisappear {
             pc.player.pause()
         }
-        .sheet(isPresented: $showFeedbackSheet) {
+        .sheet(isPresented: $showFeedbackSheet, onDismiss: {
+            if let second = pendingSeek {
+                pc.seek(to: second, autoplay: true)
+                pendingSeek = nil
+            }
+        }) {
             if let record = analyzedRecord {
                 NavigationStack {
                     ResultScreen(
@@ -158,12 +165,29 @@ struct VideoPlayerScreen: View {
                             showFeedbackSheet = false
                         },
                         onRequestPlay: { sec in
-                            pc.seek(to: sec, autoplay: autoplay)
+                            pendingSeek = sec
+                            showFeedbackSheet = false
                         }
                     )
                 }
             }
         }
+//        .sheet(isPresented: $showFeedbackSheet) {
+//            if let record = analyzedRecord {
+//                NavigationStack {
+//                    ResultScreen(
+//                        recordID: record.id,
+//                        playbackPolicy: .playable { start in
+//                            pc.seek(to: start, autoplay: true)
+//                            showFeedbackSheet = false
+//                        },
+//                        onRequestPlay: { sec in
+//                            pc.seek(to: sec, autoplay: autoplay)
+//                        }
+//                    )
+//                }
+//            }
+//        }
     }
 }
 

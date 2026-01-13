@@ -330,13 +330,13 @@ private extension VideoPlayerScreen {
         VStack(alignment: .leading, spacing: 8) {
             Text("분석이 완료되었어요.")
                 .font(.subheadline.weight(.medium))
-            
+        
             Button("결과 보기") {
                 phase = .ready
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(PrimaryFullWidthButtonStyle(cornerRadius: 12))
             
-            Text("영상이 끝나면 자동으로도 보여드려요.")
+            Text("영상이 끝나면 자동으로 결과 화면이 열려요.")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

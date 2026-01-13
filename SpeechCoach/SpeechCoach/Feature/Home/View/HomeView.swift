@@ -8,15 +8,23 @@
 import SwiftUI
 import PhotosUI
 import AVFoundation
+import CoreData
 
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
     @EnvironmentObject var recordStore: SpeechRecordStore
     @EnvironmentObject var router: NavigationRouter
+    @Environment(\.managedObjectContext) private var context
+    
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)],
+        animation: .default
+    )
+    
+    private var recordEntities: FetchedResults<SpeechRecordEntity>
     
     @State private var selectedItem: PhotosPickerItem?
     @State private var navigateToPlayer = false
-    
     @State private var isImporting: Bool = false
     
     var body: some View {
@@ -103,9 +111,15 @@ struct HomeView: View {
         .padding(16)
     }
     
+    private var records: [SpeechRecord] {
+        recordEntities.compactMap { entity in
+            SpeechRecordMapper.toDomain(entity)
+        }
+    }
+    
     private var recentSection: some View {
         Group {
-            if recordStore.records.isEmpty {
+            if records.isEmpty {
                 Section {
                     Text("아직 분석한 영상이 없어요.")
                         .font(.subheadline)
@@ -115,7 +129,7 @@ struct HomeView: View {
                         .font(.headline)
                 }
             } else {
-                let groupted = Dictionary(grouping: recordStore.records) { record in
+                let groupted = Dictionary(grouping: records) { record in
                     dayKey(from: record.createdAt)
                 }
                 

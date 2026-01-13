@@ -330,8 +330,14 @@ private extension VideoPlayerScreen {
         VStack(alignment: .leading, spacing: 8) {
             Text("분석이 완료되었어요.")
                 .font(.subheadline.weight(.medium))
-            Text("영상이 끝나면 바로 아래에서 결과를 보여드릴게요.")
-                .font(.footnote)
+            
+            Button("결과 보기") {
+                phase = .ready
+            }
+            .buttonStyle(.borderedProminent)
+            
+            Text("영상이 끝나면 자동으로도 보여드려요.")
+                .font(.caption)
                 .foregroundColor(.secondary)
         }
     }
@@ -452,8 +458,14 @@ private extension VideoPlayerScreen {
 private extension VideoPlayerScreen {
     
     func startPlaybackAndAnalysis() {
-        pc.player.play()
-        playbackEnded = false
+    
+        if isEffectivelyEnded(pc.player) {
+            playbackEnded = true
+        }
+        
+        if !playbackEnded {
+            pc.player.play()
+        }
         
         guard !isStartingAnalysis else { return }
         guard analyzedRecord == nil else { return }
@@ -469,6 +481,11 @@ private extension VideoPlayerScreen {
                 await MainActor.run {
                     analyzedRecord = record
                     analyzedMetrics = metrics
+                    
+                    if isEffectivelyEnded(pc.player) {
+                        playbackEnded = true
+                    }
+                    
                     phase = playbackEnded ? .ready : .waitingForPlaybackEnd
                     isStartingAnalysis = false
                 }
@@ -479,6 +496,17 @@ private extension VideoPlayerScreen {
                 }
             }
         }
+    }
+    
+    private func isEffectivelyEnded(
+        _ player: AVPlayer,
+        epsilon: Double = 0.3
+    ) -> Bool {
+        guard let item = player.currentItem,
+              item.duration.isNumeric else {
+            return false
+        }
+        return player.currentTime().seconds >= max(0, item.duration.seconds - epsilon)
     }
     
     func retryAnalysis() {

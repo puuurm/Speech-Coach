@@ -398,6 +398,7 @@ private extension VideoPlayerScreen {
             .cornerRadius(10)
             
             Button {
+                pc.player.pause()
                 showFeedbackSheet = true
             } label: {
                 Text("피드백 작성하기")

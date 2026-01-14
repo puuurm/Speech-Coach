@@ -160,28 +160,33 @@ extension RealSpeechService {
                 if let error {
                     print("🔴 Speech recognition error:", error)
                     finish(.failure(error))
-                    recognitionTask?.cancel()
-                    recognitionTask = nil
-                    continuation.resume(throwing: error)
                     return
                 }
-                if let result {
-                    let bestTranscription = result.bestTranscription
+                
+                guard let result else { return }
+                
+                if result.isFinal {
+                    let finalText = result.bestTranscription.formattedString
+                    print("✅ Final transcription:", finalText)
                     
-                    if result.isFinal {
-                        let finalText = bestTranscription.formattedString
-
-                        print("✅ Final transcription:", finalText)
-                        if finalText.isEmpty == false {
-                            continuation.resume(returning: finalText)
-                        } else {
-                            continuation.resume(throwing: RealSpeechServiceError.noTranscription)
-                        }
-                        recognitionTask?.cancel()
-                        recognitionTask = nil
+                    if finalText.isEmpty == false {
+                        finish(.success(finalText))
+                    } else {
+                        finish(.failure(RealSpeechServiceError.noTranscription))
                     }
                 }
             }
+            
+            Task {
+                while !didFinish {
+                    if Task.isCancelled {
+                        finish(.failure(CancellationError()))
+                        break
+                    }
+                    try? await Task.sleep(nanoseconds: 50_000_000)
+                }
+            }
+            
         }
     }
 }

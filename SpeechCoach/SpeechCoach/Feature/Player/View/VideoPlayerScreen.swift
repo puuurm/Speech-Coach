@@ -50,18 +50,19 @@ struct VideoPlayerScreen: View {
     @State private var showFeedbackSheet: Bool = false
     
     @State private var appliedStartTime = false
-    
     @State private var tooltipVisible = false
-    
+    @State private var pendingSeek: Double? = nil
+
     @EnvironmentObject var router: NavigationRouter
     @EnvironmentObject var recordStore: SpeechRecordStore
     
     private let speechService = RealSpeechService()
     private let analyzer = TranscriptAnalyzer()
     
-    @State private var pendingSeek: Double? = nil
-    
     @EnvironmentObject private var pc: PlayerController
+    
+    @AppStorage("hide_fullflow_banner")
+    private var hideFullFlowBanner: Bool = false
     
     var allowsAnalysisStart: Bool {
         switch mode {
@@ -79,12 +80,16 @@ struct VideoPlayerScreen: View {
         }
     }
     
-    private var canProceed: Bool {
+    private var canOpenFeedback: Bool {
+        analyzedRecord != nil
+    }
+    
+    private var shouldShowFullFlowBanner: Bool {
+        guard analyzedRecord != nil else { return false }
+        guard hideFullFlowBanner == false else { return false }
         switch mode {
-        case .normal:
-            return playbackEnded && analyzedRecord != nil
-        case .highlightReview:
-            return analyzedRecord != nil
+        case .normal: return playbackEnded == false
+        case .highlightReview: return false
         }
     }
     
@@ -169,25 +174,25 @@ struct VideoPlayerScreen: View {
                             showFeedbackSheet = false
                         }
                     )
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        if shouldShowFullFlowBanner {
+                            FullFlowHintBanner(
+                                onTapWatchVideo: {
+                                    showFeedbackSheet = false
+                                    pc.player.play()
+                                },
+                                onTapDontShowAgain: {
+                                    hideFullFlowBanner = true
+                                }
+                            )
+                            .padding(.horizontal, 16)
+                            .padding(.top, 10)
+                            .padding(.bottom, 8)
+                        }
+                    }
                 }
             }
         }
-//        .sheet(isPresented: $showFeedbackSheet) {
-//            if let record = analyzedRecord {
-//                NavigationStack {
-//                    ResultScreen(
-//                        recordID: record.id,
-//                        playbackPolicy: .playable { start in
-//                            pc.seek(to: start, autoplay: true)
-//                            showFeedbackSheet = false
-//                        },
-//                        onRequestPlay: { sec in
-//                            pc.seek(to: sec, autoplay: autoplay)
-//                        }
-//                    )
-//                }
-//            }
-//        }
     }
 }
 
@@ -409,7 +414,7 @@ private extension VideoPlayerScreen {
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
-            .disabled(!canProceed)
+            .disabled(!canOpenFeedback)
             .padding(.top, 4)
         }
     }

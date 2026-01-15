@@ -195,6 +195,36 @@ final class SpeechRecordStore: ObservableObject {
         return records[nextIndex]
     }
     
+    func updateStudentName(
+        recordID: UUID,
+        studentName: String?
+    ) async throws {
+        try await context.perform {
+            let request = SpeechRecordEntity.fetchRequest()
+            request.fetchLimit = 1
+            request.predicate = NSPredicate(format: "id == %@", recordID as CVarArg)
+            
+            guard let entity = try self.context.fetch(request).first else {
+                throw NSError(
+                    domain: "SpeechRecordStore",
+                    code: 404,
+                    userInfo: [NSLocalizedDescriptionKey: "SpeechRecord not found"]
+                )
+            }
+            
+            let oldValue = entity.studentName
+            entity.studentName = studentName
+            
+            do {
+                try self.context.save()
+            } catch {
+                self.context.rollback()
+                entity.studentName = oldValue
+                throw error
+            }
+        }
+    }
+    
     func delete(recordID: UUID) {
         context.perform {
             do {

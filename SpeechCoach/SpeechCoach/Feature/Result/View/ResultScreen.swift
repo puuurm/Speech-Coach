@@ -173,7 +173,11 @@ struct ResultScreen: View {
     @ViewBuilder
     private func content(record: SpeechRecord, metrics: SpeechMetrics) -> some View {
         VStack(spacing: 0) {
-            headerSection(record: record)
+            headerSection(record: record) { newName in
+                Task {
+                    await recordVM.updateStudentName(newName, using: recordStore)
+                }
+            }
             
             Picker("", selection: $selectedTab) {
                 ForEach(ResultTab.allCases) { tab in
@@ -303,26 +307,16 @@ struct ResultScreen: View {
         }
     }
     
-    func headerSection(record: SpeechRecord) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(cleanTitle(from: record.title))
-                .font(.title3.weight(.semibold))
-            
-            HStack(spacing: 8) {
-                Text(formattedDate(record.createdAt))
-                Text("·")
-                Text(durationString(record.duration))
-                if record.studentName.isEmpty == false {
-                    Text("·")
-                    Text(record.studentName)
-                }
-            }
-            .font(.subheadline)
-            .foregroundColor(.secondary)
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 10)
-        .padding(.bottom, 6)
+    func headerSection(
+        record: SpeechRecord,
+        onChangeStudentName: @escaping (
+            String
+        ) -> Void
+    ) -> some View {
+        HeaderSectionView(
+            record: record,
+            onChangeStudentName: onChangeStudentName
+        )
     }
     
 //    private var metricsSection: some View {
@@ -776,19 +770,11 @@ struct ResultScreen: View {
         }
     }
 
-    private func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
-    
     private func makeFeedbackText() -> String {
         var lines: [String] = []
         guard let record = recordVM.record else { return "--" }
-        let name = record.studentName.isEmpty ? "학생님" : record.studentName
-        lines.append("\(name). 안녕하세요 :)")
+        
+        lines.append("\(record.greetingName) 안녕하세요.")
         lines.append("")
         
         if !introText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -847,7 +833,7 @@ extension ResultScreen {
                 text: $introText
             ) {
                 appendTemplate(&introText, template: """
-                \(record.studentName.isEmpty ? "학생님" : record.studentName) 안녕하세요. 
+                \(record.greetingName) 안녕하세요. 
                 보내주신 과제 영상에 대한 피드백 남겨드립니다.
                 첫 촬영이라 익숙하지 않으셨을 텐데 차분히 연습해주셔서 감사합니다.
                 """)

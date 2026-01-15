@@ -16,7 +16,7 @@ struct SpeechRecord: Identifiable, Hashable, Codable {
     let summaryFillerCount: Int?
     var metricsGeneratedAt: Date?
     let transcript: String
-    var studentName: String
+    var studentName: String?
     var videoRelativePath: String?
 
     var note: Note?
@@ -46,4 +46,15 @@ extension SpeechRecord {
     var scriptMatchSummary: ScriptMatchSummary? { nil }
     var nonverbalSummary: NonverbalSummary? { nil }
     var scriptMatchSegments: [ScriptMatchSegment]? { nil }
+}
+
+extension SpeechRecord {
+    var greetingName: String {
+        if let name = studentName, name.isEmpty == false {
+            return "\(name)님"
+        } else {
+            return "학생님"
+        }
+    }
+    
 }

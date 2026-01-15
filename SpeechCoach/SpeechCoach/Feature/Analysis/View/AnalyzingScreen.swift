@@ -95,7 +95,7 @@ struct AnalyzingScreen: View {
                 summaryFillerCount: fillers,
                 metricsGeneratedAt: now,
                 transcript: cleaned,
-                studentName: "희정님",
+                studentName: nil,
                 videoRelativePath: relativePath,
                 note: nil,
                 insight: nil,

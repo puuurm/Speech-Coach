@@ -16,6 +16,7 @@ struct AnalysisTab: View {
     
     let speechType: SpeechTypeSummary?
     let playbackPolicy: HighlightPlaybackPolicy
+    let highlightContext: HighlightListContext
     
     @Binding var selectedHighlight: SpeechHighlight?
     @State private var showCopyAlert: Bool = false
@@ -31,7 +32,8 @@ struct AnalysisTab: View {
             SpeakingTypeSection(
                 record: record,
                 speechType: speechType,
-                playbackPolicy: playbackPolicy
+                playbackPolicy: playbackPolicy,
+                highlightContext: highlightContext
             ) { action in
                 switch action {
                 case .copy:

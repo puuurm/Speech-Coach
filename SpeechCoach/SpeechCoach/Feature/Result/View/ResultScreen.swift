@@ -19,6 +19,7 @@ extension ResultScreen {
 struct ResultScreen: View {
     let recordID: UUID
     let playbackPolicy: HighlightPlaybackPolicy
+    let highlightContext: HighlightListContext
     let onRequestPlay: (TimeInterval) -> Void
     let scriptMatches: [ScriptMatchSegment] = []
     
@@ -71,12 +72,14 @@ struct ResultScreen: View {
 
     init(
         recordID: UUID,
+        highlightContext: HighlightListContext,
         playbackPolicy: HighlightPlaybackPolicy,
         onRequestPlay: @escaping (TimeInterval) -> Void
     ) {
         self.recordID = recordID
         self.onRequestPlay = onRequestPlay
         self.playbackPolicy = playbackPolicy
+        self.highlightContext = highlightContext
         
         _recordVM = StateObject(wrappedValue: ResultRecordViewModel(recordID: recordID))
         _metricsVM = StateObject(wrappedValue: ResultMetricsViewModel(recordID: recordID))
@@ -202,6 +205,7 @@ struct ResultScreen: View {
                             previousMetrics: metricsVM.previousMetrics,
                             speechType: summaryVM.speechType,
                             playbackPolicy: playbackPolicy,
+                            highlightContext: highlightContext,
                             selectedHighlight: $selectedHighlight,
                             insertIntoImprovements: insertIntoImprovements,
                             presentCoachAssistant: presentCoachAssistant

@@ -29,6 +29,7 @@ struct ContentView: View {
                     case .result(let id):
                         ResultScreen(
                             recordID: id,
+                            highlightContext: .homeAnalysis,
                             playbackPolicy: .hidden,
                             onRequestPlay: { sec in
                                 pc.seek(to: sec, autoplay: true)

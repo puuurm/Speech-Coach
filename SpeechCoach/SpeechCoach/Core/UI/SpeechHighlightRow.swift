@@ -11,8 +11,10 @@ import AVKit
 struct SpeechHighlightRow: View {
     let item: SpeechHighlight
     let duration: TimeInterval
+    let context: HighlightListContext
     let playbackPolicy: HighlightPlaybackPolicy
     var onPlay: (() -> Void)? = nil
+    var onSelect: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -20,33 +22,55 @@ struct SpeechHighlightRow: View {
                 Text(item.title)
                     .font(.subheadline.weight(.semibold))
 
-                Text(item.coachLineText())
+                Text(subtitleText)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
 
             Spacer()
             
-            switch playbackPolicy {
-            case .hidden:
-                EmptyView()
-            case .playable(let onPlay):
-                Button {
-                    onPlay(item.start)
-                } label: {
-                    Text("재생")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(10)
-                }
-                .buttonStyle(.plain)
-            }
+            trailingAccessory
+            
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            onPlay?()
+            guard context == .feedbackAnalysis else { return }
+            onSelect?()
         }
     }
+}
+
+extension SpeechHighlightRow {
+    private var subtitleText: String {
+        let time = timeRangeText(item)
+        
+        switch context {
+        case .feedbackAnalysis:
+            return "\(time)· 코칭 보기 >"
+        default:
+            let desc = item.detail.isEmpty ? item.reason : item.detail
+            return "\(time) · \(desc)"
+        }
+    }
+    
+    @ViewBuilder
+    private var trailingAccessory: some View {
+        if context != .homeAnalysis,
+           case let .playable(play) = playbackPolicy {
+            Button {
+                play(item.start)
+            } label: {
+                Text("재생")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+            }
+            .buttonStyle(.plain)
+        } else {
+            EmptyView()
+        }
+    }
+    
 }

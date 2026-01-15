@@ -64,6 +64,9 @@ struct VideoPlayerScreen: View {
     @AppStorage("hide_fullflow_banner")
     private var hideFullFlowBanner: Bool = false
     
+    @State private var analysisTask: Task<Void, Never>?
+    @State private var analysisRunID: UUID?
+    
     var allowsAnalysisStart: Bool {
         switch mode {
         case .normal: return true
@@ -153,7 +156,7 @@ struct VideoPlayerScreen: View {
             }
         }
         .onDisappear {
-            pc.player.pause()
+            cancelAnalysis()
         }
         .sheet(isPresented: $showFeedbackSheet, onDismiss: {
             if let second = pendingSeek {
@@ -476,15 +479,30 @@ private extension VideoPlayerScreen {
         guard !isStartingAnalysis else { return }
         guard analyzedRecord == nil else { return }
         
+        self.analysisTask?.cancel()
+        self.analysisTask = nil
+        
         phase = .analyzing
         isStartingAnalysis = true
         
-        Task {
+        let runID = UUID()
+        analysisRunID = runID
+        
+        analysisTask = Task {
             do {
+                try Task.checkCancellation()
+                
                 let (record, metrics) = try await runAnalysis()
+                
+                try Task.checkCancellation()
+                
                 recordStore.upsertBundle(record: record, metrics: metrics)
                 
+                try Task.checkCancellation()
+                
                 await MainActor.run {
+                    guard self.analysisRunID == runID else { return }
+                    
                     analyzedRecord = record
                     analyzedMetrics = metrics
                     
@@ -494,11 +512,20 @@ private extension VideoPlayerScreen {
                     
                     phase = playbackEnded ? .ready : .waitingForPlaybackEnd
                     isStartingAnalysis = false
+                    analysisTask = nil
+                }
+            } catch is CancellationError {
+                await MainActor.run {
+                    guard self.analysisRunID == runID else { return }
+                    isStartingAnalysis = false
+                    analysisTask = nil
                 }
             } catch {
                 await MainActor.run {
+                    guard analysisRunID == runID else { return }
                     phase = .failed(error.localizedDescription)
                     isStartingAnalysis = false
+                    analysisTask = nil
                 }
             }
         }
@@ -521,7 +548,7 @@ private extension VideoPlayerScreen {
     }
     
     func runAnalysis() async throws -> (SpeechRecord, SpeechMetrics) {
-        let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko_RK"))!
+        let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko-KR"))!
         let audioURL = try await speechService.exportAudio(from: videoURL)
         let rawTranscript = try await speechService.transcribe(videoURL: videoURL)
         let transcriptResult = try await speechService.recognizeDetailed(url: audioURL, with: recognizer)
@@ -592,6 +619,15 @@ private extension VideoPlayerScreen {
         )
 
         return (record, metrics)
+    }
+    
+    func cancelAnalysis() {
+        analysisTask?.cancel()
+        analysisTask = nil
+        
+        isStartingAnalysis = false
+        
+        speechService.cancelRecognitionIfSupported()
     }
 }
     

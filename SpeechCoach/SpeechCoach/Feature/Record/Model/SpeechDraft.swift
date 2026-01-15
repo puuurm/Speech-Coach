@@ -32,15 +32,24 @@ func fillerCountText(_ count: Int?) -> String {
 }
 
 func cleanTitle(from raw: String) -> String {
-    // 확장자 제거
     let base = raw
         .replacingOccurrences(of: ".mov", with: "")
         .trimmingCharacters(in: .whitespacesAndNewlines)
     
-    // UUID면 사람이 알아보기 힘드니까 고정 문구로
     if UUID(uuidString: base) != nil {
         return "새 발표 영상"
     }
     
     return base
+}
+
+private let headerDateFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "ko_KR")
+    f.dateFormat = "M월 d일"
+    return f
+}()
+
+func formattedDate(_ date: Date) -> String {
+    headerDateFormatter.string(from: date)
 }

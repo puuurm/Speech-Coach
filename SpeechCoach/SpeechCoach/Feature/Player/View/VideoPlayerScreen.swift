@@ -587,7 +587,7 @@ private extension VideoPlayerScreen {
             summaryFillerCount: fillerTotal,
             metricsGeneratedAt: now,
             transcript: cleaned,
-            studentName: "희정님",
+            studentName: nil,
             videoRelativePath: relative,
             note: nil,
             insight: .init(

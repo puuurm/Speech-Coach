@@ -168,6 +168,7 @@ struct VideoPlayerScreen: View {
                 NavigationStack {
                     ResultScreen(
                         recordID: record.id,
+                        highlightContext: .feedbackAnalysis,
                         playbackPolicy: .playable { start in
                             pc.seek(to: start, autoplay: true)
                             showFeedbackSheet = false
@@ -379,6 +380,7 @@ private extension VideoPlayerScreen {
                         SpeechHighlightRow(
                             item: h,
                             duration: record.duration,
+                            context: .videoReview,
                             playbackPolicy: .playable { start in
                                 pc.fallbackDuration = record.duration
                                 pc.seek(to: start, autoplay: true)

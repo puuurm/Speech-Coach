@@ -18,6 +18,7 @@ struct SpeakingTypeSection: View {
     let record: SpeechRecord
     let speechType: SpeechTypeSummary?
     let playbackPolicy: HighlightPlaybackPolicy
+    let highlightContext: HighlightListContext
     let send: (SpeakingTypeAction) -> Void
     
     @State private var expanded: Bool = false
@@ -47,17 +48,11 @@ struct SpeakingTypeSection: View {
                     speechType: speechType,
                     expanded: expanded
                 )
-//                Button {
-//                    let snippet = speechType.memoSnippet(for: record)
-//                    send(.insertMemo(snippet))
-//                } label: {
-//                    Label("개선 메모에 요약 삽입", systemImage: "plus.circle")
-//                        .font(.caption.weight(.semibold))
-//                }
-//                .buttonStyle(.plain)
-//                .foregroundColor(.accentColor)
-                
-                highlightsSection(highlights: record.highlights)
+                highlightsSection(
+                    highlights: record.highlights,
+                    context: highlightContext,
+                    playbackPolicy: playbackPolicy
+                )
                 
             } else {
                 Text("요약을 만들 데이터가 아직 부족해요.")
@@ -103,28 +98,60 @@ extension SpeakingTypeSection {
     }
     
     @ViewBuilder
-    private func highlightsSection(highlights: [SpeechHighlight]) -> some View {
+    private func highlightsSection(
+        highlights: [SpeechHighlight],
+        context: HighlightListContext,
+        playbackPolicy: HighlightPlaybackPolicy
+    ) -> some View {
         if highlights.isEmpty == false {
             VStack(alignment: .leading, spacing: 8) {
                 Text("체크할 구간")
                     .font(.subheadline.weight(.semibold))
-                
-                ForEach(highlights.prefix(3)) { highlight in
+
+                ForEach(highlights.prefix(3)) { h in
                     SpeechHighlightRow(
-                        item: highlight,
+                        item: h,
                         duration: record.duration,
+                        context: context,
                         playbackPolicy: playbackPolicy,
                         onPlay: {
-                            send(.playHighlight(highlight))
-                        }
+                            send(.playHighlight(h))
+                        },
+                        onSelect: context == .feedbackAnalysis ? {
+                            send(.selectHighlight(h))
+                        } : nil
                     )
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        send(.selectHighlight(highlight))
-                    }
                 }
             }
         }
     }
+    
+//    @ViewBuilder
+//    private func highlightsSection(highlights: [SpeechHighlight]) -> some View {
+//        if highlights.isEmpty == false {
+//            VStack(alignment: .leading, spacing: 8) {
+//                Text("체크할 구간")
+//                    .font(.subheadline.weight(.semibold))
+//                
+//                ForEach(highlights.prefix(3)) { highlight in
+//                    SpeechHighlightRow(
+//                        item: highlight,
+//                        duration: record.duration,
+//                        context: context,
+//                        playbackPolicy: playbackPolicy,
+//                        onPlay: {
+//                            send(.playHighlight(highlight))
+//                        }
+//                    )
+//                    .contentShape(Rectangle())
+//                    .onTapGesture {
+//                        send(.selectHighlight(highlight))
+//                    }
+//                }
+//            }
+//        }
+//    }
+    
+    
     
 }

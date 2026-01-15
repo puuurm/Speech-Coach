@@ -319,27 +319,6 @@ struct ResultScreen: View {
         )
     }
     
-//    private var metricsSection: some View {
-//        VStack(alignment: .leading, spacing: 12) {
-//            Text("말하기 지표")
-//                .font(.headline)
-//            
-//            VStack(spacing: 12) {
-//                metricCard(
-//                    title: "말하기 속도",
-//                    value: "\(record.summaryWPM) WPM",
-//                    detail: wpmComment
-//                )
-//                
-//                metricCard(
-//                    title: "필러 단어",
-//                    value: "\(record.summaryFillerCount)회",
-//                    detail: fillerComment
-//                )
-//            }
-//        }
-//    }
-    
     private var qualitativeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("정성 지표 (1:1용)")
@@ -384,79 +363,6 @@ struct ResultScreen: View {
                 .fill(Color(.secondarySystemBackground))
         )
     }
-    
-//    private var progressSection: some View {
-//        Group {
-//            if let prev = previousRecord {
-//                VStack(alignment: .leading, spacing: 6) {
-//                    Text("이번 영상 vs 이전 영상")
-//                        .font(.headline)
-//                    
-//                    let wpmDiff = record.wordsPerMinute - prev.wordsPerMinute
-//                    let fillerDiff = record.fillerCount - prev.fillerCount
-//                    
-//                    Text("· 속도: \(prev.wordsPerMinute) → \(record.wordsPerMinute) WPM (\(diffString(wpmDiff)))")
-//                        .font(.subheadline)
-//                    Text("· 필러: \(prev.fillerCount) → \(record.fillerCount)회 (\(diffString(-fillerDiff)))")
-//                        .font(.subheadline)
-//                        .foregroundColor(.secondary)
-//                    
-//                }
-//            }
-//        }
-//    }
-    
-//    private var fillerDetailSection: some View {
-//        VStack(alignment: .leading, spacing: 8) {
-//            Text("필러 단어 상세")
-//                .font(.headline)
-//            let items = record.fillerWords.sorted { $0.key < $1.key }
-//            if items.isEmpty {
-//                Text("추출된 필러 단어가 없어요.")
-//                    .font(.subheadline)
-//                    .foregroundColor(.secondary)
-//            } else {
-//                Text(
-//                    items
-//                        .map { "\($0.key)(\($0.value))" }
-//                        .joined(separator: " · ")
-//                )
-//                .font(.subheadline)
-//            }
-//        }
-//    }
-    
-//    private var transcriptionSection: some View {
-//        VStack(alignment: .leading, spacing: 8) {
-//            HStack(spacing: 6) {
-//                Text("전체 스크립트")
-//                    .font(.headline)
-//                
-//                Text("자동 인식 초안")
-//                    .font(.caption2)
-//                    .padding(.horizontal, 6)
-//                    .padding(.vertical, 2)
-//                    .background(
-//                        Capsule()
-//                            .fill(Color(.systemGray6))
-//                    )
-//            }
-//            
-//            Text("※ 아래 텍스트는 영상에서 자동으로 인식한 초안이라, 일부 단어가 부정확할 수 있어요. 중요한 문장은 영상과 함께 한 번 더 확인해 주세요.")
-//                .font(.caption2)
-//                .foregroundColor(.secondary)
-//            
-//            Text(record.transcript.isEmpty ? "인식된 텍스트가 없어요." : record.transcript)
-//                .font(.body)
-//                .foregroundColor(.primary)
-//                .padding(12)
-//                .frame(maxWidth: .infinity, alignment: .leading)
-//                .background(
-//                    RoundedRectangle(cornerRadius: 12)
-//                        .fill(Color(.secondarySystemBackground))
-//                )
-//        }
-//    }
     
     private var noteSections: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -581,51 +487,6 @@ struct ResultScreen: View {
         }
     }
     
-//    private var summarySection: some View {
-//        VStack(alignment: .leading, spacing: 6) {
-//            Text(record.title)
-//                .font(.headline)
-//            HStack(spacing: 12) {
-//                Label(durationString(record.duration), systemImage: "clock")
-//                Text(formattedDate(record.createdAt))
-//            }
-//            .font(.caption)
-//            .foregroundColor(.secondary)
-//        }
-//    }
-    
-//    private var feedbackActionsSection: some View {
-//        VStack(alignment: .leading, spacing: 12) {
-//            Button {
-//                saveNotes()
-//                dismiss()
-//                router.popToRoot()
-//            } label: {
-//                Text("메모 저장")
-//                    .font(.subheadline.weight(.semibold))
-//                    .frame(maxWidth: .infinity)
-//                    .padding(.vertical, 10)
-//                    .background(Color(.systemGray6))
-//                    .cornerRadius(10)
-//            }
-//            
-//            Button {
-//                let text = makeFeedbackText()
-//                UIPasteboard.general.string = text
-//                showCopyAlert = true
-//            } label: {
-//                Text("피드백 텍스트 복사하기")
-//                    .font(.headline)
-//                    .frame(maxWidth: .infinity)
-//                    .padding(.vertical, 12)
-//                    .background(Color.accentColor)
-//                    .foregroundColor(.white)
-//                    .cornerRadius(10)
-//            }
-//        }
-//        .padding(.top, 4)
-//    }
-    
     private func saveNotes(record: SpeechRecord) {
         recordStore.updateNotes(
             for: record.id,
@@ -656,34 +517,6 @@ struct ResultScreen: View {
             text += "\n\n" + template
         }
     }
-    
-//    private var wpmComment: String {
-//        let wpm = record.wordsPerMinute
-//        switch wpm {
-//        case 0:
-//            return "속도 정보가 없어요."
-//        case ..<110:
-//            return "조금 느린 편이에요. 말 사이 간격을 조금만 줄이면 전달력이 좋아질 것 같아요."
-//        case 110...160:
-//            return "듣기 편한 속도에요. 이 속도를 기준으로 유지해보면 좋아요."
-//        default:
-//            return "조금 빠른 편이에요. 중요한 문장에서 한 박자 쉬어가는 연습을 해보면 좋아요."
-//        }
-//    }
-    
-//    private var fillerComment: String {
-//        let count = record.fillerCount
-//        switch count {
-//        case 0:
-//            return "필러가 거의 없어서 아주 또렷하게 들려요."
-//        case 1...3:
-//            return "자연스러운 범위의 필어예요. 전달에 큰 방해는 되지 않아요."
-//        case 4...8:
-//            return "필러가 조금 느껴져요. 문장 사이에 짧은 호흡을 넣어보면 좋아요."
-//        default:
-//            return "필러가 자주 등장해요. '음' 대신 잠깐 멈추는 연습을 해보면 효과가 클 것 같아요."
-//        }
-//    }
     
     private var wpmStrengthHighlight: String {
         let wpm = metricsVM.metrics?.wordsPerMinute ?? .zero
@@ -986,9 +819,6 @@ extension ResultScreen {
     func feedbackTab(record: SpeechRecord) -> some View {
         VStack(alignment: .leading, spacing: 18) {
             suggestionSection
-//            ScrollView {
-//                SignalTemplateChips(suggestions: recVM.suggestions)
-//            }
             noteSectionsRedesigned(record: record)
             primaryActionsRow(record: record)
         }
@@ -1031,160 +861,6 @@ extension ResultScreen {
 
 extension ResultScreen {
 
-    private func analysisTab(record: SpeechRecord) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
-//            metricsSection
-//            speakingTypeSection
-            
-            if previousRecord != nil {
-//                progressSection
-            }
-            
-//            if !record.fillerWords.isEmpty {
-//                fillerDetailSection
-//            }
-            
-//            transcriptSectionRedesigned
-            
-            DisclosureGroup(
-                isExpanded: $showAdvanced,
-                content: {
-                    Text("※ 자동 인식 초안이라 부정확할 수 있어요. 중요한 문장은 영상과 함께 확인해주세요.")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                },
-                label: {
-                    HStack {
-                        Text("안내")
-                            .font(.headline)
-                        Spacer()
-                        Text(showAdvanced ? "접기" : "펼치기")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            )
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
-        }
-    }
-}
-
-extension ResultScreen {
-//    var transcriptSectionRedesigned: some View {
-//        VStack(alignment: .leading, spacing: 10) {
-//            HStack {
-//                Text("전체 스크립트")
-//                    .font(.headline)
-//                Spacer()
-//                Button(showAllTranscript ? "접기" : "펼치기") {
-//                    withAnimation(.easeInOut(duration: 0.15)) {
-//                        showAllTranscript.toggle()
-//                    }
-//                }
-//                .font(.caption.weight(.semibold))
-//            }
-//            
-//            Text("자동 인식 초안이에요. 중요한 문장은 영상과 함께 확인해 주세요.")
-//                .font(.caption2)
-//                .foregroundColor(.secondary)
-//            
-//            let text = record.transcript.isEmpty ? "인식된 텍스트가 없어요." : record.transcript
-//            
-//            if showAllTranscript {
-//                ScrollView {
-//                    Text(text)
-//                        .font(.body)
-//                        .foregroundColor(.primary)
-//                        .frame(maxWidth: .infinity, alignment: .leading)
-//                        .padding(12)
-//                }
-//                .frame(minHeight: 180)
-//                .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
-//            } else {
-//                Text(text)
-//                    .font(.body)
-//                    .foregroundColor(.primary)
-//                    .lineLimit(5)
-//                    .truncationMode(.tail)
-//                    .padding(12)
-//                    .frame(maxWidth: .infinity, alignment: .leading)
-//                    .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
-//            }
-//        }
-//    }
-}
-
-extension ResultScreen {
-
-//    var speakingTypeSection: some View {
-//        VStack(alignment: .leading, spacing: 12) {
-//            HStack {
-//                Text("말하기 타입 요약")
-//                    .font(.headline)
-//
-//                Spacer()
-//
-//                Button("요약 복사") {
-//                    guard let speechType else { return }
-//                    UIPasteboard.general.string = speechType.clipboardText(for: record)
-//                    showCopyAlert = true
-//                }
-//                .font(.caption.weight(.semibold))
-//            }
-//
-//            if let speechType {
-//                // one-liner
-//                Text(speechType.oneLiner)
-//                    .font(.subheadline.weight(.semibold))
-//                    .padding(12)
-//                    .frame(maxWidth: .infinity, alignment: .leading)
-//                    .background(
-//                        RoundedRectangle(cornerRadius: 12)
-//                            .fill(Color(.secondarySystemBackground))
-//                    )
-//
-//                // “메모 삽입” (최소: 개선할 점에 붙이기 / or intro에 붙이기)
-//                Button {
-//                    let snippet = speechType.memoSnippet(for: record)
-//                    insertIntoImprovements(snippet)
-//                } label: {
-//                    Label("개선 메모에 요약 삽입", systemImage: "plus.circle")
-//                        .font(.caption.weight(.semibold))
-//                }
-//                .buttonStyle(.plain)
-//                .foregroundColor(.accentColor)
-//                
-//                // inside ResultScreen
-//
-//                // highlights
-//                if speechType.highlights.isEmpty == false {
-//                    VStack(alignment: .leading, spacing: 8) {
-//                        Text("체크할 구간")
-//                            .font(.subheadline.weight(.semibold))
-//                        ForEach(speechType.highlights.prefix(3)) { h in
-//                            SpeechHighlightRow(
-//                                item: h,
-//                                duration: record.duration,
-//                                playbackPolicy: playbackPolicy,
-//                                onPlay: {
-//                                    presentCoachAssistant(for: h)
-//                                }
-//                            )
-//                            .contentShape(Rectangle())
-//                            .onTapGesture {
-//                                selectedHighlight = h
-//                            }
-//                        }
-//                    }
-//                }
-//            } else {
-//                Text("요약을 만들 데이터가 아직 부족해요.")
-//                    .font(.caption)
-//                    .foregroundColor(.secondary)
-//            }
-//        }
-//    }
     private func presentCoachAssistant(for highlight: SpeechHighlight) {
         guard case .playable = playbackPolicy else { return }
         selectedHighlight = highlight

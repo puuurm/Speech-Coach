@@ -11,9 +11,12 @@ import Speech
 
 protocol SpeechService {
     func transcribe(videoURL: URL) async throws -> String
+    func cancelRecognitionIfSupported()
 }
 
 final class MockSpeechService: SpeechService {
+    func cancelRecognitionIfSupported() {}
+    
     func transcribe(videoURL: URL) async throws -> String {
         try await Task.sleep(nanoseconds: 1_000_000_000)
         return """
@@ -45,8 +48,11 @@ enum RealSpeechServiceError: LocalizedError {
 }
 
 final class RealSpeechService: SpeechService {
-    
+
     private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko_KR"))
+    
+    private var recognitionTask: SFSpeechRecognitionTask?
+    private let lock = NSLock()
     
     func transcribe(videoURL: URL) async throws -> String {
         try await ensureSpeechAuthorization()
@@ -54,10 +60,19 @@ final class RealSpeechService: SpeechService {
             throw RealSpeechServiceError.recognizerUnavailable
         }
         let audioURL = try await exportAudio(from: videoURL)
-        let raw = try await recognize(url: audioURL, with: recognizer)
-        let autoCorrected = AutoCorrectionStore.shared.apply(to: raw)
+        
+        let result = try await recognizeDetailed(url: audioURL, with: recognizer)
+        let autoCorrected = AutoCorrectionStore.shared.apply(to: result.rawText)
         let cleaned = TranscriptCleaner.cleaned(autoCorrected)
         return cleaned
+    }
+    
+    func cancelRecognitionIfSupported() {
+        lock.lock()
+        defer { lock.unlock() }
+        
+        recognitionTask?.cancel()
+        recognitionTask = nil
     }
 }
 
@@ -128,69 +143,6 @@ extension RealSpeechService {
     }
 }
 
-// MARK: - SFSpeechRecognizer로 파일 인식
-
-extension RealSpeechService {
-    func recognize(
-        url audioURL: URL,
-        with recognizer: SFSpeechRecognizer
-    ) async throws -> String {
-        let request = SFSpeechURLRecognitionRequest(url: audioURL)
-        request.shouldReportPartialResults = false
-        
-        return try await withCheckedThrowingContinuation { continuation in
-            var recognitionTask: SFSpeechRecognitionTask?
-            var didFinish = false
-            
-            func finish(_ result: Result<String, Error>) {
-                guard !didFinish else { return }
-                didFinish = true
-                recognitionTask?.cancel()
-                recognitionTask = nil
-                
-                switch result {
-                case .success(let text):
-                    continuation.resume(returning: text)
-                case .failure(let error):
-                    continuation.resume(throwing: error)
-                }
-            }
-            
-            recognitionTask = recognizer.recognitionTask(with: request) { result, error in
-                if let error {
-                    print("🔴 Speech recognition error:", error)
-                    finish(.failure(error))
-                    return
-                }
-                
-                guard let result else { return }
-                
-                if result.isFinal {
-                    let finalText = result.bestTranscription.formattedString
-                    print("✅ Final transcription:", finalText)
-                    
-                    if finalText.isEmpty == false {
-                        finish(.success(finalText))
-                    } else {
-                        finish(.failure(RealSpeechServiceError.noTranscription))
-                    }
-                }
-            }
-            
-            Task {
-                while !didFinish {
-                    if Task.isCancelled {
-                        finish(.failure(CancellationError()))
-                        break
-                    }
-                    try? await Task.sleep(nanoseconds: 50_000_000)
-                }
-            }
-            
-        }
-    }
-}
-
 extension RealSpeechService {
     func recognizeDetailed(
         url audioURL: URL,
@@ -200,14 +152,12 @@ extension RealSpeechService {
         request.shouldReportPartialResults = false
         
         return try await withCheckedThrowingContinuation { continuation in
-            var recognitionTask: SFSpeechRecognitionTask?
             var didFinish = false
             
             func finish(_ result: Result<TranscriptResult, Error>) {
                 guard !didFinish else { return }
                 didFinish = true
-                recognitionTask?.cancel()
-                recognitionTask = nil
+                self.cancelRecognitionIfSupported()
                 
                 switch result {
                 case .success(let value):
@@ -217,20 +167,21 @@ extension RealSpeechService {
                 }
             }
             
-            recognitionTask = recognizer.recognitionTask(with: request) { result, error in
+            self.cancelRecognitionIfSupported()
+            
+            let task = recognizer.recognitionTask(with: request) { result, error in
                 if let error {
                     print("🔴 Speech recognition error:", error)
                     finish(.failure(error))
                     return
                 }
                 
-                guard let result else { return }
-                guard result.isFinal else { return }
+                guard let result, result.isFinal else { return }
                 
                 let transcription = result.bestTranscription
                 let raw = transcription.formattedString
                 
-                if raw.isEmpty {
+                guard !raw.isEmpty else {
                     finish(.failure(RealSpeechServiceError.noTranscription))
                     return
                 }
@@ -254,6 +205,10 @@ extension RealSpeechService {
                 print("✅ Final transcription:", cleaned)
                 finish(.success(payload))
             }
+            
+            self.lock.lock()
+            self.recognitionTask = task
+            self.lock.unlock()
         }
     }
 }

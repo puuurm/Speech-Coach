@@ -75,8 +75,9 @@ final class PlayerController: ObservableObject {
     }
     
     func seek(to seconds: TimeInterval, autoplay: Bool) {
+        let normalized = normalizedSecond(seconds)
         let maxT = max(0, duration() - 0.1)
-        let safe = max(0, min(seconds, maxT))
+        let safe = max(0, min(normalized, maxT))
         let time = CMTime(seconds: safe, preferredTimescale: 600)
         
         player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in

@@ -16,7 +16,7 @@ struct HighlightCard: View {
                 Text(highlight.title)
                     .font(.subheadline.weight(.semibold))
                 Spacer()
-                Text("\(highlight.start.toClock())-\(highlight.end.toClock())")
+                Text(timeRangeText(highlight))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

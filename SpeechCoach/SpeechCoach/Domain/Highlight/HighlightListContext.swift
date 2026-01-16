@@ -12,14 +12,3 @@ enum HighlightListContext {
     case videoReview
     case homeAnalysis
 }
-
-func formatMMSS(_ sec: TimeInterval) -> String {
-    let s = max(0, Int(sec.rounded(.down)))
-    let m = s / 60
-    let r = s % 60
-    return "\(m):\(String(format: "%02d", s))"
-}
-
-func timeRangeText(_ h: SpeechHighlight) -> String {
-    "\(formatMMSS(h.start))–\(formatMMSS(h.end))"
-}

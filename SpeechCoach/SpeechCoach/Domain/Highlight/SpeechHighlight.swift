@@ -49,7 +49,7 @@ struct SpeechHighlight: Codable, Hashable, Identifiable {
 
 extension SpeechHighlight {
     func coachDetail(record: SpeechRecord) -> String {
-        let range = "\(start.toClock())-\(end.toClock())"
+        let range = "\(formatMMSS(start))-\(formatMMSS(end))"
         let core = shortReason(record: record)
         let action = shortActionHint(record: record)
         
@@ -110,12 +110,6 @@ extension SpeechHighlight {
         let m = total / 60
         let s = total % 60
         return String(format: "%02d:%02d", m, s)
-    }
-}
-
-extension SpeechHighlight {
-    func timeLabel(duration: TimeInterval) -> String {
-        "\(start.toClock()) → \(min(end, duration).toClock())"
     }
 }
 

@@ -7,46 +7,6 @@
 
 import SwiftUI
 
-//struct HighlightsSection: View {
-//    let record: SpeechRecord
-//    var onRequestPlay: ((TimeInterval) -> Void)? = nil
-//
-//    var body: some View {
-//        
-//        let grouped: [SpeechHighlightSection: [SpeechHighlight]] =
-//            Dictionary(grouping: record.highlights) { $0.category.section }
-//        
-//        VStack(alignment: .leading, spacing: 12) {
-//            Text("하이라이트")
-//                .font(.title3.weight(.bold))
-//            if record.highlights.isEmpty {
-//                EmptyStateCard(
-//                    title: "하이라이트가 아직 없어요",
-//                    message: "분석이 끝나면 문제 구간을 자동으로 모아 보여줄게요."
-//                )
-//            } else {
-//                ForEach(SpeechHighlightSection.allCases) { section in
-//                    let items = grouped[section, default: []]
-//                    if !items.isEmpty {
-//                        Section {
-//                            ForEach(items) { h in
-//                                
-//                                HighlightRow(highlight: h, onRequestPlay: onRequestPlay)
-//                            }
-//                        } header: {
-//                            Label(section.title, systemImage: section.systemImage)
-//                        }
-//                    }
-//                }
-//                
-//
-//            }
-//        }
-//    }
-//
-//}
-
-
 struct HighlightRow: View {
     let highlight: SpeechHighlight
     var onRequestPlay: ((TimeInterval) -> Void)? = nil

@@ -53,7 +53,7 @@ extension SpeechHighlightRow {
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
                 .foregroundColor(Color(.tertiaryLabel))
-                .padding(.top, 2) // 상단 정렬 미세 조정(선택)
+                .padding(.top, 2)
         }
         else if context != .homeAnalysis,
                 case let .playable(play) = playbackPolicy {

@@ -77,7 +77,6 @@ struct CoachAssistantHighlightDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(highlight.title)
                 .font(.title3).bold()
-//            Text("\(format(highlight.start)) ~ \(format(highlight.end))")
             
             Text(highlight.coachDetail(record: record))
             

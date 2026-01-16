@@ -125,33 +125,5 @@ extension SpeakingTypeSection {
             }
         }
     }
-    
-//    @ViewBuilder
-//    private func highlightsSection(highlights: [SpeechHighlight]) -> some View {
-//        if highlights.isEmpty == false {
-//            VStack(alignment: .leading, spacing: 8) {
-//                Text("체크할 구간")
-//                    .font(.subheadline.weight(.semibold))
-//                
-//                ForEach(highlights.prefix(3)) { highlight in
-//                    SpeechHighlightRow(
-//                        item: highlight,
-//                        duration: record.duration,
-//                        context: context,
-//                        playbackPolicy: playbackPolicy,
-//                        onPlay: {
-//                            send(.playHighlight(highlight))
-//                        }
-//                    )
-//                    .contentShape(Rectangle())
-//                    .onTapGesture {
-//                        send(.selectHighlight(highlight))
-//                    }
-//                }
-//            }
-//        }
-//    }
-    
-    
-    
+
 }

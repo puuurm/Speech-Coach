@@ -30,8 +30,8 @@ struct SpeechHighlightRow: View {
             Spacer()
             
             trailingAccessory
-            
         }
+        .padding(.vertical, 6)
         .contentShape(Rectangle())
         .onTapGesture {
             guard context == .feedbackAnalysis else { return }
@@ -43,20 +43,20 @@ struct SpeechHighlightRow: View {
 extension SpeechHighlightRow {
     private var subtitleText: String {
         let time = timeRangeText(item)
-        
-        switch context {
-        case .feedbackAnalysis:
-            return "\(time)· 코칭 보기 >"
-        default:
-            let desc = item.detail.isEmpty ? item.reason : item.detail
-            return "\(time) · \(desc)"
-        }
+        let desc = item.detail.isEmpty ? item.reason : item.detail
+        return "\(time) · \(desc)"
     }
     
     @ViewBuilder
     private var trailingAccessory: some View {
-        if context != .homeAnalysis,
-           case let .playable(play) = playbackPolicy {
+        if context == .feedbackAnalysis {
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(Color(.tertiaryLabel))
+                .padding(.top, 2) // 상단 정렬 미세 조정(선택)
+        }
+        else if context != .homeAnalysis,
+                case let .playable(play) = playbackPolicy {
             Button {
                 play(item.start)
             } label: {

@@ -17,7 +17,7 @@ func formatMMSS(_ sec: TimeInterval) -> String {
     let s = max(0, Int(sec.rounded(.down)))
     let m = s / 60
     let r = s % 60
-    return String(format: "%02d:%02d", m, r)
+    return "\(m):\(String(format: "%02d", s))"
 }
 
 func timeRangeText(_ h: SpeechHighlight) -> String {

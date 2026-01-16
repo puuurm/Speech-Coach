@@ -56,7 +56,6 @@ extension SpeechHighlight {
         if action.isEmpty { return "\(range) · \(core)" }
         return "\(range) · \(core) → \(action)"
     }
-    
     func shortReason(record: SpeechRecord) -> String {
         let reason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         if title.contains("가장 긴 멈춤") {

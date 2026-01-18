@@ -306,7 +306,7 @@ extension CoachAssistContent {
             ],
             drills: [
                 CoachDrill(
-                    title: "리듬 고정 드릴",
+                    title: "리듬 고정 연습",
                     durationSec: 90,
                     steps: [
                         "한 문장을 일정한 박자로 말한다.",
@@ -357,7 +357,7 @@ extension CoachAssistContent {
             ],
             drills: [
                 CoachDrill(
-                    title: "필러 → 침묵 치환 드릴",
+                    title: "필러 → 침묵 치환 연습",
                     durationSec: 180,
                     steps: [
                         "금지어(어/음/그)를 정한다.",
@@ -408,7 +408,7 @@ extension CoachAssistContent {
             ],
             drills: [
                 CoachDrill(
-                    title: "핵심 단어 톤 강조 드릴",
+                    title: "핵심 단어 톤 강조 연습",
                     durationSec: 120,
                     steps: [
                         "문장에서 가장 중요한 단어 하나를 고른다.",
@@ -458,7 +458,7 @@ extension CoachAssistContent {
             ],
             drills: [
                 CoachDrill(
-                    title: "결론 먼저 말하기 드릴",
+                    title: "결론 먼저 말하기 연습",
                     durationSec: 150,
                     steps: [
                         "결론을 한 문장으로 정리한다.",
@@ -508,7 +508,7 @@ extension CoachAssistContent {
             ],
             drills: [
                 CoachDrill(
-                    title: "핵심 단어 1개 강조 드릴",
+                    title: "핵심 단어 1개 강조 연습",
                     durationSec: 90,
                     steps: [
                         "문장에서 가장 중요한 단어 하나를 고른다.",

@@ -8,11 +8,18 @@
 import SwiftUI
 
 struct CoachAssistantHighlightDetailView: View {
+    enum CardStyle {
+        case content
+        case highlight
+        case input
+        case copy
+    }
+    
     enum Tab: String, CaseIterable {
         case problem = "문제"
         case cause = "원인"
         case script = "개선 스크립트"
-        case drill = "연습 드릴"
+        case drill = "연습 과제"
     }
     let highlight: SpeechHighlight
     let record: SpeechRecord
@@ -22,6 +29,7 @@ struct CoachAssistantHighlightDetailView: View {
     @State private var selectedTab: Tab = .script
     @State private var memo: String = ""
     @State private var toastText: String? = nil
+    @FocusState private var isMemoFocused: Bool
     
     init(
         highlight: SpeechHighlight,
@@ -74,12 +82,10 @@ struct CoachAssistantHighlightDetailView: View {
     }
     
     var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        sectionCard(.highlight) {
             Text(highlight.title)
                 .font(.title3).bold()
-            
             Text(highlight.coachDetail(record: record))
-            
             Spacer()
             
             Button {
@@ -88,27 +94,54 @@ struct CoachAssistantHighlightDetailView: View {
                 Label("이 구간 재생", systemImage: "play.fill")
             }
             .buttonStyle(.borderedProminent)
+            
         }
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
     var problemSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionTitle("문제 요약")
-            card {
+            sectionCard(.content) {
                 Text(content.problemSummary)
                     .font(.body)
             }
             sectionTitle("청자 영향")
-            chipList(content.listenerImpact)
-            
+
+            sectionCard(.content) {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12)
+                    ],
+                    alignment: .leading,
+                    spacing: 12
+                ) {
+                    ForEach(content.listenerImpact, id: \.self) { impact in
+                        listenerImpactChip(impact)
+                    }
+                }
+            }
             sectionTitle("신규 강사용 체크포인트")
             bulletList(content.checkpoints)
         }
     }
-    
+    private func listenerImpactChip(_ text: String) -> some View {
+        Text(text)
+            .font(.subheadline)
+            .foregroundStyle(.primary)
+            .multilineTextAlignment(.leading)
+            .lineLimit(2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
+            .background(Color(.systemBackground).opacity(0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color(.separator).opacity(0.25), lineWidth: 1)
+            )
+            .frame(minHeight: 60, alignment: .topLeading)
+    }
     var causeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionTitle("가능한 원인")
@@ -139,52 +172,11 @@ struct CoachAssistantHighlightDetailView: View {
     }
     
     var drillSection: some View {
-        VStack(alignment: .leading) {
-            sectionTitle("추천 연습 드릴")
-            let drills: [CoachDrill] = content.drills
-            ForEach(drills, id: \.id) { (drill: CoachDrill) in
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text(drill.title).font(.headline)
-                        Spacer()
-                        Text(drill.durationHint)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-//                    Text("방법").font(.subheadline).bold()
-//                    bulletList(drill.howTo)
-//                    
-//                    Text("성공 조건").font(.subheadline).bold()
-//                    bulletList(drill.successCriteria)
-//                    
-//                    Text("흔한 실수").font(.subheadline).bold()
-//                    bulletList(drill.commonMistakes)
-                    
-                    HStack {
-                        Button {
-                            
-                        } label: {
-                            Label("오늘 숙제로 저장", systemImage: "checkmark.circle")
-                        }
-                        .buttonStyle(.bordered)
-                        
-                        Spacer()
-                        
-                        Button {
-//                            copyToPasteboard("""
-//                            [연습] \(drill.title) (\(drill.durationHint))
-//                            - 방법: \(drill.howTo.joined(separator: " / "))
-//                            - 성공 조건: \(drill.successCriteria.joined(separator: " / "))
-//                            """)
-                        } label: {
-                            Label("공유 텍스트 복사", systemImage: "doc.on.doc")
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                }
-                .padding(14)
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("추천 연습 과제")
+            let drills = content.drills
+            ForEach(drills, id: \.id) { drill in
+                drillCard(drill)
             }
         }
     }
@@ -192,24 +184,44 @@ struct CoachAssistantHighlightDetailView: View {
     var memoSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionTitle("강사 메모")
-            TextEditor(text: $memo)
-                .frame(minHeight: 110)
-                .padding(10)
-                .background(Color.secondary.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+            
+            ZStack(alignment: .topLeading) {
+                if memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("이 구간에서 관찰한 점이나 다음 수업 포인트를 적어두세요.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                }
+                
+                TextEditor(text: $memo)
+                    .focused($isMemoFocused)
+                    .font(.subheadline)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .frame(minHeight: 140)
+                    .scrollContentBackground(.hidden)
+            }
+            .background(Color(.systemGray6))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(
+                        isMemoFocused ? Color.accentColor.opacity(0.55)
+                                     : Color(.separator).opacity(0.35),
+                        lineWidth: 1
+                    )
+            )
+            
             HStack {
-                Button {
-                    
-                } label: {
+                Button { } label: {
                     Label("메모 저장", systemImage: "tray.and.arrow.down")
                 }
                 .buttonStyle(.borderedProminent)
-                
+
                 Spacer()
-                
-                Button {
-                    
-                } label: {
+
+                Button { } label: {
                     Label("메모 복사", systemImage: "doc.on.doc")
                 }
                 .buttonStyle(.bordered)
@@ -217,7 +229,7 @@ struct CoachAssistantHighlightDetailView: View {
             }
         }
     }
-    
+
     private func format(_ time: TimeInterval) -> String {
         let total = max(0, Int(time.rounded()))
         let minute = total / 60
@@ -231,58 +243,130 @@ struct CoachAssistantHighlightDetailView: View {
             .padding(.top, 4)
     }
     
-    private func card(@ViewBuilder _ content: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 8) { content() }
-            .padding(14)
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+    private func sectionCard(
+        _ style: CardStyle = .content,
+        @ViewBuilder _ content: () -> some View
+    ) -> some View {
+        let corner: CGFloat = 16
+        let padding: CGFloat = 24
+        
+        return VStack(alignment: .leading, spacing: 8) { content() }
+            .padding(padding)
+            .background(background(for: style))
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
     }
     
+    private func drillCard(_ drill: CoachDrill) -> some View {
+        sectionCard(.content) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(drill.title)
+                    .font(.headline)
+                Spacer()
+                Text(drill.durationHint)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            HStack(spacing: 10) {
+                 Button {
+                     // TODO: 저장 로직
+                 } label: {
+                     Label("오늘 숙제로 저장", systemImage: "checkmark.circle")
+                         .frame(maxWidth: .infinity)
+                 }
+                 .buttonStyle(.bordered)
+
+                 Button {
+                     // TODO: 공유 텍스트 복사
+                 } label: {
+                     Label("공유 텍스트 복사", systemImage: "doc.on.doc")
+                         .frame(maxWidth: .infinity)
+                 }
+                 .buttonStyle(.bordered)
+             }
+             .padding(.top, 6)
+        }
+    }
+    
+    
+    private func background(for style: CardStyle) -> AnyShapeStyle {
+        switch style {
+        case .content, .input, .copy:
+            return AnyShapeStyle(Color(.secondarySystemBackground))
+        case .highlight:
+            return AnyShapeStyle(.thinMaterial)
+        }
+    }
+    
+//    private func padding(for style: CardStyle) -> CGFloat {
+//        switch style {
+//        case .copy: return 20
+//        default: return
+//        }
+//    }
+    
     private func bulletList(_ items: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(items.indices, id: \.self) { index in
-                HStack(alignment: .top, spacing: 8) {
-                    Text("•").bold()
-                    Text(items[index])
-                        .font(.body)
+        sectionCard(.content) {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(items.indices, id: \.self) { index in
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("•").bold()
+                        Text(items[index]).font(.body)
+                    }
                 }
             }
         }
-        .padding(14)
-        .background(Color.secondary.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
     
     private func chipList(_ items: [String]) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)],
-                  alignment: .leading,
-                  spacing: 8
-        ) {
+        let columns = [
+            GridItem(.flexible(), spacing: 10),
+            GridItem(.flexible(), spacing: 10)
+        ]
+
+        return LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
             ForEach(items, id: \.self) { item in
                 Text(item)
-                    .font(.caption)
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 10)
-                    .background(Color.secondary.opacity(0.10))
-                    .clipShape(Capsule())
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(Color(.systemGray6))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .frame(minHeight: 56, alignment: .topLeading)
             }
         }
         .padding(14)
-        .background(Color.secondary.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
-    
+
     private func copyCard(text: String) -> some View {
-        card {
-            Text(text).font(.body)
-            HStack {
-                Spacer()
+        sectionCard(.copy) {
+            ZStack(alignment: .topTrailing) {
+                Text(text)
+                    .font(.body)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
                 Button {
+                    hapticSuccess()
                     copyToPasteboard(text)
                 } label: {
-                    Label("복사", systemImage: "doc.on.doc")
+                    HStack {
+                        Image(systemName: "doc.on.doc")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(Color(.systemGray))
+                            .padding(.trailing, 5)
+//                            .padding(.top, 5)
+                    }
                 }
-                .buttonStyle(.bordered)
+                .padding(.top, -15)
+                .padding(.trailing, -14)
+                .accessibilityLabel("복사")
             }
         }
     }
@@ -307,6 +391,12 @@ struct CoachAssistantHighlightDetailView: View {
             .background(.thinMaterial)
             .clipShape(Capsule())
             .shadow(radius: 6)
+    }
+    
+    private func hapticSuccess() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(.success)
     }
 }
 

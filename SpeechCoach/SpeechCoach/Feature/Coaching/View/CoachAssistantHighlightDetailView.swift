@@ -29,6 +29,7 @@ struct CoachAssistantHighlightDetailView: View {
     @State private var selectedTab: Tab = .script
     @State private var memo: String = ""
     @State private var toastText: String? = nil
+    @State private var expandedDrillIDs: Set<UUID> = []
     @FocusState private var isMemoFocused: Bool
     
     init(
@@ -258,37 +259,78 @@ struct CoachAssistantHighlightDetailView: View {
     }
     
     private func drillCard(_ drill: CoachDrill) -> some View {
-        sectionCard(.content) {
-            HStack(alignment: .firstTextBaseline) {
+        let isExpanded = expandedDrillIDs.contains(drill.id)
+
+        return sectionCard(.content) {
+            VStack(alignment: .leading, spacing: 10) {
+
                 Text(drill.title)
                     .font(.headline)
-                Spacer()
-                Text(drill.durationHint)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            
-            HStack(spacing: 10) {
-                 Button {
-                     // TODO: 저장 로직
-                 } label: {
-                     Label("오늘 숙제로 저장", systemImage: "checkmark.circle")
-                         .frame(maxWidth: .infinity)
-                 }
-                 .buttonStyle(.bordered)
 
-                 Button {
-                     // TODO: 공유 텍스트 복사
-                 } label: {
-                     Label("공유 텍스트 복사", systemImage: "doc.on.doc")
-                         .frame(maxWidth: .infinity)
-                 }
-                 .buttonStyle(.bordered)
-             }
-             .padding(.top, 6)
+                Text(drill.guide)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    withAnimation(.snappy(duration: 0.25)) {
+                        if isExpanded { expandedDrillIDs.remove(drill.id) }
+                        else { expandedDrillIDs.insert(drill.id) }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(isExpanded ? "접기" : "연습 방법 보기")
+                            .font(.caption)
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                    }
+                    .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                if isExpanded {
+                    VStack(alignment: .leading, spacing: 10) {
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(Array(drill.steps.enumerated()), id: \.offset) { idx, step in
+                                HStack(alignment: .top, spacing: 8) {
+                                    Text("\(idx + 1).")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 18, alignment: .trailing)
+                                    Text(step)
+                                        .font(.subheadline)
+                                }
+                            }
+                        }
+
+                        HStack(spacing: 10) {
+                            Button { /* TODO */ } label: {
+                                Label("오늘 숙제로 저장", systemImage: "checkmark.circle")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+
+                            Button { /* TODO */ } label: {
+                                Label("연습 문구 복사", systemImage: "doc.on.doc")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        .padding(.top, 2)
+                    }
+                    .padding(.top, 4)
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity
+                                .combined(with: .scale(scale: 1.0, anchor: .top)),
+                            removal: .opacity
+                        )
+                    )
+                }
+            }
         }
     }
-    
+
     
     private func background(for style: CardStyle) -> AnyShapeStyle {
         switch style {
@@ -298,13 +340,6 @@ struct CoachAssistantHighlightDetailView: View {
             return AnyShapeStyle(.thinMaterial)
         }
     }
-    
-//    private func padding(for style: CardStyle) -> CGFloat {
-//        switch style {
-//        case .copy: return 20
-//        default: return
-//        }
-//    }
     
     private func bulletList(_ items: [String]) -> some View {
         sectionCard(.content) {
@@ -361,7 +396,6 @@ struct CoachAssistantHighlightDetailView: View {
                             .font(.caption.weight(.semibold))
                             .foregroundColor(Color(.systemGray))
                             .padding(.trailing, 5)
-//                            .padding(.top, 5)
                     }
                 }
                 .padding(.top, -15)

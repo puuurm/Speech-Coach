@@ -11,6 +11,7 @@ struct CoachDrill: Hashable, Identifiable, Codable {
     let id = UUID()
     let title: String
     let durationSec: Int
+    let guide: String
     let steps: [String]
 }
 

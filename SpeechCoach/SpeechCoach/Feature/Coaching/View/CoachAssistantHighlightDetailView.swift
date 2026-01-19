@@ -176,8 +176,36 @@ struct CoachAssistantHighlightDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionTitle("추천 연습 과제")
             let drills = content.drills
-            ForEach(drills, id: \.id) { drill in
-                drillCard(drill)
+            if drills.isEmpty {
+                emptyRecommendedDrillsCard
+            } else {
+                ForEach(drills, id: \.id) { drill in
+                    drillCard(drill)
+                }
+            }
+        }
+    }
+    
+    private var emptyRecommendedDrillsCard: some View {
+        sectionCard(.content) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("추천 연습 과제가 아직 없어요")
+                        .font(.headline)
+                    
+                    Text("""
+                    분석 결과가 충분하지 않거나, 
+                    이번 구간에서는 연습이 필요하지 않을 수 있어요.
+                    다른 하이라이트를 선택해보세요.
+                    """)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

@@ -131,17 +131,17 @@ struct CoachAssistantHighlightDetailView: View {
             .font(.subheadline)
             .foregroundStyle(.primary)
             .multilineTextAlignment(.leading)
-            .lineLimit(2)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 14)
-            .padding(.vertical, 14)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(.systemBackground).opacity(0.5))
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .stroke(Color(.separator).opacity(0.25), lineWidth: 1)
             )
-            .frame(minHeight: 60, alignment: .topLeading)
     }
     var causeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -192,6 +192,7 @@ struct CoachAssistantHighlightDetailView: View {
                 Image(systemName: "sparkles")
                     .font(.title3)
                     .foregroundStyle(.secondary)
+                    .padding(.top, 2)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("추천 연습 과제가 아직 없어요")

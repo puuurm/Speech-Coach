@@ -8,19 +8,27 @@
 import SwiftUI
 
 struct CoachAssistantHighlightDetailView: View {
-    enum CardStyle {
+    private enum CardStyle {
         case content
         case highlight
         case input
         case copy
     }
     
-    enum Tab: String, CaseIterable {
+    private enum Tab: String, CaseIterable {
         case problem = "문제"
         case cause = "원인"
         case script = "개선 스크립트"
         case drill = "연습 과제"
     }
+    
+    private struct ChipHeightKey: PreferenceKey {
+        static var defaultValue: CGFloat = 0
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = max(value, nextValue())
+        }
+    }
+    
     let highlight: SpeechHighlight
     let record: SpeechRecord
     let content: CoachAssistContent
@@ -30,6 +38,8 @@ struct CoachAssistantHighlightDetailView: View {
     @State private var memo: String = ""
     @State private var toastText: String? = nil
     @State private var expandedDrillIDs: Set<UUID> = []
+    @State private var chipMinHeight: CGFloat = 0
+    
     @FocusState private var isMemoFocused: Bool
     
     init(
@@ -118,15 +128,16 @@ struct CoachAssistantHighlightDetailView: View {
                     spacing: 12
                 ) {
                     ForEach(content.listenerImpact, id: \.self) { impact in
-                        listenerImpactChip(impact)
+                        listenerImpactChip(impact, minHeight: chipMinHeight)
                     }
                 }
+                .onPreferenceChange(ChipHeightKey.self) { chipMinHeight = $0 }
             }
             sectionTitle("신규 강사용 체크포인트")
             bulletList(content.checkpoints)
         }
     }
-    private func listenerImpactChip(_ text: String) -> some View {
+    private func listenerImpactChip(_ text: String, minHeight: CGFloat) -> some View {
         Text(text)
             .font(.subheadline)
             .foregroundStyle(.primary)
@@ -135,8 +146,13 @@ struct CoachAssistantHighlightDetailView: View {
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(.systemBackground).opacity(0.5))
+            .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
+            .background(
+                GeometryReader { proxy in
+                    Color(.systemBackground).opacity(0.5)
+                        .preference(key: ChipHeightKey.self, value: proxy.size.height)
+                }
+            )
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)

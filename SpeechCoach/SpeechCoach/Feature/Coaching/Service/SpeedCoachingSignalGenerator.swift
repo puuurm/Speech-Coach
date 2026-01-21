@@ -12,14 +12,8 @@ struct SpeedCoachingSignalGenerator {
     struct Config {
         var slowWPM: Int = 120
         var fastWPM: Int = 180
-
-        /// 구간 WPM 편차가 이 이상이면 "불안정"
         var variabilityCVThreshold: Double = 0.25
-
-        /// 인접 bin 변화량이 이 이상이면 "스파이크"
         var spikeDeltaWPM: Int = 40
-
-        /// 스파이크가 이 개수 이상이면 spiky
         var spikeCountThreshold: Int = 3
     }
 
@@ -31,12 +25,10 @@ struct SpeedCoachingSignalGenerator {
     ) -> CoachingSignals {
 
         let wpmSeries = speedSeries.bins.map { bin -> Int in
-            // binSeconds 동안 wordCount -> WPM
             let minutes = max(0.0001, speedSeries.binSeconds / 60.0)
             return Int(round(Double(bin.wordCount) / minutes))
         }
 
-        // 데이터가 너무 적으면 신호 생성 스킵 (원하는 정책에 맞게)
         guard wpmSeries.count >= 2 else {
             return CoachingSignals(recordID: recordID, generatedAt: generatedAt, signals: [])
         }
@@ -45,7 +37,6 @@ struct SpeedCoachingSignalGenerator {
 
         var out: [CoachingSignal] = []
 
-        // 1) 전체 평균 기준 느림/빠름
         if let avg = stats.avg {
             if avg < config.slowWPM {
                 out.append(.init(
@@ -78,7 +69,6 @@ struct SpeedCoachingSignalGenerator {
             }
         }
 
-        // 2) 안정성(편차)
         if let cv = stats.cv, cv >= config.variabilityCVThreshold {
             out.append(.init(
                 recordID: recordID,
@@ -95,7 +85,6 @@ struct SpeedCoachingSignalGenerator {
             ))
         }
 
-        // 3) 스파이크(급격한 변화)
         let spikeCount = countSpikes(wpmSeries, deltaThreshold: config.spikeDeltaWPM)
         if spikeCount >= config.spikeCountThreshold {
             out.append(.init(
@@ -143,17 +132,15 @@ struct SpeedCoachingSignalGenerator {
     }
 }
 
-// MARK: - Stats
-
 private struct WPMStats {
     let avg: Int?
     let median: Int?
     let p10: Int?
     let p90: Int?
-    let cv: Double?   // coefficient of variation
+    let cv: Double?
 
     static func from(_ series: [Int]) -> WPMStats {
-        let clean = series.filter { $0 > 0 } // 0은 침묵/미인식 bin일 수 있으니 정책적으로 제외
+        let clean = series.filter { $0 > 0 }
         guard clean.isEmpty == false else { return .init(avg: nil, median: nil, p10: nil, p90: nil, cv: nil) }
 
         let avgD = Double(clean.reduce(0, +)) / Double(clean.count)
@@ -169,7 +156,6 @@ private struct WPMStats {
         let p10 = percentile(0.10)
         let p90 = percentile(0.90)
 
-        // std / mean
         let variance = clean.reduce(0.0) { $0 + pow(Double($1) - avgD, 2) } / Double(clean.count)
         let std = sqrt(variance)
         let cv = avgD > 0 ? (std / avgD) : nil

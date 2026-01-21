@@ -13,6 +13,7 @@ import CoreData
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
     @EnvironmentObject var recordStore: SpeechRecordStore
+    @EnvironmentObject var homeworkStore: HomeworkStore
     @EnvironmentObject var router: NavigationRouter
     @Environment(\.managedObjectContext) private var context
     
@@ -22,10 +23,17 @@ struct HomeView: View {
     )
     
     private var recordEntities: FetchedResults<SpeechRecordEntity>
+    let drillCatalog: [DrillType: CoachDrill]
     
     @State private var selectedItem: PhotosPickerItem?
     @State private var navigateToPlayer = false
     @State private var isImporting: Bool = false
+    
+    private var todayHomeworks: [DailyHomework] {
+        let today = Calendar.current.startOfDay(for: Date())
+        return homeworkStore.homeworks
+            .filter {  $0.date == today }
+    }
     
     var body: some View {
         content
@@ -83,6 +91,10 @@ struct HomeView: View {
                     }
                     .buttonStyle(.plain)
             }
+            if !todayHomeworks.isEmpty {
+                TodayHomeworkSection(homeworks: todayHomeworks, drillCatalog: drillCatalog)
+            }
+            
             recentSection
         }
         .listStyle(.insetGrouped)

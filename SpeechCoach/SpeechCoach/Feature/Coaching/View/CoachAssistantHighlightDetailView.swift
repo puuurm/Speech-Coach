@@ -31,28 +31,36 @@ struct CoachAssistantHighlightDetailView: View {
     
     let highlight: SpeechHighlight
     let record: SpeechRecord
-    let content: CoachAssistContent
+    let drillCatalog: [DrillType: CoachDrill]
     let onRequestPlay: (TimeInterval) -> Void
     
     @State private var selectedTab: Tab = .script
     @State private var memo: String = ""
     @State private var toastText: String? = nil
-    @State private var expandedDrillIDs: Set<UUID> = []
+    @State private var expandedDrillIDs: Set<DrillType> = []
     @State private var chipMinHeight: CGFloat = 0
     
     @FocusState private var isMemoFocused: Bool
     
+
+    @EnvironmentObject var homeworkStore: HomeworkStore
+    
+    private var content: CoachAssistContent {
+        let base = CoachAssistContent.content(for: highlight.category)
+        return base.isPlaceholder
+        ? CoachAssistContent.makeFallback(from: record, highlight: highlight)
+        : base
+    }
+    
     init(
         highlight: SpeechHighlight,
         record: SpeechRecord,
-        onRequestPlay: @escaping (TimeInterval) -> Void,
+        drillCatalog: [DrillType: CoachDrill],
+        onRequestPlay: @escaping (TimeInterval) -> Void
     ) {
         self.highlight = highlight
         self.record = record
-        let base = CoachAssistContent.content(for: highlight.category)
-        self.content = base.isPlaceholder
-            ? CoachAssistContent.makeFallback(from: record, highlight: highlight)
-            :base
+        self.drillCatalog = drillCatalog
         self.onRequestPlay = onRequestPlay
     }
     
@@ -191,7 +199,7 @@ struct CoachAssistantHighlightDetailView: View {
     var drillSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionTitle("추천 연습 과제")
-            let drills = content.drills
+            let drills = content.drills(using: drillCatalog)
             if drills.isEmpty {
                 emptyRecommendedDrillsCard
             } else {
@@ -349,11 +357,22 @@ struct CoachAssistantHighlightDetailView: View {
                         }
 
                         HStack(spacing: 10) {
-                            Button { /* TODO */ } label: {
-                                Label("오늘 숙제로 저장", systemImage: "checkmark.circle")
-                                    .frame(maxWidth: .infinity)
+                            let isSavedToday = homeworkStore.isSavedToday(drillType: drill.type)
+                            
+                            Button {
+                                homeworkStore.addTodayHomework(
+                                    drillType: drill.type,
+                                    sourceHighlightID: highlight.id
+                                )
+                            } label: {
+                                Label(
+                                    isSavedToday ? "오늘 숙제로 저장됨" : "오늘 숙제로 저장",
+                                    systemImage: isSavedToday ? "checkmark.circle.fill" : "checkmark.circle"
+                                )
+                                .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
+                            .disabled(isSavedToday)
 
                             Button { /* TODO */ } label: {
                                 Label("연습 문구 복사", systemImage: "doc.on.doc")

@@ -9,13 +9,14 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var homeViewModel = HomeViewModel()
+    @StateObject private var homeworkStore = HomeworkStore()
     @EnvironmentObject private var recordStore: SpeechRecordStore
     @StateObject private var router = NavigationRouter()
     @StateObject private var pc = PlayerController()
     
     var body: some View {
         NavigationStack(path: $router.path) {
-            HomeView(viewModel: homeViewModel)
+            HomeView(viewModel: homeViewModel, drillCatalog: DrillCatalog.all)
                 .navigationDestination(for: AppRoute.self) { route in
                     switch route {
                     case .videoPlayer(let payload):
@@ -39,6 +40,7 @@ struct ContentView: View {
                     }
                 }
         }
+        .environmentObject(homeworkStore)
         .environmentObject(recordStore)
         .environmentObject(router)
     }

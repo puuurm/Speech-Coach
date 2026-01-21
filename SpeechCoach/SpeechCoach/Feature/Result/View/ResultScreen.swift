@@ -133,6 +133,7 @@ struct ResultScreen: View {
                 CoachAssistantHighlightDetailView(
                     highlight: highlight,
                     record: record,
+                    drillCatalog: DrillCatalog.all,
                     onRequestPlay: { sec in
                         selectedHighlight = nil
                         DispatchQueue.main.async {

@@ -7,32 +7,6 @@
 
 import Foundation
 
-struct CoachDrill: Hashable, Identifiable, Codable {
-    let id = UUID()
-    let title: String
-    let durationSec: Int
-    let guide: String
-    let steps: [String]
-}
-
-extension CoachDrill {
-    var durationHint: String {
-        let min = max(1, durationSec / 60)
-        return "\(min)분"
-    }
-}
-
-struct CoachDrillGuide {
-    let howTo: [String]
-    let successCriteria: [String]
-    let commonMistakes: [String]
-}
-
-struct CoachDrillCardData {
-    let drill: CoachDrill
-    let guide: CoachDrillGuide
-}
-
 struct SpeechHighlight: Codable, Hashable, Identifiable {
     var id: UUID = UUID()
     var title: String

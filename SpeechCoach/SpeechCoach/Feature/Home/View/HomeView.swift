@@ -91,9 +91,6 @@ struct HomeView: View {
                     }
                     .buttonStyle(.plain)
             }
-            if !todayHomeworks.isEmpty {
-                TodayHomeworkSection(homeworks: todayHomeworks, drillCatalog: drillCatalog)
-            }
             
             recentSection
         }

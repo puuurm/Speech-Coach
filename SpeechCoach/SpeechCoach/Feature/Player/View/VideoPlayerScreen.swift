@@ -222,7 +222,7 @@ private extension VideoPlayerScreen {
                 Label(durationString(duration), systemImage: "clock")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                Text("카톡 → 사진 앱에 저장된 영상")
+                Text("사진 앱에 저장된 영상")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

@@ -44,7 +44,7 @@ enum DrillCatalog {
     static let all: [DrillType: CoachDrill] = [
         .stretchTime20to25: CoachDrill(
             type: .stretchTime20to25,
-            title: "20초 → 25초 늘리기 드릴",
+            title: "20초 → 25초 늘리기",
             durationSec: 120,
             guide: "같은 내용을 길이만 다르게 말하며, 말의 밀도와 여유 차이를 직접 느껴보는 연습입니다.",
             steps: [
@@ -55,7 +55,7 @@ enum DrillCatalog {
         ),
         .fixedRhythm: CoachDrill(
             type: .fixedRhythm,
-            title: "리듬 고정 연습",
+            title: "리듬 고정",
             durationSec: 90,
             guide: "문장을 일정한 박자로 유지하며, 말의 흐름이 흔들리지 않도록 만드는 연습입니다.",
             steps: [
@@ -65,7 +65,7 @@ enum DrillCatalog {
         ),
         .replaceFillerWithSilence: CoachDrill(
             type: .replaceFillerWithSilence,
-            title: "필러 → 침묵 치환 연습",
+            title: "필러 → 침묵 치환",
             durationSec: 180,
             guide: "필러 대신 짧은 침묵을 사용하는 연습으로, 말의 안정감을 높입니다.",
             steps: [
@@ -76,7 +76,7 @@ enum DrillCatalog {
         ),
         .emphasizeKeywordTone: CoachDrill(
             type: .emphasizeKeywordTone,
-            title: "핵심 단어 톤 강조 연습",
+            title: "핵심 단어 톤 강조",
             durationSec: 120,
             guide: "문장에서 가장 중요한 단어 하나에만 톤을 실어 의미를 분명히 전달하는 연습입니다.",
             steps: [
@@ -86,7 +86,7 @@ enum DrillCatalog {
         ),
         .conclusionFirst: CoachDrill(
             type: .conclusionFirst,
-            title: "결론 먼저 말하기 연습",
+            title: "결론 먼저 말하기",
             durationSec: 150,
             guide: "말의 시작을 결론으로 열어, 듣는 사람이 핵심을 바로 이해하게 만드는 연습입니다.",
             steps: [
@@ -96,7 +96,7 @@ enum DrillCatalog {
         ),
         .emphasizeSingleKeyword: CoachDrill(
             type: .emphasizeSingleKeyword,
-            title: "핵심 단어 1개 강조 연습",
+            title: "핵심 단어 1개 강조",
             durationSec: 90,
             guide: "여러 단어를 강조하지 않고, 핵심 단어 하나에만 집중하는 연습입니다.",
             steps: [

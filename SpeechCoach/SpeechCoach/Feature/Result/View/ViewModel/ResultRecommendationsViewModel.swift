@@ -195,7 +195,8 @@ final class ResultRecommendationsViewModel: ObservableObject {
                     TemplateSuggestion(
                         title: "속도 조금 올리기",
                         body: "평균 속도(\(avg) WPM)가 다소 느린 편이에요. 문장 끝을 끌지 말고 핵심 단어 위주로 5~10%만 속도를 올려보세요.",
-                        category: .improvements
+                        category: .improvements,
+                        isActionItem: true
                     )
                 )
 
@@ -205,7 +206,8 @@ final class ResultRecommendationsViewModel: ObservableObject {
                     TemplateSuggestion(
                         title: "속도 조금 낮추기",
                         body: "평균 속도(\(avg) WPM)가 빠른 편이에요. 한 문장마다 0.3초 정도 의도적인 쉼을 넣어 전달력을 높여보세요.",
-                        category: .improvements
+                        category: .improvements,
+                        isActionItem: true
                     )
                 )
 
@@ -214,7 +216,8 @@ final class ResultRecommendationsViewModel: ObservableObject {
                     TemplateSuggestion(
                         title: "속도 균형 잡기",
                         body: "구간별 속도 편차가 커요. 서론–본론–결론을 비슷한 템포로 유지하고, 중요한 문장만 느리게 말해보세요.",
-                        category: .nextStep
+                        category: .nextStep,
+                        isActionItem: false
                     )
                 )
 
@@ -224,7 +227,8 @@ final class ResultRecommendationsViewModel: ObservableObject {
                     TemplateSuggestion(
                         title: "급가속 줄이기",
                         body: "속도가 급격히 변한 구간이 \(spikes)번 있었어요. 전환 구간에서 호흡을 먼저 고정해보세요.",
-                        category: .nextStep
+                        category: .nextStep,
+                        isActionItem: true
                     )
                 )
 
@@ -233,7 +237,8 @@ final class ResultRecommendationsViewModel: ObservableObject {
                     TemplateSuggestion(
                         title: "속도에 리듬 주기",
                         body: "속도가 너무 일정해 읽는 느낌이 날 수 있어요. 강조 단어 앞에서만 속도를 살짝 늦춰 리듬을 만들어보세요.",
-                        category: .nextStep
+                        category: .nextStep,
+                        isActionItem: false
                     )
                 )
             }
@@ -245,7 +250,8 @@ final class ResultRecommendationsViewModel: ObservableObject {
                 TemplateSuggestion(
                     title: "전달력 유지",
                     body: "현재 말하기 속도는 전달에 큰 문제가 없어요. 지금 페이스를 유지하며 내용 명확성에 집중해보세요.",
-                    category: .strengths
+                    category: .strengths,
+                    isActionItem: false
                 )
             )
         }

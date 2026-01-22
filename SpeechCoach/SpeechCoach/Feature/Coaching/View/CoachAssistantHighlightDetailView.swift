@@ -141,7 +141,7 @@ struct CoachAssistantHighlightDetailView: View {
                 }
                 .onPreferenceChange(ChipHeightKey.self) { chipMinHeight = $0 }
             }
-            sectionTitle("신규 강사용 체크포인트")
+            sectionTitle("스스로 점검해보기")
             bulletList(content.checkpoints)
         }
     }
@@ -198,7 +198,7 @@ struct CoachAssistantHighlightDetailView: View {
     
     var drillSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("추천 연습 과제")
+            sectionTitle("추천 연습")
             let drills = content.drills(using: drillCatalog)
             if drills.isEmpty {
                 emptyRecommendedDrillsCard
@@ -237,11 +237,11 @@ struct CoachAssistantHighlightDetailView: View {
     
     var memoSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("강사 메모")
+            sectionTitle("내 연습 메모")
             
             ZStack(alignment: .topLeading) {
                 if memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("이 구간에서 관찰한 점이나 다음 수업 포인트를 적어두세요.")
+                    Text("이 구간을 다시 보며 느낀 점이나, \n다음에 하나만 고치고 싶은 포인트를 적어보세요.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 12)
@@ -379,91 +379,13 @@ struct CoachAssistantHighlightDetailView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("연습 문구 복사")
-                    .padding(.top, -14)   
+                    .padding(.top, -14)
                     .padding(.trailing, -14)
                     .transition(.opacity)
                 }
             }
         }
     }
-
-    
-//    private func drillCard(_ drill: CoachDrill) -> some View {
-//        let isExpanded = expandedDrillIDs.contains(drill.id)
-//
-//        return sectionCard(.content) {
-//            VStack(alignment: .leading, spacing: 10) {
-//
-//                Text(drill.title)
-//                    .font(.headline)
-//
-//                Text(drill.guide)
-//                    .font(.subheadline)
-//                    .foregroundStyle(.secondary)
-//
-//                Button {
-//                    withAnimation(.snappy(duration: 0.25)) {
-//                        if isExpanded { expandedDrillIDs.remove(drill.id) }
-//                        else { expandedDrillIDs.insert(drill.id) }
-//                    }
-//                } label: {
-//                    HStack(spacing: 6) {
-//                        Text(isExpanded ? "접기" : "연습 방법 보기")
-//                            .font(.caption)
-//                        Image(systemName: "chevron.down")
-//                            .font(.caption)
-//                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
-//                    }
-//                    .foregroundStyle(.secondary)
-//                }
-//                .buttonStyle(.plain)
-//                if isExpanded {
-//                    ZStack(alignment: .topTrailing)  {
-//                        VStack(alignment: .leading, spacing: 10) {
-//
-//                            VStack(alignment: .leading, spacing: 8) {
-//                                ForEach(Array(drill.steps.enumerated()), id: \.offset) { idx, step in
-//                                    HStack(alignment: .top, spacing: 8) {
-//                                        Text("\(idx + 1).")
-//                                            .font(.caption)
-//                                            .foregroundStyle(.secondary)
-//                                            .frame(width: 18, alignment: .trailing)
-//                                        Text(step)
-//                                            .font(.subheadline)
-//                                    }
-//                                }
-//                            }
-//                        }
-//                        .padding(.top, 4)
-//                        .transition(
-//                            .asymmetric(
-//                                insertion: .opacity
-//                                    .combined(with: .scale(scale: 1.0, anchor: .top)),
-//                                removal: .opacity
-//                            )
-//                        )
-//                        Button {
-//                            let text = practiceCopyText(title: drill.title, steps: drill.steps)
-//                            hapticSuccess()
-//                            copyToPasteboard(text)
-//                        } label: {
-//                            HStack {
-//                                Image(systemName: "doc.on.doc")
-//                                    .font(.caption)
-//                                    .foregroundColor(Color(.systemGray))
-//                                    .padding(.trailing, 5)
-//                                    
-//                            }
-//                        }
-//                        .padding(.top, -15)
-//                        .padding(.trailing, -14)
-//                        .accessibilityLabel("복사")
-//                    }
-//                    }
-//
-//            }
-//        }
-//    }
 
     private func practiceCopyText(title: String, steps: [String]) -> String {
         let lines = steps.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")

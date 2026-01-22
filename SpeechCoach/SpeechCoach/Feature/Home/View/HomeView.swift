@@ -104,7 +104,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("새 영상 분석하기")
                 .font(.headline)
-            Text("카톡으로 받은 학생 발표 영상을 사진 앱에 저장한 뒤, \n여기서 불러와 텍스트와 지표를 확인하세요.")
+            Text("발표나 연습 영상을 불러와 \n내 말의 흐름과 핵심 지표를 확인해보세요.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             HStack {

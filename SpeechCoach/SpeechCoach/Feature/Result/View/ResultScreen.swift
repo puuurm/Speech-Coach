@@ -10,7 +10,7 @@ import AVKit
 
 extension ResultScreen {
     enum ResultTab: String, CaseIterable, Identifiable {
-        case feedback = "피드백"
+        case feedback = "노트"
         case analysis = "분석"
         var id: String { rawValue }
     }
@@ -40,6 +40,7 @@ struct ResultScreen: View {
     @State private var strenthsText: String = ""
     @State private var improvementsText: String = ""
     @State private var nextStepsText: String = ""
+    @State private var practiceChecklistText: String = ""
     
     @State private var showCopyAlert = false
     @State private var previousRecord: SpeechRecord?
@@ -60,6 +61,14 @@ struct ResultScreen: View {
     @State private var pendingSeek: TimeInterval = 0
     
     @State private var speechType: SpeechTypeSummary? = nil
+    
+    
+    private let oneLineSummaryExamples: [String] = [
+        "요약하면, 오늘 영상의 핵심은 결론을 먼저 말하는 것입니다.",
+        "결론부터 말하면, 핵심 문장을 더 또렷하게 전달하는 것이 목표입니다.",
+        "한 문장으로 말하면, 말의 흐름을 더 간단하게 정리할 필요가 있습니다.",
+        "핵심만 말하면, 중요한 문장에서 한 박자 쉬는 연습이 필요합니다."
+    ]
     
     struct PlayerRoute: Identifiable, Equatable {
         let id = UUID()
@@ -266,49 +275,28 @@ struct ResultScreen: View {
         )
     }
     
-    private var suggestionSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("추천 템플릿")
-                .font(.subheadline.weight(.semibold))
-            
-            if recommendVM.suggestions.isEmpty {
-                Text("추천을 생성할 데이터가 아직 부족해요")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+    private func applySuggestion(_ suggestion: TemplateSuggestion) {
+        let sentence = "• \(suggestion.body)"
+        switch suggestion.category {
+        case .strengths:
+            strenthsText = appendLine(strenthsText, sentence)
+        case .improvements:
+            improvementsText = appendLine(improvementsText, sentence)
+        case .nextStep:
+            if suggestion.isActionItem {
+                practiceChecklistText = appendLine(practiceChecklistText, sentence)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 3) {
-                        ForEach(recommendVM.suggestions) { suggestion in
-                            Button {
-                                applySuggestion(suggestion)
-                            } label: {
-                                Text(suggestion.title)
-                                    .font(.caption.weight(.semibold))
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 8)
-                                    .background(Color(.systemGray6))
-                                    .cornerRadius(10)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                Text("버튼을 누르면 해당 섹션에 문장이 추가돼요")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                nextStepsText = appendLine(nextStepsText, sentence)
             }
         }
     }
     
-    private func applySuggestion(_ suggestion: TemplateSuggestion) {
-        let sentence = "• \(suggestion.body)\n"
-        switch suggestion.category {
-        case .strengths:
-            strenthsText = (strenthsText + (strenthsText.isEmpty ? "" : "\n") + sentence).trimmingCharacters(in: .whitespacesAndNewlines)
-        case .improvements:
-            improvementsText = (improvementsText + (improvementsText.isEmpty ? "" : "\n") + sentence).trimmingCharacters(in: .whitespacesAndNewlines)
-        case .nextStep:
-            nextStepsText = (nextStepsText + (nextStepsText.isEmpty ? "" : "\n") + sentence).trimmingCharacters(in: .whitespacesAndNewlines)
+    func appendLine(_ original: String, _ newLine: String) -> String {
+        if original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return newLine
+        } else {
+            return (original + "\n" + newLine)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
         }
     }
     
@@ -322,32 +310,6 @@ struct ResultScreen: View {
             record: record,
             onChangeStudentName: onChangeStudentName
         )
-    }
-    
-    private var qualitativeSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("정성 지표 (1:1용)")
-                .font(.headline)
-            qualitativeRow(
-                title: "전달력 / 발화 안정감",
-                value: $qualitative.delivery
-            )
-            
-            qualitativeRow(
-                title: "명료함 / 이해도",
-                value: $qualitative.clarity
-            )
-            
-            qualitativeRow(
-                title: "자신감 / 에너지",
-                value: $qualitative.confidence
-            )
-            
-            qualitativeRow(
-                title: "답변 구조 / 논리",
-                value: $qualitative.structure
-            )
-        }
     }
     
     private func metricCard(title: String, value: String, detail: String) -> some View {
@@ -367,129 +329,6 @@ struct ResultScreen: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.secondarySystemBackground))
         )
-    }
-    
-    private var noteSections: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("인사 / 전체 인상")
-                        .font(.headline)
-                    Spacer()
-                    Button("인사 템플릿") {
-                        appendTemplate(
-                            &introText,
-                            template:
-                            """
-                            \(recordVM.record?.studentName ?? "00님"). 안녕하세요 :)
-                            보내주신 과제 영상에 대한 피드백 남겨드립니다.
-                            첫 촬영이라 익숙하지 않으셨을 텐데 차분히 연습해주셔서 감사합니다.
-                            """
-                        )
-                    }
-                    .font(.caption)
-                }
-                TextEditor(text: $introText)
-                    .frame(minHeight: 80)
-                    .padding(8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.secondary.opacity(0.3))
-                    )
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("잘된 점 / 강점")
-                        .font(.headline)
-                    Spacer()
-                    Button("강점 템플릿") {
-                        let template =
-                        """
-                        전반적으로 차분하게 잘 해주셨습니다.
-                        특히 \(wpmStrengthHighlight) 부분에서 전달력이 좋게 느껴집니다.
-                        """
-                        appendTemplate(&strenthsText, template: template)
-                    }
-                    .font(.caption)
-                }
-                TextEditor(text: $strenthsText)
-                    .frame(minHeight: 80)
-                    .padding(8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.secondary.opacity(0.3))
-                    )
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("개선할 점")
-                        .font(.headline)
-                    Spacer()
-                    Menu("개선 템플릿") {
-                        Button("속도 관련 코멘트") {
-                            appendTemplate(
-                                &improvementsText,
-                                template: wpmImprovementTemplate
-                            )
-                        }
-                        Button("필러 관련 코멘트") {
-                            appendTemplate(
-                                &improvementsText,
-                                template: fillerImprovementTemplate
-                            )
-                        }
-                        Button("표정/시선 코멘트") {
-                            appendTemplate(
-                                &improvementsText,
-                                template:
-                                    """
-                                    촬영 후 표정과 시선을 꼭 한 번 더 확인해보세요.
-                                    답변 내용에 비해 표정이 조금 경직되어 보여 아쉬운 부분이 있습니다.
-                                    """
-                            )
-                        }
-                    }
-                    .font(.caption)
-                }
-                
-                TextEditor(text: $improvementsText)
-                    .frame(minHeight: 120)
-                    .padding(8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.secondary.opacity(0.3))
-                    )
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("다음 연습 / 수업 방향")
-                        .font(.headline)
-                    Spacer()
-                    Button("다음 연습 템플릿") {
-                        appendTemplate(
-                            &nextStepsText,
-                            template:
-                                """
-                                면접 시간만큼(약 10분) 지금의 전달력을 유지하는 연습을 해보면 좋겠습니다.
-                                다음 수업에서 이 부분을 원포인트로 함께 다뤄보겠습니다.
-                                """
-                        )
-                    }
-                    .font(.caption)
-                }
-                
-                TextEditor(text: $nextStepsText)
-                    .frame(minHeight: 80)
-                    .padding(8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.secondary.opacity(0.3))
-                    )
-            }
-        }
     }
     
     private func saveNotes(record: SpeechRecord) {
@@ -524,14 +363,14 @@ struct ResultScreen: View {
     }
     
     private var wpmStrengthHighlight: String {
-        let wpm = metricsVM.metrics?.wordsPerMinute ?? .zero
+        let wpm = Int(metricsVM.metrics?.wordsPerMinute ?? 0)
         switch wpm {
         case 0..<110:
-            return "차분하게 내용을 전달하시는"
+            return "차분한 속도예요 (\(wpm) wpm) — 핵심 문장만 조금 더 또렷하게 말해보면 좋아요."
         case 110...160:
-            return "듣기 편한 속도로 말해주시는"
+            return "듣기 편한 속도예요 (\(wpm) wpm) — 지금 속도를 유지해보세요."
         default:
-            return "에너지가 느껴지는 말하기 속도의"
+            return "에너지 있는 속도예요 (\(wpm) wpm) — 핵심 문장에서는 한 박자만 쉬어보세요."
         }
     }
     
@@ -571,85 +410,63 @@ struct ResultScreen: View {
             """
         }
     }
-    
-    private func qualitativeRow(title: String, value: Binding<EmojiRating>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.subheadline.weight(.medium))
-            
-            HStack(spacing: 10) {
-                ForEach(EmojiRating.allCases, id: \.self) { rating in
-                    let isSelected = value.wrappedValue == rating
-                    
-                    Text(emoji(for: rating))
-                        .font(.title2)
-                        .padding(6)
-                        .background(
-                            isSelected
-                            ? Color.accentColor.opacity(0.2)
-                            : Color.clear
-                        )
-                        .cornerRadius(8)
-                        .onTapGesture {
-                            value.wrappedValue = rating
-                        }
-                }
-            }
-        }
-    }
-
-    private func emoji(for rating: EmojiRating) -> String {
-        switch rating {
-        case .veryLow:   return "😣"
-        case .low:       return "😕"
-        case .neutral:   return "😐"
-        case .high:      return "🙂"
-        case .veryHigh:  return "😄"
-        }
-    }
-
     private func makeFeedbackText() -> String {
         var lines: [String] = []
-        guard let record = recordVM.record else { return "--" }
-        
-        lines.append("\(record.greetingName) 안녕하세요.")
+
+        lines.append("내 연습 노트")
         lines.append("")
-        
-        if !introText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            lines.append(introText.trimmingCharacters(in: .whitespacesAndNewlines))
+
+        // 기록 메타: 날짜/영상명 등
+        // guard let record = recordVM.record else { return "--" }
+        // lines.append("영상: \(record.title ?? "발표 영상")")
+        // lines.append("")
+
+        let summary = introText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !summary.isEmpty {
+            lines.append("한 줄 요약")
+            lines.append(summary)
             lines.append("")
         }
-        
-        lines.append("1. 잘된 점")
-        if !strenthsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            lines.append(strenthsText.trimmingCharacters(in: .whitespacesAndNewlines))
+
+        lines.append("좋았던 점")
+        let strengths = strenthsText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !strengths.isEmpty {
+            lines.append(strengths)
         } else {
-            lines.append("전반적으로 차분하게 잘 해주셨습니다.")
+            lines.append("• 오늘 영상에서 괜찮았던 점을 2~3개 적어보세요.")
         }
         lines.append("")
-        
-        lines.append("2. 개선할 점")
-        if !improvementsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            lines.append(improvementsText.trimmingCharacters(in: .whitespacesAndNewlines))
+
+        lines.append("다음에 고칠 1가지")
+        let improvements = improvementsText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !improvements.isEmpty {
+            lines.append(improvements)
         } else {
-            lines.append("말하기 속도와 필러 사용을 조금 더 의식해보시면 좋겠습니다.")
+            lines.append("• 다음 영상에서 하나만 바꾼다면 무엇인지 적어보세요.")
         }
         lines.append("")
-        
-        lines.append("3. 다음 연습 / 수업 방향")
-        if !nextStepsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            lines.append(nextStepsText.trimmingCharacters(in: .whitespacesAndNewlines))
+
+        lines.append("다음 연습 목표")
+        let nextSteps = nextStepsText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !nextSteps.isEmpty {
+            lines.append(nextSteps)
         } else {
-            lines.append("다음 수업에서 오늘 내용을 바탕으로 한 번 더 연습해보겠습니다.")
+            lines.append("• 첫 문장을 결론으로 시작하기")
+            lines.append("• 핵심 문장마다 0.5초 멈춘 뒤 말하기")
         }
         lines.append("")
-        
-        lines.append("수업에서 뵙겠습니다.")
-        lines.append("수고 많으셨습니다.")
-        
+
+        lines.append("지금 바로 해볼 것")
+        let checklist = practiceChecklistText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !checklist.isEmpty {
+            lines.append(checklist)
+        } else {
+            lines.append("• 30초 버전으로 다시 말해보기")
+            lines.append("• 첫 문장을 결론으로 바꿔서 다시 찍기")
+        }
+
         return lines.joined(separator: "\n")
     }
-    
 
     private func dismissCoachAssistant() {
         isCoachAssistantPresented = false
@@ -658,88 +475,6 @@ struct ResultScreen: View {
 }
 
 extension ResultScreen {
-    
-    func noteSectionsRedesigned(record: SpeechRecord) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("피드백 메모")
-                .font(.headline)
-            
-            memoEditorRow(
-                title: "인사 / 전체 인상",
-                buttonTitle: "인사 템플릿",
-                placeholder: "전체적인 인상과 수고 메시지를 적어주세요.",
-                text: $introText
-            ) {
-                appendTemplate(&introText, template: """
-                \(record.greetingName) 안녕하세요. 
-                보내주신 과제 영상에 대한 피드백 남겨드립니다.
-                첫 촬영이라 익숙하지 않으셨을 텐데 차분히 연습해주셔서 감사합니다.
-                """)
-            }
-            
-            memoEditorRow(
-                title: "잘된 점 / 강점",
-                buttonTitle: "강점 템플릿",
-                placeholder: "좋았던 점을 bullet로 정리해보세요.",
-                text: $strenthsText
-            ) {
-                appendTemplate(&strenthsText, template: """
-                전반적으로 차분하게 전달해주셔서 듣기 편했습니다.
-                특히 \(wpmStrengthHighlight) 부분이 강점으로 느껴집니다.
-                """)
-            }
-            
-            memoEditorRow(
-                title: "개선할 점",
-                buttonTitle: "개선 템플릿",
-                placeholder: "개선 포인트를 구체적으로 적어주세요.",
-                text: $improvementsText
-            ) {
-                appendTemplate(&improvementsText, template: wpmImprovementTemplate)
-            }
-            
-            memoEditorRow(
-                title: "다음 연습 / 수업 방향",
-                buttonTitle: "다음 연습 템플릿",
-                placeholder: "다음 과제/수업에서의 목표를 적어주세요.",
-                text: $nextStepsText
-            ) {
-                appendTemplate(&nextStepsText, template: """
-                다음 과제에서는 핵심 문장마다 한 박자 멈추는 연습을 해보세요.
-                다음 수업에서 이 부분을 원포인트로 같이 점검해보겠습니다.
-                """)
-            }
-        }
-    }
-    
-    var qualitativeSectionCompact: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            qualitativeRow(
-                title: "전달력 / 발화 안정감",
-                value: $qualitative.delivery
-            )
-            
-            qualitativeRow(
-                title: "명료함 / 이해도",
-                value: $qualitative.clarity
-            )
-            
-            qualitativeRow(
-                title: "자신감 / 에너지",
-                value: $qualitative.confidence
-            )
-            
-            qualitativeRow(
-                title: "답변 구조 / 논리",
-                value: $qualitative.structure
-            )
-            
-            Text("※ 정성 지표는 '메모를 더 빨리/일관되게 쓰기 위한 체크' 용도로만 사용해요.")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-        }
-        .padding(.top, 6)
-    }
     
     func noteCard(
         title: String,
@@ -823,12 +558,205 @@ extension ResultScreen {
     
     func feedbackTab(record: SpeechRecord) -> some View {
         VStack(alignment: .leading, spacing: 18) {
-            suggestionSection
-            noteSectionsRedesigned(record: record)
+            quickTipsSection
+            learnerNoteSections(record: record)
+//            suggestionSection
+//            noteSectionsRedesigned(record: record)
             primaryActionsRow(record: record)
         }
     }
+    
+    private var quickTipsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("빠른 팁")
+                .font(.subheadline.weight(.semibold))
+            
+            if recommendVM.suggestions.isEmpty {
+                Text("아직 추천을 만들 데이터가 부족해요. 영상을 한 번 더 분석해보면 정확해져요.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(recommendVM.suggestions) { suggestion in
+                            Button {
+                                applySuggestion(suggestion)
+                            } label: {
+                                Text(suggestion.title)
+                                    .font(.caption.weight(.semibold))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 8)
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(10)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                Text("버튼을 누르면 아래 노트에 바로 적용돼요.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    func learnerNoteSections(record: SpeechRecord) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("내 연습 노트")
+                .font(.headline)
+            
+            memoEditorRow(
+                title: "한 줄 요약",
+                buttonTitle: "예시",
+                placeholder: "이 영상에서 내가 가장 전하고 싶은 말을 한 문장으로 적어보세요.",
+                text: $introText
+            ) {
+                guard let example = oneLineSummaryExamples.randomElement() else { return }
+                if introText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    introText = example
+                } else {
+                    introText = appendLine(introText, example)
+                }
+            }
 
+            memoEditorRow(
+                title: "좋았던 점",
+                buttonTitle: "힌트",
+                placeholder: "이번 영상에서 괜찮았던 점 2~3개를 적어보세요. \n(예: 말 속도, 또박또박함, 결론이 잘 보임)",
+                text: $strenthsText
+            ) {
+                appendTemplate(&strenthsText, template: """
+                • (예: 말이 차분해서 듣기 편했다)
+                • (예: 핵심이 또렷했다)
+                • \(wpmStrengthHighlight)
+                """)
+            }
+            
+            memoEditorRow(
+                title: "다음에 고칠 1가지",
+                buttonTitle: "힌트",
+                placeholder: "다음 영상에서 하나만 바꾼다면 뭘 바꿀까요? \n(예: 속도 조금 올리기, 결론 먼저 말하기)",
+                text: $improvementsText
+            ) {
+                appendTemplate(&improvementsText, template: """
+                • \(wpmImprovementTemplate)
+                """)
+            }
+            
+            memoEditorRow(
+                title: "다음 연습 목표",
+                buttonTitle: "예시",
+                placeholder: "다음 연습에서 해보고 싶은 목표를 1~2개 적어보세요.",
+                text: $nextStepsText
+            ) {
+                appendTemplate(&nextStepsText, template: """
+                • 첫 문장을 결론으로 시작하기
+                • 핵심 문장마다 0.5초 멈춘 뒤 말하기
+                """)
+            }
+            
+            memoEditorRow(
+                title: "지금 바로 해볼 것",
+                buttonTitle: "예시",
+                placeholder: "오늘 바로 할 수 있는 행동을 2~3개 적어보세요.",
+                text: $practiceChecklistText
+            ) {
+                appendTemplate(&practiceChecklistText, template: """
+                • 30초 버전으로 다시 말해보기
+                • 첫 문장을 결론으로 바꿔서 다시 찍기
+                • 멈춘 구간만 다시 보고 한 번 더 말해보기
+                """)
+            }
+        }
+    }
+    
+    private var suggestionSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("추천 템플릿")
+                .font(.subheadline.weight(.semibold))
+            
+            if recommendVM.suggestions.isEmpty {
+                Text("추천을 생성할 데이터가 아직 부족해요")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 3) {
+                        ForEach(recommendVM.suggestions) { suggestion in
+                            Button {
+                                applySuggestion(suggestion)
+                            } label: {
+                                Text(suggestion.title)
+                                    .font(.caption.weight(.semibold))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 8)
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(10)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                Text("버튼을 누르면 해당 섹션에 문장이 추가돼요")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    func noteSectionsRedesigned(record: SpeechRecord) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("피드백 메모")
+                .font(.headline)
+            
+            memoEditorRow(
+                title: "인사 / 전체 인상",
+                buttonTitle: "인사 템플릿",
+                placeholder: "전체적인 인상과 수고 메시지를 적어주세요.",
+                text: $introText
+            ) {
+                appendTemplate(&introText, template: """
+                \(record.greetingName) 안녕하세요. 
+                보내주신 과제 영상에 대한 피드백 남겨드립니다.
+                첫 촬영이라 익숙하지 않으셨을 텐데 차분히 연습해주셔서 감사합니다.
+                """)
+            }
+            
+            memoEditorRow(
+                title: "잘된 점 / 강점",
+                buttonTitle: "강점 템플릿",
+                placeholder: "좋았던 점을 bullet로 정리해보세요.",
+                text: $strenthsText
+            ) {
+                appendTemplate(&strenthsText, template: """
+                전반적으로 차분하게 전달해주셔서 듣기 편했습니다.
+                특히 \(wpmStrengthHighlight) 부분이 강점으로 느껴집니다.
+                """)
+            }
+            
+            memoEditorRow(
+                title: "개선할 점",
+                buttonTitle: "개선 템플릿",
+                placeholder: "개선 포인트를 구체적으로 적어주세요.",
+                text: $improvementsText
+            ) {
+                appendTemplate(&improvementsText, template: wpmImprovementTemplate)
+            }
+            
+            memoEditorRow(
+                title: "다음 연습 / 수업 방향",
+                buttonTitle: "다음 연습 템플릿",
+                placeholder: "다음 과제/수업에서의 목표를 적어주세요.",
+                text: $nextStepsText
+            ) {
+                appendTemplate(&nextStepsText, template: """
+                다음 과제에서는 핵심 문장마다 한 박자 멈추는 연습을 해보세요.
+                다음 수업에서 이 부분을 원포인트로 같이 점검해보겠습니다.
+                """)
+            }
+        }
+    }
+    
     func primaryActionsRow(record: SpeechRecord) -> some View {
         HStack(spacing: 10) {
             Button {
@@ -836,7 +764,7 @@ extension ResultScreen {
                 UIPasteboard.general.string = text
                 showCopyAlert = true
             } label: {
-                Label("피드백 복사", systemImage: "doc.on.doc")
+                Label("내 정리 복사", systemImage: "doc.on.doc")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)

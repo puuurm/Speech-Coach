@@ -315,34 +315,34 @@ struct CoachAssistantHighlightDetailView: View {
         let isExpanded = expandedDrillIDs.contains(drill.id)
 
         return sectionCard(.content) {
-            VStack(alignment: .leading, spacing: 10) {
+            ZStack(alignment: .topTrailing) {
+                VStack(alignment: .leading, spacing: 10) {
 
-                Text(drill.title)
-                    .font(.headline)
+                    Text(drill.title)
+                        .font(.headline)
 
-                Text(drill.guide)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    Text(drill.guide)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
 
-                Button {
-                    withAnimation(.snappy(duration: 0.25)) {
-                        if isExpanded { expandedDrillIDs.remove(drill.id) }
-                        else { expandedDrillIDs.insert(drill.id) }
+                    Button {
+                        withAnimation(.snappy(duration: 0.25)) {
+                            if isExpanded { expandedDrillIDs.remove(drill.id) }
+                            else { expandedDrillIDs.insert(drill.id) }
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(isExpanded ? "접기" : "연습 방법 보기")
+                                .font(.caption)
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                                .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        }
+                        .foregroundStyle(.secondary)
                     }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(isExpanded ? "접기" : "연습 방법 보기")
-                            .font(.caption)
-                        Image(systemName: "chevron.down")
-                            .font(.caption)
-                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                    }
-                    .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                if isExpanded {
-                    VStack(alignment: .leading, spacing: 10) {
+                    .buttonStyle(.plain)
 
+                    if isExpanded {
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(Array(drill.steps.enumerated()), id: \.offset) { idx, step in
                                 HStack(alignment: .top, spacing: 8) {
@@ -355,46 +355,124 @@ struct CoachAssistantHighlightDetailView: View {
                                 }
                             }
                         }
-
-                        HStack(spacing: 10) {
-                            let isSavedToday = homeworkStore.isSavedToday(drillType: drill.type)
-                            
-                            Button {
-                                homeworkStore.addTodayHomework(
-                                    drillType: drill.type,
-                                    sourceHighlightID: highlight.id
-                                )
-                            } label: {
-                                Label(
-                                    isSavedToday ? "오늘 숙제로 저장됨" : "오늘 숙제로 저장",
-                                    systemImage: isSavedToday ? "checkmark.circle.fill" : "checkmark.circle"
-                                )
-                                .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            .disabled(isSavedToday)
-
-                            Button { /* TODO */ } label: {
-                                Label("연습 문구 복사", systemImage: "doc.on.doc")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                        .padding(.top, 2)
-                    }
-                    .padding(.top, 4)
-                    .transition(
-                        .asymmetric(
-                            insertion: .opacity
-                                .combined(with: .scale(scale: 1.0, anchor: .top)),
-                            removal: .opacity
+                        .padding(.top, 4)
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 1.0, anchor: .top)),
+                                removal: .opacity
+                            )
                         )
-                    )
+                    }
+                }
+
+                if isExpanded {
+                    Button {
+                        let text = practiceCopyText(title: drill.title, steps: drill.steps)
+                        hapticSuccess()
+                        copyToPasteboard(text)
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(8) // 터치 영역 확보
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("연습 문구 복사")
+                    .padding(.top, -14)   
+                    .padding(.trailing, -14)
+                    .transition(.opacity)
                 }
             }
         }
     }
 
+    
+//    private func drillCard(_ drill: CoachDrill) -> some View {
+//        let isExpanded = expandedDrillIDs.contains(drill.id)
+//
+//        return sectionCard(.content) {
+//            VStack(alignment: .leading, spacing: 10) {
+//
+//                Text(drill.title)
+//                    .font(.headline)
+//
+//                Text(drill.guide)
+//                    .font(.subheadline)
+//                    .foregroundStyle(.secondary)
+//
+//                Button {
+//                    withAnimation(.snappy(duration: 0.25)) {
+//                        if isExpanded { expandedDrillIDs.remove(drill.id) }
+//                        else { expandedDrillIDs.insert(drill.id) }
+//                    }
+//                } label: {
+//                    HStack(spacing: 6) {
+//                        Text(isExpanded ? "접기" : "연습 방법 보기")
+//                            .font(.caption)
+//                        Image(systemName: "chevron.down")
+//                            .font(.caption)
+//                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+//                    }
+//                    .foregroundStyle(.secondary)
+//                }
+//                .buttonStyle(.plain)
+//                if isExpanded {
+//                    ZStack(alignment: .topTrailing)  {
+//                        VStack(alignment: .leading, spacing: 10) {
+//
+//                            VStack(alignment: .leading, spacing: 8) {
+//                                ForEach(Array(drill.steps.enumerated()), id: \.offset) { idx, step in
+//                                    HStack(alignment: .top, spacing: 8) {
+//                                        Text("\(idx + 1).")
+//                                            .font(.caption)
+//                                            .foregroundStyle(.secondary)
+//                                            .frame(width: 18, alignment: .trailing)
+//                                        Text(step)
+//                                            .font(.subheadline)
+//                                    }
+//                                }
+//                            }
+//                        }
+//                        .padding(.top, 4)
+//                        .transition(
+//                            .asymmetric(
+//                                insertion: .opacity
+//                                    .combined(with: .scale(scale: 1.0, anchor: .top)),
+//                                removal: .opacity
+//                            )
+//                        )
+//                        Button {
+//                            let text = practiceCopyText(title: drill.title, steps: drill.steps)
+//                            hapticSuccess()
+//                            copyToPasteboard(text)
+//                        } label: {
+//                            HStack {
+//                                Image(systemName: "doc.on.doc")
+//                                    .font(.caption)
+//                                    .foregroundColor(Color(.systemGray))
+//                                    .padding(.trailing, 5)
+//                                    
+//                            }
+//                        }
+//                        .padding(.top, -15)
+//                        .padding(.trailing, -14)
+//                        .accessibilityLabel("복사")
+//                    }
+//                    }
+//
+//            }
+//        }
+//    }
+
+    private func practiceCopyText(title: String, steps: [String]) -> String {
+        let lines = steps.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
+        return """
+        [\(title)]
+
+        \(lines)
+        """
+    }
     
     private func background(for style: CardStyle) -> AnyShapeStyle {
         switch style {

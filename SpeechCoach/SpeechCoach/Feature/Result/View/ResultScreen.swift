@@ -107,6 +107,11 @@ struct ResultScreen: View {
             await recordVM.load(using: recordStore)
             
             guard let record = recordVM.record else { return }
+            
+            await MainActor.run {
+                hydrateNoteStateIfNeeded(from: record)
+            }
+            
             previousRecord = recordStore.previousRecord(before: record.id)
             await metricsVM.load(using: recordStore, previousRecordID: previousRecord?.id)
 
@@ -337,7 +342,8 @@ struct ResultScreen: View {
             intro: introText.trimmingCharacters(in: .whitespacesAndNewlines),
             strenghts: strenthsText.trimmingCharacters(in: .whitespacesAndNewlines),
             improvements: improvementsText.trimmingCharacters(in: .whitespacesAndNewlines),
-            nextStep: nextStepsText.trimmingCharacters(in: .whitespacesAndNewlines)
+            nextStep: nextStepsText.trimmingCharacters(in: .whitespacesAndNewlines),
+            checklist: practiceChecklistText.trimmingCharacters(in: .whitespacesAndNewlines)
         )
         
         recordStore.updateQualitative(
@@ -472,6 +478,27 @@ struct ResultScreen: View {
         isCoachAssistantPresented = false
         selectedHighlight = nil
     }
+    
+    @MainActor
+    private func hydrateNoteStateIfNeeded(from record: SpeechRecord) {
+        let alreadyHasUserInput =
+            !introText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            !strenthsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            !improvementsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            !nextStepsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            !practiceChecklistText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+        guard alreadyHasUserInput == false else { return }
+
+        guard let note = record.note else { return }
+
+        introText = note.intro
+        strenthsText = note.strengths
+        improvementsText = note.improvements
+        nextStepsText = note.nextStep
+        practiceChecklistText = note.checklist ?? ""
+    }
+
 }
 
 extension ResultScreen {

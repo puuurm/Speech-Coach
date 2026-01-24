@@ -142,26 +142,39 @@ final class SpeechRecordStore: ObservableObject {
         intro: String,
         strenghts: String,
         improvements: String,
-        nextStep: String
+        nextStep: String,
+        checklist: String? = nil
     ) {
+        let context = self.context
+        
         context.perform {
             do {
                 guard let entity = try self.fetchRecordEntity(id: id) else { return }
-                let noteEntity = entity.note ?? SpeechRecordNoteEntity(context: self.context)
-                noteEntity.record = entity
-                entity.note = noteEntity
+                let noteEntity: SpeechRecordNoteEntity
+                if let existing = entity.note {
+                    noteEntity = existing
+                } else {
+                    let creadted = SpeechRecordNoteEntity(context: context)
+                    creadted.record = entity
+                    entity.note = creadted
+                    noteEntity = creadted
+                }
                 
                 SpeechRecordNoteMapper.apply(
                     SpeechRecord.Note(
                         intro: intro,
                         strengths: strenghts,
                         improvements: improvements,
-                        nextStep: nextStep
+                        nextStep: nextStep,
+                        checklist: checklist
                     ),
                     to: noteEntity
                 )
-                try self.saveContext()
-                self.reload()
+
+                try context.save()
+                Task { @MainActor in
+                    self.reload()
+                }
                 print("Updated notes for record:", id)
             } catch {
                 assertionFailure("❌ updateNotes failed: \(error)")

@@ -49,6 +49,7 @@
         <relationship name="record" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="SpeechRecordEntity"/>
     </entity>
     <entity name="SpeechRecordNoteEntity" representedClassName="SpeechRecordNoteEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="checklist" optional="YES" attributeType="String"/>
         <attribute name="improvements" attributeType="String"/>
         <attribute name="intro" attributeType="String"/>
         <attribute name="nextStep" attributeType="String"/>

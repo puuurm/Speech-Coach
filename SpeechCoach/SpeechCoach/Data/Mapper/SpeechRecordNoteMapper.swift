@@ -43,8 +43,8 @@ enum SpeechRecordNoteMapper {
             intro: entity.intro ?? "",
             strengths: entity.strengths ?? "",
             improvements: entity.improvements ?? "",
-            nextStep: entity.nextStep ?? ""
+            nextStep: entity.nextStep ?? "",
+            checklist: entity.checklist ?? ""
         )
     }
-
 }

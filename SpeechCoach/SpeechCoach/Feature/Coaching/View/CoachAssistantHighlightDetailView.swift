@@ -84,20 +84,17 @@ struct CoachAssistantHighlightDetailView: View {
                     case .drill: drillSection
                     }
                 }
-                
                 memoSection
             }
             .padding(16)
         }
         .navigationTitle("강사 보조")
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .top) {
-            if let toastText {
-                toastView(text: toastText)
-                    .padding(.top, 8)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
+        .toastHost(
+            toastText: $toastText,
+            alignment: .top,
+            paddingTop: 8
+        )
     }
     
     var header: some View {
@@ -368,8 +365,13 @@ struct CoachAssistantHighlightDetailView: View {
                 if isExpanded {
                     Button {
                         let text = practiceCopyText(title: drill.title, steps: drill.steps)
-                        hapticSuccess()
-                        copyToPasteboard(text)
+                        CopyFeedback.copy(
+                            text,
+                            toastText: $toastText,
+                            haptic: hapticSuccess
+                        )
+//                        hapticSuccess()
+//                        copyToPasteboard(text)
                     } label: {
                         Image(systemName: "doc.on.doc")
                             .font(.caption.weight(.semibold))

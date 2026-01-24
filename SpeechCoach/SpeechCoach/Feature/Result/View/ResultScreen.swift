@@ -41,6 +41,7 @@ struct ResultScreen: View {
     @State private var improvementsText: String = ""
     @State private var nextStepsText: String = ""
     @State private var practiceChecklistText: String = ""
+    @State private var toastText: String? = nil
     
     @State private var showCopyAlert = false
     @State private var previousRecord: SpeechRecord?
@@ -95,12 +96,14 @@ struct ResultScreen: View {
     }
     
     var body: some View {
-        Group {
-            switch (recordVM.record, metricsVM.metrics) {
-            case let (.some(record), .some(metrics)):
-                content(record: record, metrics: metrics)
-            default:
-                ProgressView("불러오는 중...")
+        ZStack {
+            Group {
+                switch (recordVM.record, metricsVM.metrics) {
+                case let (.some(record), .some(metrics)):
+                    content(record: record, metrics: metrics)
+                default:
+                    ProgressView("불러오는 중...")
+                }
             }
         }
         .task {
@@ -181,11 +184,11 @@ struct ResultScreen: View {
         }
         .navigationTitle("분석 결과")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("피드백이 복사되었어요", isPresented: $showCopyAlert) {
-            Button("확인", role: .cancel) { }
-        } message: {
-            Text("카톡에 붙여넣기 하면 바로 보낼 수 있어요.")
-        }
+        .toastHost(
+            toastText: $toastText,
+            alignment: .top,
+            paddingTop: 8
+        )
     }
     
     @ViewBuilder
@@ -788,8 +791,15 @@ extension ResultScreen {
         HStack(spacing: 10) {
             Button {
                 let text = makeFeedbackText()
-                UIPasteboard.general.string = text
-                showCopyAlert = true
+                CopyFeedback.copy(
+                    text,
+                    toastText: $toastText,
+                    message: "내 정리를 복사했어요",
+                    dismissAfter: 1.2,
+                    haptic: Haptics.success
+                )
+//                UIPasteboard.general.string = text
+//                showCopyAlert = true
             } label: {
                 Label("내 정리 복사", systemImage: "doc.on.doc")
                     .font(.subheadline.weight(.semibold))

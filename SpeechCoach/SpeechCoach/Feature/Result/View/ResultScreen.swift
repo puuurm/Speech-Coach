@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AlertToast
 import AVKit
 
 extension ResultScreen {
@@ -41,7 +42,6 @@ struct ResultScreen: View {
     @State private var improvementsText: String = ""
     @State private var nextStepsText: String = ""
     @State private var practiceChecklistText: String = ""
-    @State private var toastText: String? = nil
     
     @State private var showCopyAlert = false
     @State private var previousRecord: SpeechRecord?
@@ -105,6 +105,9 @@ struct ResultScreen: View {
                     ProgressView("불러오는 중...")
                 }
             }
+        }
+        .toast(isPresenting: $showCopyAlert){
+            AlertToast(type: .regular, title: "복사했어요", style: AlertToast.AlertStyle.style(backgroundColor: .black, titleColor: .white, subTitleColor: nil, titleFont: .footnote, subTitleFont: nil))
         }
         .task {
             await recordVM.load(using: recordStore)
@@ -184,11 +187,6 @@ struct ResultScreen: View {
         }
         .navigationTitle("분석 결과")
         .navigationBarTitleDisplayMode(.inline)
-        .toastHost(
-            toastText: $toastText,
-            alignment: .top,
-            paddingTop: 8
-        )
     }
     
     @ViewBuilder
@@ -791,15 +789,8 @@ extension ResultScreen {
         HStack(spacing: 10) {
             Button {
                 let text = makeFeedbackText()
-                CopyFeedback.copy(
-                    text,
-                    toastText: $toastText,
-                    message: "내 정리를 복사했어요",
-                    dismissAfter: 1.2,
-                    haptic: Haptics.success
-                )
 //                UIPasteboard.general.string = text
-//                showCopyAlert = true
+                showCopyAlert = true
             } label: {
                 Label("내 정리 복사", systemImage: "doc.on.doc")
                     .font(.subheadline.weight(.semibold))
@@ -827,6 +818,8 @@ extension ResultScreen {
             .buttonStyle(.plain)
         }
     }
+
+    
 }
 
 extension ResultScreen {

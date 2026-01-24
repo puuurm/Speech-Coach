@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B05A372E2F24A08800C84856 /* AlertToast in Frameworks */ = {isa = PBXBuildFile; productRef = B05A372D2F24A08800C84856 /* AlertToast */; };
 		B0CF99D42F0FB936009FE2F9 /* SwiftUITooltip in Frameworks */ = {isa = PBXBuildFile; productRef = B0CF99D32F0FB936009FE2F9 /* SwiftUITooltip */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +29,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B0CF99D42F0FB936009FE2F9 /* SwiftUITooltip in Frameworks */,
+				B05A372E2F24A08800C84856 /* AlertToast in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +73,7 @@
 			name = SpeechCoach;
 			packageProductDependencies = (
 				B0CF99D32F0FB936009FE2F9 /* SwiftUITooltip */,
+				B05A372D2F24A08800C84856 /* AlertToast */,
 			);
 			productName = SpeechCoach;
 			productReference = B082C2C72ED0178C00B07A71 /* SpeechCoach.app */;
@@ -102,6 +105,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				B0CF99D22F0FB936009FE2F9 /* XCRemoteSwiftPackageReference "SwiftUI-Tooltip" */,
+				B05A372C2F24A08800C84856 /* XCRemoteSwiftPackageReference "AlertToast" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B082C2C82ED0178C00B07A71 /* Products */;
@@ -353,6 +357,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		B05A372C2F24A08800C84856 /* XCRemoteSwiftPackageReference "AlertToast" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/elai950/AlertToast.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.9;
+			};
+		};
 		B0CF99D22F0FB936009FE2F9 /* XCRemoteSwiftPackageReference "SwiftUI-Tooltip" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/quassum/SwiftUI-Tooltip.git";
@@ -364,6 +376,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		B05A372D2F24A08800C84856 /* AlertToast */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B05A372C2F24A08800C84856 /* XCRemoteSwiftPackageReference "AlertToast" */;
+			productName = AlertToast;
+		};
 		B0CF99D32F0FB936009FE2F9 /* SwiftUITooltip */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B0CF99D22F0FB936009FE2F9 /* XCRemoteSwiftPackageReference "SwiftUI-Tooltip" */;

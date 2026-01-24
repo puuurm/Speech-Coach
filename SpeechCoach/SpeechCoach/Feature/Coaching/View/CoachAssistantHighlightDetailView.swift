@@ -5,6 +5,7 @@
 //  Created by Heejung Yang on 12/21/25.
 //
 
+import AlertToast
 import SwiftUI
 
 struct CoachAssistantHighlightDetailView: View {
@@ -39,7 +40,8 @@ struct CoachAssistantHighlightDetailView: View {
     @State private var toastText: String? = nil
     @State private var expandedDrillIDs: Set<DrillType> = []
     @State private var chipMinHeight: CGFloat = 0
-    
+    @State private var showCopyAlert = false
+
     @FocusState private var isMemoFocused: Bool
     
 
@@ -90,11 +92,9 @@ struct CoachAssistantHighlightDetailView: View {
         }
         .navigationTitle("강사 보조")
         .navigationBarTitleDisplayMode(.inline)
-        .toastHost(
-            toastText: $toastText,
-            alignment: .top,
-            paddingTop: 8
-        )
+        .toast(isPresenting: $showCopyAlert){
+            AlertToast(type: .regular, title: "복사했어요", style: AlertToast.AlertStyle.style(backgroundColor: .black, titleColor: .white, subTitleColor: nil, titleFont: .footnote, subTitleFont: nil))
+        }
     }
     
     var header: some View {
@@ -365,13 +365,8 @@ struct CoachAssistantHighlightDetailView: View {
                 if isExpanded {
                     Button {
                         let text = practiceCopyText(title: drill.title, steps: drill.steps)
-                        CopyFeedback.copy(
-                            text,
-                            toastText: $toastText,
-                            haptic: hapticSuccess
-                        )
-//                        hapticSuccess()
-//                        copyToPasteboard(text)
+                        showCopyAlert = true
+                        copyToPasteboard(text)
                     } label: {
                         Image(systemName: "doc.on.doc")
                             .font(.caption.weight(.semibold))
@@ -454,8 +449,8 @@ struct CoachAssistantHighlightDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
                 Button {
-                    hapticSuccess()
                     copyToPasteboard(text)
+                    showCopyAlert = true
                 } label: {
                     HStack {
                         Image(systemName: "doc.on.doc")

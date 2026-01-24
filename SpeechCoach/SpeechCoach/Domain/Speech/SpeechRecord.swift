@@ -31,6 +31,7 @@ extension SpeechRecord {
         var strengths: String
         var improvements: String
         var nextStep: String
+        var checklist: String?
     }
     
     struct Insight: Hashable, Codable {

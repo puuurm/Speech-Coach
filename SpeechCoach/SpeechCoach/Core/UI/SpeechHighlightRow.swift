@@ -34,7 +34,7 @@ struct SpeechHighlightRow: View {
         .padding(.vertical, 6)
         .contentShape(Rectangle())
         .onTapGesture {
-            guard context == .feedbackAnalysis else { return }
+            guard context == .feedbackAnalysis || context == .homeAnalysis else { return }
             onSelect?()
         }
     }
@@ -49,7 +49,7 @@ extension SpeechHighlightRow {
     
     @ViewBuilder
     private var trailingAccessory: some View {
-        if context == .feedbackAnalysis {
+        if context == .feedbackAnalysis || context == .homeAnalysis {
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
                 .foregroundColor(Color(.tertiaryLabel))

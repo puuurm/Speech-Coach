@@ -117,7 +117,7 @@ extension SpeakingTypeSection {
                         onPlay: {
                             send(.playHighlight(h))
                         },
-                        onSelect: context == .feedbackAnalysis ? {
+                        onSelect: (context == .feedbackAnalysis || context == .homeAnalysis) ? {
                             send(.selectHighlight(h))
                         } : nil
                     )

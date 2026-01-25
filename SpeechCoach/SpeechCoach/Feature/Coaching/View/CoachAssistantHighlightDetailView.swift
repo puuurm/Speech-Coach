@@ -41,10 +41,11 @@ struct CoachAssistantHighlightDetailView: View {
     @State private var expandedDrillIDs: Set<DrillType> = []
     @State private var chipMinHeight: CGFloat = 0
     @State private var showCopyAlert = false
+    @State private var isSaving = false
 
     @FocusState private var isMemoFocused: Bool
     
-
+    @EnvironmentObject private var recordStore: SpeechRecordStore
     @EnvironmentObject var homeworkStore: HomeworkStore
     
     private var content: CoachAssistContent {
@@ -92,6 +93,9 @@ struct CoachAssistantHighlightDetailView: View {
         }
         .navigationTitle("강사 보조")
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: record.id) {
+            memo = recordStore.coachingMemo(with: record.id)
+        }
         .toast(isPresenting: $showCopyAlert){
             AlertToast(
                 type: .regular,
@@ -273,10 +277,13 @@ struct CoachAssistantHighlightDetailView: View {
             )
             
             HStack {
-                Button { } label: {
+                Button {
+                    saveMemo()
+                } label: {
                     Label("메모 저장", systemImage: "tray.and.arrow.down")
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(isSaving)
 
                 Spacer()
 
@@ -286,6 +293,17 @@ struct CoachAssistantHighlightDetailView: View {
                 .buttonStyle(.bordered)
                 .disabled(memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
+        }
+    }
+    
+    private func saveMemo() {
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            try recordStore.saveCoachingMemo(recordID: record.id, memo: memo)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        } catch {
+            print("메모 저장 실패:", error)
         }
     }
 

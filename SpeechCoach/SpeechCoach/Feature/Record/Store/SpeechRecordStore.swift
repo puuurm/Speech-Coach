@@ -87,6 +87,17 @@ final class SpeechRecordStore: ObservableObject {
         }
     }
     
+    func saveCoachingMemo(recordID: UUID, memo: String) throws {
+        let trimmed = memo.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        let record = try fetchOrCreateRecordEntity(id: recordID)
+        let note = try fetchOrCreateNote(for: record)
+        note.coachingMemo = trimmed.isEmpty ? nil : trimmed
+        note.updatedAt = Date()
+        try context.save()
+        objectWillChange.send()
+    }
+    
     func loadRecentRecords(limit: Int = 20) -> [SpeechRecord] {
         var results: [SpeechRecord] = []
         context.performAndWait {
@@ -328,12 +339,45 @@ final class SpeechRecordStore: ObservableObject {
         return entity
     }
     
+    private func fetchOrCreateNote(for record: SpeechRecordEntity) throws -> SpeechRecordNoteEntity {
+        if let existing = record.note { return existing }
+
+        let note = SpeechRecordNoteEntity(context: context)
+
+        note.intro = ""
+        note.strengths = ""
+        note.improvements = ""
+        note.nextStep = ""
+        note.checklist = ""
+        note.coachingMemo = nil
+
+        note.updatedAt = Date()
+
+        note.record = record
+        record.note = note
+
+        return note
+    }
+
     private func fetchMetricsEntity(recordID: UUID) throws -> SpeechMetricsEntity? {
         let request = SpeechMetricsEntity.fetchRequest()
         request.fetchLimit = 1
         request.predicate = NSPredicate(format: "record.id == %@", recordID as CVarArg)
         request.sortDescriptors = [NSSortDescriptor(key: "generatedAt", ascending: false)]
         return try context.fetch(request).first
+    }
+    
+    func coachingMemo(with recordID: UUID) -> String {
+        var result = ""
+        context.performAndWait {
+            do {
+                guard let entity = try self.fetchRecordEntity(id: recordID) else { return }
+                result = entity.note?.coachingMemo ?? ""
+            } catch {
+                assertionFailure("❌ coachingMemo(with:) fetch failed: \(error)")
+            }
+        }
+        return result
     }
     
     func updateVideoRelativePath(recordID: UUID, relativePath: String) {

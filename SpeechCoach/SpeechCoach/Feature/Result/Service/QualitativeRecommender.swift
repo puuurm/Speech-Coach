@@ -145,14 +145,14 @@ extension QualitativeRecommender {
         
         if fillerCount >= 8 {
             suggestions.append(.init(
-                title: "필러 줄이기",
-                body: "필러(어/음)가 자주 등장해요. 생각 정리가 필요할 땐 '필러' 대신 '짧은 침묵'을 허용해보세요.",
+                title: "군더더기 말 줄이기",
+                body: "군더더기 말(어/음)이 자주 등장해요. 생각 정리가 필요할 땐 '필러' 대신 '짧은 침묵'을 허용해보세요.",
                 category: .improvements
             ))
         } else if fillerCount > 0 {
             suggestions.append(.init(
-                title: "필러 관리",
-                body: "필러가 조금 보이지만 전반적으로는 괜찮아요. 긴 문장 시작 전에 숨 한번 정리하면 더 좋아져요.",
+                title: "군더더기 말 관리",
+                body: "군더더기 말이 조금 보이지만 전반적으로는 괜찮아요. 긴 문장 시작 전에 숨 한번 정리하면 더 좋아져요.",
                 category: .strengths
             ))
         }

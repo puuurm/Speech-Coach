@@ -421,12 +421,12 @@ struct ResultScreen: View {
         guard let fillerCount = metricsVM.metrics?.fillerCount else { return "--" }
         if fillerCount == 0 {
             return """
-            필러 단어는 거의 사용하지 않으셔서 전달력이 매우 또렷하게 들립니다.
+            군더더기 말은 거의 사용하지 않으셔서 전달력이 매우 또렷하게 들립니다.
             지금 패턴을 유지해보시면 좋겠습니다.
             """
         } else {
             return """
-            '음'과 같은 필러가 중간중간 등장합니다.
+            '음'과 같은 군더더기 말이 중간중간 등장합니다.
             생각이 날 때마나 바로 말을 시작하기보다는, 짧게 멈춘 후 문장을 이어가 보는 연습을 해보세요.
             """
         }

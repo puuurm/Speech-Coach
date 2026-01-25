@@ -52,7 +52,8 @@ struct VideoPlayerScreen: View {
     @State private var appliedStartTime = false
     @State private var tooltipVisible = false
     @State private var pendingSeek: Double? = nil
-
+    @State private var failedToSave = false
+    
     @EnvironmentObject var router: NavigationRouter
     @EnvironmentObject var recordStore: SpeechRecordStore
     
@@ -165,36 +166,27 @@ struct VideoPlayerScreen: View {
             }
         }) {
             if let record = analyzedRecord {
-                NavigationStack {
-                    ResultScreen(
-                        recordID: record.id,
-                        highlightContext: .feedbackAnalysis,
-                        playbackPolicy: .playable { start in
-                            pc.seek(to: start, autoplay: true)
-                            showFeedbackSheet = false
-                        },
-                        onRequestPlay: { sec in
-                            pendingSeek = sec
-                            showFeedbackSheet = false
-                        }
-                    )
-                    .safeAreaInset(edge: .top, spacing: 0) {
-                        if shouldShowFullFlowBanner {
-                            FullFlowHintBanner(
-                                onTapWatchVideo: {
-                                    showFeedbackSheet = false
-                                    pc.player.play()
-                                },
-                                onTapDontShowAgain: {
-                                    hideFullFlowBanner = true
-                                }
-                            )
-                            .padding(.horizontal, 16)
-                            .padding(.top, 10)
-                            .padding(.bottom, 8)
-                        }
-                    }
-                }
+                FeedbackResultSheet(
+                    recordID: record.id,
+                    shouldShowFullFlowBanner: shouldShowFullFlowBanner,
+                    onPlaybackStart: { start in
+                        pc.seek(to: start, autoplay: true)
+                        showFeedbackSheet = false
+                    },
+                    onRequestPlay: { sec in
+                        pendingSeek = sec
+                        showFeedbackSheet = false
+                    },
+                    onTapWatchVideo: {
+                        showFeedbackSheet = false
+                        pc.player.play()
+                    },
+                    onTapDontShowAgain: {
+                        hideFullFlowBanner = true
+                    },
+                    failedToSave: $failedToSave
+                )
+                .environmentObject(pc)
             }
         }
     }

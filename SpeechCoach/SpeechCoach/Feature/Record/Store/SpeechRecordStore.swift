@@ -170,16 +170,22 @@ final class SpeechRecordStore: ObservableObject {
                     ),
                     to: noteEntity
                 )
-
-                try context.save()
-                Task { @MainActor in
-                    self.reload()
-                }
                 print("Updated notes for record:", id)
             } catch {
                 assertionFailure("❌ updateNotes failed: \(error)")
             }
         }
+    }
+    
+    @MainActor
+    func persist() async throws {
+        let context = self.context
+        
+        try await context.perform {
+            guard context.hasChanges else { return }
+            try context.save()
+        }
+        self.reload()
     }
     
     func updateQualitative(for id: UUID, metrics: QualitativeMetrics) {
@@ -192,9 +198,6 @@ final class SpeechRecordStore: ObservableObject {
                 entity.insight = insightEntity
 
                 SpeechRecordInsightMapper.apply(metrics, to: insightEntity)
-
-                try self.saveContext()
-                self.reload()
             } catch {
                 assertionFailure("❌ updateQualitative failed: \(error)")
             }
@@ -340,13 +343,7 @@ final class SpeechRecordStore: ObservableObject {
                     assertionFailure("❌ Record not found: \(recordID)")
                     return
                 }
-
-                // ✅ domain-only 수정 금지. 엔티티에 저장.
                 entity.videoRelativePath = relativePath
-
-                // videoURL은 Core Data에 저장하지 않는다면(일반적), domain에서 resolve
-                // 즉, mapper의 toDomain에서 relativePath -> resolved URL 처리하도록 통일 추천
-
                 try self.saveContext()
                 self.reload()
             } catch {

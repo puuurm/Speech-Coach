@@ -27,4 +27,32 @@ final class NavigationRouter: ObservableObject {
     func resetToRoot() {
         path = []
     }
+    
+    func navigateToVideoPlayer(
+        record: SpeechRecord,
+        startTime: TimeInterval? = nil,
+        autoplay: Bool = true
+    ) {
+        push(.videoPlayer(.init(
+            videoURL: record.resolvedVideoURL ?? .documentsDirectory,
+            title: record.title,
+            duration: record.duration,
+            startTime: startTime,
+            autoplay: autoplay
+        )))
+    }
+    
+    func navigateToVideoPlayer(
+        draft: SpeechDraft,
+        startTime: TimeInterval? = nil,
+        autoplay: Bool = true
+    ) {
+        push(.videoPlayer(.init(
+            videoURL: draft.videoURL,
+            title: draft.title,
+            duration: draft.duration,
+            startTime: startTime,
+            autoplay: autoplay
+        )))
+    }
 }

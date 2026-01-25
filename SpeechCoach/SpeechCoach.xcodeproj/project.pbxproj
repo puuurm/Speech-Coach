@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B05A372E2F24A08800C84856 /* AlertToast in Frameworks */ = {isa = PBXBuildFile; productRef = B05A372D2F24A08800C84856 /* AlertToast */; };
+		B0CF99D42F0FB936009FE2F9 /* SwiftUITooltip in Frameworks */ = {isa = PBXBuildFile; productRef = B0CF99D32F0FB936009FE2F9 /* SwiftUITooltip */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		B082C2C72ED0178C00B07A71 /* SpeechCoach.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpeechCoach.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +28,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B0CF99D42F0FB936009FE2F9 /* SwiftUITooltip in Frameworks */,
+				B05A372E2F24A08800C84856 /* AlertToast in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +72,8 @@
 			);
 			name = SpeechCoach;
 			packageProductDependencies = (
+				B0CF99D32F0FB936009FE2F9 /* SwiftUITooltip */,
+				B05A372D2F24A08800C84856 /* AlertToast */,
 			);
 			productName = SpeechCoach;
 			productReference = B082C2C72ED0178C00B07A71 /* SpeechCoach.app */;
@@ -94,6 +103,10 @@
 			);
 			mainGroup = B082C2BE2ED0178C00B07A71;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B0CF99D22F0FB936009FE2F9 /* XCRemoteSwiftPackageReference "SwiftUI-Tooltip" */,
+				B05A372C2F24A08800C84856 /* XCRemoteSwiftPackageReference "AlertToast" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B082C2C82ED0178C00B07A71 /* Products */;
 			projectDirPath = "";
@@ -256,19 +269,22 @@
 				DEVELOPMENT_TEAM = V9TZ6H4V4N;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "영상 촬영 및 분석을 위해 카메라 접근이 필요합니다.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "음성 분석을 위해 마이크 접근이 필요합니다.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "영상 불러오기를 위해 사진 라이브러리 접근이 필요합니다.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "스피치 영상을 텍스트로 변환하기 위해 음성 인식 권한이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.heejung.SpeechCoach;
+				PRODUCT_BUNDLE_IDENTIFIER = com.heejungyang.speechcoach;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -290,19 +306,22 @@
 				DEVELOPMENT_TEAM = V9TZ6H4V4N;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "영상 촬영 및 분석을 위해 카메라 접근이 필요합니다.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "음성 분석을 위해 마이크 접근이 필요합니다.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "영상 불러오기를 위해 사진 라이브러리 접근이 필요합니다.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "스피치 영상을 텍스트로 변환하기 위해 음성 인식 권한이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.heejung.SpeechCoach;
+				PRODUCT_BUNDLE_IDENTIFIER = com.heejungyang.speechcoach;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -336,6 +355,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B05A372C2F24A08800C84856 /* XCRemoteSwiftPackageReference "AlertToast" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/elai950/AlertToast.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.9;
+			};
+		};
+		B0CF99D22F0FB936009FE2F9 /* XCRemoteSwiftPackageReference "SwiftUI-Tooltip" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/quassum/SwiftUI-Tooltip.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B05A372D2F24A08800C84856 /* AlertToast */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B05A372C2F24A08800C84856 /* XCRemoteSwiftPackageReference "AlertToast" */;
+			productName = AlertToast;
+		};
+		B0CF99D32F0FB936009FE2F9 /* SwiftUITooltip */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B0CF99D22F0FB936009FE2F9 /* XCRemoteSwiftPackageReference "SwiftUI-Tooltip" */;
+			productName = SwiftUITooltip;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B082C2BF2ED0178C00B07A71 /* Project object */;
 }

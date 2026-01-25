@@ -10,7 +10,6 @@ import SwiftUI
 struct FeedbackSheet: View {
     let record: SpeechRecord
 
-    // 초기 값은 기존에 저장된 메모 있으면 그걸로, 없으면 빈 문자열
     @State private var introText: String
     @State private var strengthsText: String
     @State private var improvementsText: String
@@ -25,10 +24,10 @@ struct FeedbackSheet: View {
          onSave: @escaping (String, String, String, String) -> Void) {
         self.record = record
         self.onSave = onSave
-        _introText = State(initialValue: record.noteIntro ?? "")
-        _strengthsText = State(initialValue: record.noteStrengths ?? "")
-        _improvementsText = State(initialValue: record.noteImprovements ?? "")
-        _nextStepsText = State(initialValue: record.noteNextStep ?? "")
+        _introText = State(initialValue: record.note?.intro ?? "")
+        _strengthsText = State(initialValue: record.note?.strengths ?? "")
+        _improvementsText = State(initialValue: record.note?.improvements ?? "")
+        _nextStepsText = State(initialValue: record.note?.nextStep ?? "")
     }
 
     var body: some View {

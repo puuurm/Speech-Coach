@@ -8,16 +8,32 @@
 import SwiftUI
 import PhotosUI
 import AVFoundation
+import CoreData
 
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
     @EnvironmentObject var recordStore: SpeechRecordStore
+    @EnvironmentObject var homeworkStore: HomeworkStore
     @EnvironmentObject var router: NavigationRouter
+    @Environment(\.managedObjectContext) private var context
+    
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)],
+        animation: .default
+    )
+    
+    private var recordEntities: FetchedResults<SpeechRecordEntity>
+    let drillCatalog: [DrillType: CoachDrill]
     
     @State private var selectedItem: PhotosPickerItem?
     @State private var navigateToPlayer = false
-    
     @State private var isImporting: Bool = false
+    
+    private var todayHomeworks: [DailyHomework] {
+        let today = Calendar.current.startOfDay(for: Date())
+        return homeworkStore.homeworks
+            .filter {  $0.date == today }
+    }
     
     var body: some View {
         content
@@ -75,6 +91,7 @@ struct HomeView: View {
                     }
                     .buttonStyle(.plain)
             }
+            
             recentSection
         }
         .listStyle(.insetGrouped)
@@ -87,7 +104,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("새 영상 분석하기")
                 .font(.headline)
-            Text("카톡으로 받은 학생 발표 영상을 사진 앱에 저장한 뒤, \n여기서 불러와 텍스트와 지표를 확인하세요.")
+            Text("발표나 연습 영상을 불러와 \n내 말의 흐름과 핵심 지표를 확인해보세요.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             HStack {
@@ -103,9 +120,15 @@ struct HomeView: View {
         .padding(16)
     }
     
+    private var records: [SpeechRecord] {
+        recordEntities.compactMap { entity in
+            SpeechRecordMapper.toDomain(entity)
+        }
+    }
+    
     private var recentSection: some View {
         Group {
-            if recordStore.records.isEmpty {
+            if records.isEmpty {
                 Section {
                     Text("아직 분석한 영상이 없어요.")
                         .font(.subheadline)
@@ -115,7 +138,7 @@ struct HomeView: View {
                         .font(.headline)
                 }
             } else {
-                let groupted = Dictionary(grouping: recordStore.records) { record in
+                let groupted = Dictionary(grouping: records) { record in
                     dayKey(from: record.createdAt)
                 }
                 
@@ -136,9 +159,9 @@ struct HomeView: View {
                         
                         Section {
                             ForEach(sortedRecords) { record in
-                                NavigationLink {
-                                    ResultScreen(record: record)
-                                } label : {
+                                Button {
+                                    router.push(.result(recordID: record.id))
+                                } label: {
                                     RecentRecordRow(record: record)
                                 }
                                 .buttonStyle(.plain)
@@ -222,7 +245,7 @@ extension HomeView {
             )
             
             await MainActor.run {
-                router.push(.videoPlayer(draft))
+                router.navigateToVideoPlayer(draft: draft)
             }
             
         } catch {
@@ -230,7 +253,3 @@ extension HomeView {
         }
     }
 }
-
-//#Preview {
-//    HomeView(path: [], viewModel: .init())
-//}

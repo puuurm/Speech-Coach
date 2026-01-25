@@ -65,12 +65,12 @@ enum DrillCatalog {
         ),
         .replaceFillerWithSilence: CoachDrill(
             type: .replaceFillerWithSilence,
-            title: "필러 → 침묵 치환",
+            title: "군더더기 말 → 침묵 치환",
             durationSec: 180,
-            guide: "필러 대신 짧은 침묵을 사용하는 연습으로, 말의 안정감을 높입니다.",
+            guide: "군더더기 말 대신 짧은 침묵을 사용하는 연습으로, 말의 안정감을 높입니다.",
             steps: [
                 "금지어(어/음/그)를 정한다.",
-                "필러가 나오면 바로 멈추고 이전 문장을 다시 시작한다.",
+                "군더더기 말이 나오면 바로 멈추고 이전 문장을 다시 시작한다.",
                 "침묵이 들어간 문장을 다시 들어본다."
             ]
         ),

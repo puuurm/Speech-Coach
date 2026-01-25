@@ -23,7 +23,7 @@ struct ProgressSection: View {
                 Text("· 속도: \(previous.wordsPerMinute) → \(current.wordsPerMinute) WPM (\(diffString(wpmDiff)))")
                     .font(.subheadline)
                 
-                Text("· 필러: \(previous.fillerCount) → \(current.fillerCount)회 (\(improvementString(forDecreaseOf: fillerDiff)))")
+                Text("· 군더더기 말: \(previous.fillerCount) → \(current.fillerCount)회 (\(improvementString(forDecreaseOf: fillerDiff)))")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }

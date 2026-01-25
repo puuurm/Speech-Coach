@@ -358,7 +358,7 @@ private extension VideoPlayerScreen {
                     value: wpmText(record.summaryWPM)
                 )
                 metricBadge(
-                    title: "필러",
+                    title: "군더더기 말",
                     value: fillerCountText(record.summaryFillerCount)
                 )
             }

@@ -23,7 +23,7 @@ struct MetricsSection: View {
                 )
                 
                 metricCard(
-                    title: "필러 단어",
+                    title: "군더더기 말 (필러)",
                     value: "\(metrics.fillerCount)회",
                     detail: fillerComment
                 )
@@ -58,11 +58,11 @@ extension MetricsSection {
         case 0:
             return "속도 정보가 없어요."
         case ..<110:
-            return "조금 느린 편이에요. 말 사이 간격을 조금만 줄이면 전달력이 좋아질 것 같아요."
+            return "조금 느린 편이에요. \n말 사이 간격을 조금만 줄이면 전달력이 좋아질 것 같아요."
         case 110...160:
-            return "듣기 편한 속도에요. 이 속도를 기준으로 유지해보면 좋아요."
+            return "듣기 편한 속도에요. \n이 속도를 기준으로 유지해보면 좋아요."
         default:
-            return "조금 빠른 편이에요. 중요한 문장에서 한 박자 쉬어가는 연습을 해보면 좋아요."
+            return "조금 빠른 편이에요. \n중요한 문장에서 한 박자 쉬어가는 연습을 해보면 좋아요."
         }
     }
     
@@ -70,13 +70,13 @@ extension MetricsSection {
         let count = metrics.fillerCount
         switch count {
         case 0:
-            return "필러가 거의 없어서 아주 또렷하게 들려요."
+            return "군더더기 말이 거의 없어서 아주 또렷하게 들려요."
         case 1...3:
-            return "자연스러운 범위의 필어예요. 전달에 큰 방해는 되지 않아요."
+            return "자연스러운 범위의 군더더기 말이에요. \n전달에 큰 방해는 되지 않아요."
         case 4...8:
-            return "필러가 조금 느껴져요. 문장 사이에 짧은 호흡을 넣어보면 좋아요."
+            return "군더더기 말이 조금 느껴져요. \n문장 사이에 짧은 호흡을 넣어보면 좋아요."
         default:
-            return "필러가 자주 등장해요. '음' 대신 잠깐 멈추는 연습을 해보면 효과가 클 것 같아요."
+            return "군더더기 말이 자주 등장해요. \n'음' 대신 잠깐 멈추는 연습을 해보면 효과가 클 것 같아요."
         }
     }
 }

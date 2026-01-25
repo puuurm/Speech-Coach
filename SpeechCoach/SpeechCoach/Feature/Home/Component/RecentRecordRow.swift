@@ -38,12 +38,10 @@ struct RecentRecordRow: View {
                     }
                     
                     if let fillerCount = record.summaryFillerCount {
-                        metric(icon: "quote.bubble", text: "필러 \(fillerCount)")
+                        metric(icon: "quote.bubble", text: "\(fillerCount)")
                     } else {
-                        metric(icon: "quote.bubble", text: "필러 —")
+                        metric(icon: "quote.bubble", text: "—")
                     }
-//                    metric(icon: "speedometer", text: "\(record.wordsPerMinute) wpm")
-//                    metric(icon: "quote.bubble", text: "필러 \(record.fillerCount)")
                 }
                 .lineSpacing(2)
                 .padding(.top, 2)

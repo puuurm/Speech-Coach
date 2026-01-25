@@ -308,7 +308,7 @@ extension CoachAssistContent {
                 "핵심 메시지가 분산됨"
             ],
             checkpoints: [
-                "문장 시작이 필러로 열리지 않았는가?",
+                "문장 시작이 군더더기 말로 열리지 않았는가?",
                 "핵심 문장에 군더더기가 끼지 않았는가?"
             ],
             likelyCauses: [
@@ -319,7 +319,7 @@ extension CoachAssistContent {
                 "생각할 시간이 필요할 때 어떻게 했나요?",
                 "침묵을 의도적으로 써본 적이 있나요?"
             ],
-            coachingOneLiner: "필러 대신 0.3초 침묵으로 바꿔볼게요.",
+            coachingOneLiner: "군더더기 말 대신 0.3초 침묵으로 바꿔볼게요.",
             coachingScript30s: """
             ‘어, 음’ 같은 군더더기는 생각할 시간이 필요할 때 나오는 경우가 많아요.
             이걸 없애려고 애쓰기보다,

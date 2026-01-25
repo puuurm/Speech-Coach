@@ -37,11 +37,15 @@ struct CoachAssistantHighlightDetailView: View {
     
     @State private var selectedTab: Tab = .script
     @State private var memo: String = ""
-    @State private var toastText: String? = nil
+    @State private var copyText: String? = nil
     @State private var expandedDrillIDs: Set<DrillType> = []
     @State private var chipMinHeight: CGFloat = 0
-    @State private var showCopyAlert = false
+    @State private var showCopyToast = false
+    @State private var successToSave = false
+    @State private var failedToSave = false
     @State private var isSaving = false
+    @State private var didSave = false
+    @State private var toastText = "저장되었습니다"
 
     @FocusState private var isMemoFocused: Bool
     
@@ -96,7 +100,7 @@ struct CoachAssistantHighlightDetailView: View {
         .task(id: record.id) {
             memo = recordStore.coachingMemo(with: record.id)
         }
-        .toast(isPresenting: $showCopyAlert){
+        .toast(isPresenting: $showCopyToast){
             AlertToast(
                 type: .regular,
                 title: "복사했어요",
@@ -105,6 +109,27 @@ struct CoachAssistantHighlightDetailView: View {
                     titleColor: .white,
                     titleFont: .callout
                 )
+            )
+        }
+        .toast(isPresenting: $successToSave, offsetY: 15) {
+            AlertToast(
+                displayMode: .hud,
+                type: .regular,
+                title: "메모가 저장됐어요",
+                style: AlertToast.AlertStyle.style(
+                    backgroundColor: nil,
+                    titleColor: nil,
+                    subTitleColor: nil,
+                    titleFont: .callout,
+                    subTitleFont: nil
+                )
+            )
+        }
+        .toast(isPresenting: $failedToSave, offsetY: 15) {
+            AlertToast(
+                displayMode: .hud,
+                type: .error(.red),
+                title: "저장하지 못했어요"
             )
         }
     }
@@ -280,7 +305,10 @@ struct CoachAssistantHighlightDetailView: View {
                 Button {
                     saveMemo()
                 } label: {
-                    Label("메모 저장", systemImage: "tray.and.arrow.down")
+                    Label(
+                        didSave ? "저장됨" : (isSaving ? "저장중..." : "메모 저장") ,
+                        systemImage: didSave ? "checkmark" : "tray.and.arrow.down"
+                    )
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(isSaving)
@@ -297,14 +325,30 @@ struct CoachAssistantHighlightDetailView: View {
     }
     
     private func saveMemo() {
+        let trimmed = memo.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
         isSaving = true
-        defer { isSaving = false }
+        didSave = false
+
         do {
-            try recordStore.saveCoachingMemo(recordID: record.id, memo: memo)
+            try recordStore.saveCoachingMemo(recordID: record.id, memo: trimmed)
+
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+
+            successToSave = true
+            didSave = true
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                didSave = false
+            }
         } catch {
-            print("메모 저장 실패:", error)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            failedToSave = true
         }
+
+        isSaving = false
+
     }
 
     private func format(_ time: TimeInterval) -> String {
@@ -391,7 +435,7 @@ struct CoachAssistantHighlightDetailView: View {
                 if isExpanded {
                     Button {
                         let text = practiceCopyText(title: drill.title, steps: drill.steps)
-                        showCopyAlert = true
+                        showCopyToast = true
                         copyToPasteboard(text)
                     } label: {
                         Image(systemName: "doc.on.doc")
@@ -476,7 +520,7 @@ struct CoachAssistantHighlightDetailView: View {
                 
                 Button {
                     copyToPasteboard(text)
-                    showCopyAlert = true
+                    showCopyToast = true
                 } label: {
                     HStack {
                         Image(systemName: "doc.on.doc")
@@ -497,10 +541,10 @@ struct CoachAssistantHighlightDetailView: View {
         UIPasteboard.general.string = text
         #endif
         withAnimation(.spring()){
-            toastText = "복사했어요"
+            copyText = "복사했어요"
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            withAnimation(.easeInOut) { toastText = nil }
+            withAnimation(.easeInOut) { copyText = nil }
         }
     }
     

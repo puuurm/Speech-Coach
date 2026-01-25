@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24411" systemVersion="24G84" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+    <entity name="SpeechHighlightEntity" representedClassName="SpeechHighlightEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="category" attributeType="String"/>
+        <attribute name="detail" attributeType="String"/>
+        <attribute name="end" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="order" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="reason" attributeType="String"/>
+        <attribute name="severity" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="start" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="title" attributeType="String"/>
+        <relationship name="record" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="SpeechRecordEntity" inverseName="highlights" inverseEntity="SpeechRecordEntity"/>
+    </entity>
+    <entity name="SpeechMetricsEntity" representedClassName="SpeechMetricsEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="fillerCount" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="fillerWordsData" attributeType="Binary"/>
+        <attribute name="generatedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="paceVariability" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="spikeCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="wordsPerMinute" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="record" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="SpeechRecordEntity" inverseName="metrics" inverseEntity="SpeechRecordEntity"/>
+    </entity>
+    <entity name="SpeechRecordEntity" representedClassName="SpeechRecordEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="duration" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="metricsGeneratedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="studentName" optional="YES" attributeType="String"/>
+        <attribute name="summaryFillerCount" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="summaryWPM" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="title" attributeType="String"/>
+        <attribute name="transcript" optional="YES" attributeType="String"/>
+        <attribute name="videoRelativePath" attributeType="String"/>
+        <relationship name="highlights" toMany="YES" deletionRule="Cascade" destinationEntity="SpeechHighlightEntity" inverseName="record" inverseEntity="SpeechHighlightEntity"/>
+        <relationship name="insight" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="SpeechRecordInsightEntity"/>
+        <relationship name="metrics" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="SpeechMetricsEntity" inverseName="record" inverseEntity="SpeechMetricsEntity"/>
+        <relationship name="note" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="SpeechRecordNoteEntity" inverseName="record" inverseEntity="SpeechRecordNoteEntity"/>
+    </entity>
+    <entity name="SpeechRecordInsightEntity" representedClassName="SpeechRecordInsightEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="generatedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="oneLiner" attributeType="String"/>
+        <attribute name="problemSummary" attributeType="String"/>
+        <attribute name="qualitativeData" optional="YES" attributeType="Binary"/>
+        <attribute name="transcriptSegmentsData" optional="YES" attributeType="Binary"/>
+        <attribute name="updatedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="version" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="record" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="SpeechRecordEntity"/>
+    </entity>
+    <entity name="SpeechRecordNoteEntity" representedClassName="SpeechRecordNoteEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="checklist" optional="YES" attributeType="String"/>
+        <attribute name="coachingMemo" optional="YES" attributeType="String"/>
+        <attribute name="improvements" attributeType="String"/>
+        <attribute name="intro" attributeType="String"/>
+        <attribute name="nextStep" attributeType="String"/>
+        <attribute name="strengths" attributeType="String"/>
+        <attribute name="updatedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="record" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="SpeechRecordEntity" inverseName="note" inverseEntity="SpeechRecordEntity"/>
+    </entity>
+</model>

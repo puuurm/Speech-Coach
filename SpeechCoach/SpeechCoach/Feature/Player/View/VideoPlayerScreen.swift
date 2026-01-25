@@ -8,21 +8,51 @@
 import SwiftUI
 import AVKit
 import Speech
+import SwiftUITooltip
 
 struct VideoPlayerScreen: View {
-    let draft: SpeechDraft
+    let videoURL: URL
+    let title: String
+    let startTime: TimeInterval?
+    let autoplay: Bool
+    let mode: VideoPlayerScreenMode
+    var tooltipConfig = DefaultTooltipConfig()
     
-    @State private var player: AVPlayer?
+    init (
+        videoURL: URL,
+        title: String,
+        startTime: TimeInterval? = nil,
+        autoplay: Bool = false,
+        mode: VideoPlayerScreenMode = .normal
+    ) {
+        self.videoURL = videoURL
+        self.title = title
+        self.startTime = startTime
+        self.autoplay = autoplay
+        self.mode = mode
+        
+        self.tooltipConfig.enableAnimation = true
+        self.tooltipConfig.animationOffset = 10
+        self.tooltipConfig.animationTime = 1
+    }
+    
     @State private var duration: TimeInterval = 0
     @State private var isLoadingDuration = true
     
     @State private var phase: AnalysisPhase = .idle
     @State private var playbackEnded: Bool = false
     
-    @State private var isStartingAnalysis: Bool = false   // 중복 요청 방지용
-    @State private var analyzedRecord: SpeechRecord?      // 분석 결과
+    @State private var isStartingAnalysis: Bool = false
+    @State private var tapAnalysisButton: Bool = false
+
+    @State private var analyzedRecord: SpeechRecord?
+    @State private var analyzedMetrics: SpeechMetrics?
     @State private var showFeedbackSheet: Bool = false
-    @State private var seekObserver: NSObjectProtocol?
+    
+    @State private var appliedStartTime = false
+    @State private var tooltipVisible = false
+    @State private var pendingSeek: Double? = nil
+    @State private var failedToSave = false
     
     @EnvironmentObject var router: NavigationRouter
     @EnvironmentObject var recordStore: SpeechRecordStore
@@ -30,49 +60,73 @@ struct VideoPlayerScreen: View {
     private let speechService = RealSpeechService()
     private let analyzer = TranscriptAnalyzer()
     
-    @StateObject private var seekBridge = HighlightSeekBridge.shared
+    @EnvironmentObject private var pc: PlayerController
     
-    private var canProceed: Bool {
-        playbackEnded && analyzedRecord != nil
+    @AppStorage("hide_fullflow_banner")
+    private var hideFullFlowBanner: Bool = false
+    
+    @State private var analysisTask: Task<Void, Never>?
+    @State private var analysisRunID: UUID?
+    
+    var allowsAnalysisStart: Bool {
+        switch mode {
+        case .normal: return true
+        case .highlightReview: return false
+        }
     }
     
-    init(draft: SpeechDraft) {
-        self.draft = draft
-        _player = State(initialValue: AVPlayer(url: draft.videoURL))
+    var showsFeedbackCTA: Bool {
+        switch mode {
+        case .normal:
+            return true
+        case .highlightReview(let show):
+            return show
+        }
+    }
+    
+    private var canOpenFeedback: Bool {
+        analyzedRecord != nil
+    }
+    
+    private var shouldShowFullFlowBanner: Bool {
+        guard analyzedRecord != nil else { return false }
+        guard hideFullFlowBanner == false else { return false }
+        switch mode {
+        case .normal: return playbackEnded == false
+        case .highlightReview: return false
+        }
     }
     
     var body: some View {
         VStack {
-            VideoPlayer(player: player)
-                .aspectRatio(16/9, contentMode: .fit)
-                .cornerRadius(16)
+            ZStack(alignment: .bottom) {
+                VideoPlayer(player: pc.player)
+                    .aspectRatio(16/9, contentMode: .fit)
+                    .cornerRadius(16)
+            }
+            
             ScrollView {
                 VStack(spacing: 16) {
-                    if let player {
+                    if pc.isReadyToPlay {
                         infoSection
                         analysisStatusSection
-                        
-    //                    Spacer()
                     } else {
                         loadingVideoView
                     }
                 }
             }
         }
-
-
         .padding(.horizontal, 20)
-        .navigationTitle("영상 확인")
+        .navigationTitle(mode == .normal ? "영상 확인" : "하이라이트 확인")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             AudioSessionManager.configureForPlayback()
-            setupPlayerIfNeeded()
-            observePlaybackEnd()
-            
+            pc.load(url: videoURL)
+
             if duration == 0 {
                 isLoadingDuration = true
                 Task {
-                    let asset = AVAsset(url: draft.videoURL)
+                    let asset = AVAsset(url: videoURL)
                     let seconds = CMTimeGetSeconds(asset.duration)
                     let value = seconds.isFinite ? seconds : 0
                     await MainActor.run {
@@ -83,37 +137,58 @@ struct VideoPlayerScreen: View {
             } else {
                 isLoadingDuration = false
             }
-        }
-        .onAppear {
-            if player == nil {
-                player = AVPlayer(url: draft.videoURL)
-            }
             
-//            if seekObserver == nil, let player {
-//                seekObserver = player.observeHighlightSeek()
-//            }
+            if let startTime, !appliedStartTime {
+                appliedStartTime = true
+                pc.seek(to: startTime, autoplay: autoplay)
+            }
         }
-        .onReceive(seekBridge.$request) { req in
-            guard let req, let player else { return }
-            player.seek(to: CMTime(seconds: req.seconds, preferredTimescale: 600))
-            if req.autoplay { player.play() }
-            seekBridge.consume()
+        .onChange(of: pc.didReachEnd) { ended in
+            guard ended else { return }
+            playbackEnded = true
+            
+            if case .waitingForPlaybackEnd = phase {
+                phase = .ready
+            }
+        }
+        .onChange(of: pc.isPlaying) { playing in
+            if !tapAnalysisButton {
+                tooltipVisible = true
+            }
         }
         .onDisappear {
-            removePlaybackObserver()
-            if let seekObserver {
-                NotificationCenter.default.removeObserver(seekObserver)
-                self.seekObserver = nil
+            cancelAnalysis()
+        }
+        .sheet(isPresented: $showFeedbackSheet, onDismiss: {
+            if let second = pendingSeek {
+                pc.seek(to: second, autoplay: true)
+                pendingSeek = nil
+            }
+        }) {
+            if let record = analyzedRecord {
+                FeedbackResultSheet(
+                    recordID: record.id,
+                    shouldShowFullFlowBanner: shouldShowFullFlowBanner,
+                    onPlaybackStart: { start in
+                        pc.seek(to: start, autoplay: true)
+                        showFeedbackSheet = false
+                    },
+                    onRequestPlay: { sec in
+                        pendingSeek = sec
+                        showFeedbackSheet = false
+                    },
+                    onTapWatchVideo: {
+                        showFeedbackSheet = false
+                        pc.player.play()
+                    },
+                    onTapDontShowAgain: {
+                        hideFullFlowBanner = true
+                    },
+                    failedToSave: $failedToSave
+                )
+                .environmentObject(pc)
             }
         }
-        .sheet(isPresented: $showFeedbackSheet) {
-            if let record = analyzedRecord, let player {
-                NavigationStack {
-                    ResultScreen(record: record, player: player)
-                }
-            }
-        }
-        
     }
 }
 
@@ -132,14 +207,14 @@ private extension VideoPlayerScreen {
     
     var infoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(cleanTitle(from: draft.title))
+            Text(cleanTitle(from: title))
                 .font(.headline)
             
             HStack(spacing: 12) {
-                Label(durationString(draft.duration), systemImage: "clock")
+                Label(durationString(duration), systemImage: "clock")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                Text("카톡 → 사진 앱에 저장된 영상")
+                Text("사진 앱에 저장된 영상")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -148,7 +223,6 @@ private extension VideoPlayerScreen {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
-    /// 영상 아래에 나오는 분석 상태 / 결과 / 피드백 버튼
     var analysisStatusSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             switch phase {
@@ -180,28 +254,63 @@ private extension VideoPlayerScreen {
     }
     
     var idleStateView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("영상 재생부터 시작해볼까요?")
-                .font(.subheadline.weight(.medium))
-            Text("재생 버튼을 누르면, 영상과 동시에 아래에서 스크립트를 분석해둘게요.")
-                .font(.footnote)
-                .foregroundColor(.secondary)
-            
-            Button {
-                startPlaybackAndAnalysis()
-            } label: {
-                HStack {
-                    Image(systemName: "play.fill")
-                    Text("영상 재생 & 분석 시작")
+        Group {
+            switch mode {
+            case .normal:
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("영상 재생부터 시작해볼까요?")
+                        .font(.subheadline.weight(.medium))
+                    Text("재생 버튼을 누르면, 영상과 동시에 아래에서 스크립트를 분석해둘게요.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                    
+                    Button {
+                        tooltipVisible = false
+                        tapAnalysisButton = true
+                        startPlaybackAndAnalysis()
+                    } label: {
+                        HStack {
+                            Image(systemName: "play.fill")
+                            Text("영상 재생 & 분석 시작")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                    .padding(.top, 4)
+                    .tooltip(self.tooltipVisible, side: .bottom, config: tooltipConfig) {
+                        Text("이 영상으로 말하기 분석을 \n시작할 수 있어요")
+                            .padding(5)
+                    }
                 }
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color.accentColor)
-                .foregroundColor(.white)
-                .cornerRadius(12)
+            case .highlightReview:
+                VStack(alignment: .leading, spacing: 8) {
+                     Text("하이라이트 구간을 확인해보세요.")
+                         .font(.subheadline.weight(.medium))
+                     Text("이 화면에서는 분석을 다시 돌리지 않고, 재생/구간 이동만 제공합니다.")
+                         .font(.footnote)
+                         .foregroundColor(.secondary)
+
+                     Button {
+                         pc.player.play()
+                     } label: {
+                         HStack {
+                             Image(systemName: "play.fill")
+                             Text("재생")
+                         }
+                         .font(.headline)
+                         .frame(maxWidth: .infinity)
+                         .padding(.vertical, 12)
+                         .background(Color.accentColor)
+                         .foregroundColor(.white)
+                         .cornerRadius(12)
+                     }
+                     .padding(.top, 4)
+                }
             }
-            .padding(.top, 4)
         }
     }
     
@@ -222,8 +331,14 @@ private extension VideoPlayerScreen {
         VStack(alignment: .leading, spacing: 8) {
             Text("분석이 완료되었어요.")
                 .font(.subheadline.weight(.medium))
-            Text("영상이 끝나면 바로 아래에서 결과를 보여드릴게요.")
-                .font(.footnote)
+        
+            Button("결과 보기") {
+                phase = .ready
+            }
+            .buttonStyle(PrimaryFullWidthButtonStyle(cornerRadius: 12))
+            
+            Text("영상이 끝나면 자동으로 결과 화면이 열려요.")
+                .font(.caption)
                 .foregroundColor(.secondary)
         }
     }
@@ -240,30 +355,29 @@ private extension VideoPlayerScreen {
                 )
                 metricBadge(
                     title: "속도",
-                    value: "\(record.wordsPerMinute) wpm"
+                    value: wpmText(record.summaryWPM)
                 )
                 metricBadge(
-                    title: "필러",
-                    value: "\(record.fillerCount)회"
+                    title: "군더더기 말",
+                    value: fillerCountText(record.summaryFillerCount)
                 )
             }
             
-            let speechType = SpeechTypeSummarizer.summarize(
-                duration: record.duration,
-                wordsPerMinute: record.wordsPerMinute,
-                segments: record.transcriptSegments ?? []   // nil이면 빈 배열 -> 하이라이트 없음
-            )
-
-            if speechType.highlights.isEmpty == false, let player {
+            if record.highlights.isEmpty == false {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("체크할 구간")
                         .font(.subheadline.weight(.semibold))
-
-                    ForEach(speechType.highlights.prefix(3)) { h in
-                        SpeechHighlightRow(item: h, duration: record.duration) {
-                            player.seek(to: CMTime(seconds: h.start, preferredTimescale: 600))
-                            player.play()
-                        }
+                    
+                    ForEach(record.highlights.prefix(3)) { h in
+                        SpeechHighlightRow(
+                            item: h,
+                            duration: record.duration,
+                            context: .videoReview,
+                            playbackPolicy: .playable { start in
+                                pc.fallbackDuration = record.duration
+                                pc.seek(to: start, autoplay: true)
+                            }
+                        )
                     }
                 }
                 .padding(12)
@@ -278,6 +392,7 @@ private extension VideoPlayerScreen {
                     .font(.footnote)
                     .foregroundColor(.secondary)
                     .lineLimit(nil)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(12)
@@ -285,6 +400,7 @@ private extension VideoPlayerScreen {
             .cornerRadius(10)
             
             Button {
+                pc.player.pause()
                 showFeedbackSheet = true
             } label: {
                 Text("피드백 작성하기")
@@ -295,10 +411,11 @@ private extension VideoPlayerScreen {
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
-            .disabled(!canProceed)
+            .disabled(!canOpenFeedback)
             .padding(.top, 4)
         }
     }
+
     
     func failedView(message: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -343,54 +460,80 @@ private extension VideoPlayerScreen {
 
 private extension VideoPlayerScreen {
     
-    func setupPlayerIfNeeded() {
-        if player == nil {
-            player = AVPlayer(url: draft.videoURL)
-        }
-    }
-    
     func startPlaybackAndAnalysis() {
-        guard let player else { return }
-        
-        // 재생 시작
-        player.play()
-        playbackEnded = false
-        
-        // 분석 중복 시작 방지
-        guard isStartingAnalysis == false,
-              analyzedRecord == nil else {
-            phase = .analyzing
-            return
+    
+        if isEffectivelyEnded(pc.player) {
+            playbackEnded = true
         }
+        
+        if !playbackEnded {
+            pc.player.play()
+        }
+        
+        guard !isStartingAnalysis else { return }
+        guard analyzedRecord == nil else { return }
+        
+        self.analysisTask?.cancel()
+        self.analysisTask = nil
         
         phase = .analyzing
         isStartingAnalysis = true
         
-        Task {
+        let runID = UUID()
+        analysisRunID = runID
+        
+        analysisTask = Task {
             do {
-                let record = try await runAnalysis()
+                try Task.checkCancellation()
+                
+                let (record, metrics) = try await runAnalysis()
+                
+                try Task.checkCancellation()
+                
+                recordStore.upsertBundle(record: record, metrics: metrics)
+                
+                try Task.checkCancellation()
                 
                 await MainActor.run {
-                    // Store에 저장
-                    recordStore.add(record)
-//                    router.push(.result(record))
+                    guard self.analysisRunID == runID else { return }
                     
                     analyzedRecord = record
+                    analyzedMetrics = metrics
                     
-                    if playbackEnded {
-                        phase = .ready
-                    } else {
-                        phase = .waitingForPlaybackEnd
+                    if isEffectivelyEnded(pc.player) {
+                        playbackEnded = true
                     }
+                    
+                    phase = playbackEnded ? .ready : .waitingForPlaybackEnd
                     isStartingAnalysis = false
+                    analysisTask = nil
+                }
+            } catch is CancellationError {
+                await MainActor.run {
+                    guard self.analysisRunID == runID else { return }
+                    isStartingAnalysis = false
+                    analysisTask = nil
                 }
             } catch {
                 await MainActor.run {
+                    guard analysisRunID == runID else { return }
                     phase = .failed(error.localizedDescription)
                     isStartingAnalysis = false
+                    analysisTask = nil
                 }
             }
         }
+    }
+    
+    private func isEffectivelyEnded(
+        _ player: AVPlayer,
+        epsilon: Double = 0.3
+    ) -> Bool {
+        guard let item = player.currentItem,
+              item.duration.isNumeric else {
+            return false
+        }
+        return player.currentTime().seconds >= max(0, item.duration.seconds - epsilon)
     }
     
     func retryAnalysis() {
@@ -398,94 +541,87 @@ private extension VideoPlayerScreen {
         startPlaybackAndAnalysis()
     }
     
-    func runAnalysis() async throws -> SpeechRecord {
-        // 1) 전사
-        let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko_RK"))!
-        let audioURL = try await speechService.exportAudio(from: draft.videoURL)
-        let rawTranscript = try await speechService.transcribe(videoURL: draft.videoURL)
+    func runAnalysis() async throws -> (SpeechRecord, SpeechMetrics) {
+        let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko-KR"))!
+        let audioURL = try await speechService.exportAudio(from: videoURL)
+        let rawTranscript = try await speechService.transcribe(videoURL: videoURL)
         let transcriptResult = try await speechService.recognizeDetailed(url: audioURL, with: recognizer)
         
-        // 2) 클린업
         let cleaned = transcriptResult.cleanedText
-        
         let segments = transcriptResult.segments
         
-        // 3) duration 확보 (draft.duration이 0이면 AVAsset으로 보정)
         let duration: TimeInterval = {
-            if draft.duration > 0 {
-                return draft.duration
+            if self.duration > 0 {
+                return self.duration
             } else {
-                let asset = AVAsset(url: draft.videoURL)
+                let asset = AVAsset(url: videoURL)
                 let seconds = CMTimeGetSeconds(asset.duration)
                 return seconds.isFinite ? seconds : 0
             }
         }()
         
-        // 4) 분석 지표
         let wpm = analyzer.wordsPerMinute(transcript: cleaned, duration: duration)
         let fillerDict = analyzer.fillerWordsDict(from: cleaned)
         let fillerTotal = fillerDict.values.reduce(0, +)
         
-        // 5) 제목 생성 (있다면)
         let title = SpeechTitleBuilder.makeTitle(
             transcript: cleaned,
             createdAt: Date()
         )
+        let recordID = UUID()
+        let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
+        let now = Date()
         
-        // 6) SpeechRecord 생성
-        let record = SpeechRecord(
-            id: draft.id,
-            createdAt: Date(),
+        var record = SpeechRecord(
+            id: recordID,
+            createdAt: now,
             title: title,
             duration: duration,
+            summaryWPM: wpm,
+            summaryFillerCount: fillerTotal,
+            metricsGeneratedAt: now,
+            transcript: cleaned,
+            studentName: nil,
+            videoRelativePath: relative,
+            note: nil,
+            insight: .init(
+                oneLiner: "",
+                problemSummary: "",
+                qualitative: nil,
+                transcriptSegments: segments,
+                updatedAt: now
+            ),
+            highlights: []
+        )
+
+        let highlights = SpeechHighlightBuilder
+            .makeHighlights(
+                duration: duration,
+                segments: record.insight?.transcriptSegments ?? []
+            )
+        record.highlights = highlights
+        record.metricsGeneratedAt = now
+        
+        let metrics = SpeechMetrics(
+            recordID: recordID,
+            generatedAt: now,
             wordsPerMinute: wpm,
             fillerCount: fillerTotal,
-            transcript: cleaned,
-            videoURL: draft.videoURL,
             fillerWords: fillerDict,
-            studentName: "희정님",
-            noteIntro: "",
-            noteStrengths: "",
-            noteImprovements: "",
-            noteNextStep: "",
-            transcriptSegments: segments
+            paceVariability: nil,
+            spikeCount: nil
         )
-        
-        return record
-    }
-    
-    func observePlaybackEnd() {
-        guard let playerItem = player?.currentItem else { return }
-        
-        NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: playerItem,
-            queue: .main
-        ) { _ in
-            playbackEnded = true
-            if case .waitingForPlaybackEnd = phase {
-                phase = .ready
-            }
-        }
-    }
-    
-    func removePlaybackObserver() {
-        NotificationCenter.default.removeObserver(
-            self,
-            name: .AVPlayerItemDidPlayToEndTime,
-            object: nil
-        )
-    }
-}
-    
 
-#Preview {
-    VideoPlayerScreen(
-        draft: .init(
-            id: UUID(),
-            title: "예시 발표 영상",
-            duration: 120,
-            videoURL: URL(fileURLWithPath: "/dev/null")
-        )
-    )
+        return (record, metrics)
+    }
+    
+    func cancelAnalysis() {
+        analysisTask?.cancel()
+        analysisTask = nil
+        
+        isStartingAnalysis = false
+        
+        speechService.cancelRecognitionIfSupported()
+    }
 }
+    

@@ -141,12 +141,12 @@ struct CoachAssistantHighlightDetailView: View {
             Text(highlight.coachDetail(record: record))
             Spacer()
             
-            Button {
-                onRequestPlay(highlight.start)
-            } label: {
-                Label("이 구간 재생", systemImage: "play.fill")
-            }
-            .buttonStyle(.borderedProminent)
+//            Button {
+//                onRequestPlay(highlight.start)
+//            } label: {
+//                Label("이 구간 재생", systemImage: "play.fill")
+//            }
+//            .buttonStyle(.borderedProminent)
             
         }
     }
@@ -315,7 +315,10 @@ struct CoachAssistantHighlightDetailView: View {
 
                 Spacer()
 
-                Button { } label: {
+                Button {
+                    UIPasteboard.general.string = memo
+                    showCopyToast = true
+                } label: {
                     Label("메모 복사", systemImage: "doc.on.doc")
                 }
                 .buttonStyle(.bordered)

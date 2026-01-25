@@ -168,12 +168,7 @@ struct ResultScreen: View {
                     highlight: highlight,
                     record: record,
                     drillCatalog: DrillCatalog.all,
-                    onRequestPlay: { sec in
-                        selectedHighlight = nil
-                        DispatchQueue.main.async {
-                            onRequestPlay(sec)
-                        }
-                    }
+                    onRequestPlay: { _ in }
                 )
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)

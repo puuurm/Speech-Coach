@@ -93,7 +93,15 @@ struct CoachAssistantHighlightDetailView: View {
         .navigationTitle("강사 보조")
         .navigationBarTitleDisplayMode(.inline)
         .toast(isPresenting: $showCopyAlert){
-            AlertToast(type: .regular, title: "복사했어요", style: AlertToast.AlertStyle.style(backgroundColor: .black, titleColor: .white, subTitleColor: nil, titleFont: .footnote, subTitleFont: nil))
+            AlertToast(
+                type: .regular,
+                title: "복사했어요",
+                style: AlertToast.AlertStyle.style(
+                    backgroundColor: .black,
+                    titleColor: .white,
+                    titleFont: .callout
+                )
+            )
         }
     }
     

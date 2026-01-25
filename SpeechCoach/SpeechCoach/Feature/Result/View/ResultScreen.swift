@@ -23,6 +23,7 @@ struct ResultScreen: View {
     let highlightContext: HighlightListContext
     let onRequestPlay: (TimeInterval) -> Void
     let scriptMatches: [ScriptMatchSegment] = []
+    @Binding var failedToSave: Bool
     
     @StateObject private var recordVM: ResultRecordViewModel
     @StateObject private var metricsVM: ResultMetricsViewModel
@@ -44,6 +45,7 @@ struct ResultScreen: View {
     @State private var practiceChecklistText: String = ""
     
     @State private var showCopyAlert = false
+    @State private var isSaving = false
     @State private var previousRecord: SpeechRecord?
 
     @State private var qualitative: QualitativeMetrics = .neutral
@@ -52,13 +54,13 @@ struct ResultScreen: View {
     @State private var suggestions: [TemplateSuggestion] = []
     
     @State private var selectedTab: ResultTab = .feedback
-    @State private var showAdvanced: Bool = false
-    @State private var showQualitative: Bool = false
+    @State private var showAdvanced = false
+    @State private var showQualitative = false
     
-    @State private var isCoachAssistantPresented: Bool = false
+    @State private var isCoachAssistantPresented = false
 
     @State private var selectedHighlight: SpeechHighlight?
-    @State private var showPlayer: Bool = false
+    @State private var showPlayer = false
     @State private var pendingSeek: TimeInterval = 0
     
     @State private var speechType: SpeechTypeSummary? = nil
@@ -84,12 +86,14 @@ struct ResultScreen: View {
         recordID: UUID,
         highlightContext: HighlightListContext,
         playbackPolicy: HighlightPlaybackPolicy,
-        onRequestPlay: @escaping (TimeInterval) -> Void
+        onRequestPlay: @escaping (TimeInterval) -> Void,
+        failedToSave: Binding<Bool>
     ) {
         self.recordID = recordID
         self.onRequestPlay = onRequestPlay
         self.playbackPolicy = playbackPolicy
         self.highlightContext = highlightContext
+        self._failedToSave = failedToSave
         
         _recordVM = StateObject(wrappedValue: ResultRecordViewModel(recordID: recordID))
         _metricsVM = StateObject(wrappedValue: ResultMetricsViewModel(recordID: recordID))
@@ -105,9 +109,19 @@ struct ResultScreen: View {
                     ProgressView("불러오는 중...")
                 }
             }
+            .navigationTitle("분석 결과")
+            .navigationBarTitleDisplayMode(.inline)
         }
         .toast(isPresenting: $showCopyAlert){
-            AlertToast(type: .regular, title: "복사했어요", style: AlertToast.AlertStyle.style(backgroundColor: .black, titleColor: .white, subTitleColor: nil, titleFont: .footnote, subTitleFont: nil))
+            AlertToast(
+                type: .regular,
+                title: "복사했어요",
+                style: AlertToast.AlertStyle.style(
+                    backgroundColor: .black,
+                    titleColor: .white,
+                    titleFont: .callout
+                )
+            )
         }
         .task {
             await recordVM.load(using: recordStore)
@@ -185,8 +199,6 @@ struct ResultScreen: View {
                 }
             }
         }
-        .navigationTitle("분석 결과")
-        .navigationBarTitleDisplayMode(.inline)
     }
     
     @ViewBuilder
@@ -337,7 +349,7 @@ struct ResultScreen: View {
         )
     }
     
-    private func saveNotes(record: SpeechRecord) {
+    private func saveNotes(record: SpeechRecord) async throws {
         recordStore.updateNotes(
             for: record.id,
             intro: introText.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -359,6 +371,8 @@ struct ResultScreen: View {
                 edited: editedTranscript
             )
         }
+        
+        try await recordStore.persist()
     }
     
     private func appendTemplate(_ text: inout String, template: String) {
@@ -803,19 +817,35 @@ extension ResultScreen {
             .buttonStyle(.plain)
             
             Button {
-                saveNotes(record: record)
-                dismiss()
-                router.popToRoot()
+                guard !isSaving else { return }
+                isSaving = true
+
+                Task { @MainActor in
+                    do {
+                        try await saveNotes(record: record)
+                        Haptics.success()
+                        try? await Task.sleep(nanoseconds: 150_000_000)
+                        dismiss()
+                        router.popToRoot()
+                        isSaving = false
+                    } catch {
+                        Haptics.error()
+                        failedToSave = true
+                        isSaving = false
+                    }
+                }
             } label: {
-                Label("저장", systemImage: "checkmark")
+                Label(isSaving ? "저장 중..." : "저장", systemImage: "checkmark")
                     .font(.subheadline.weight(.semibold))
                     .frame(width: 92)
                     .padding(.vertical, 12)
                     .background(Color(.systemGray6))
                     .foregroundColor(.primary)
                     .cornerRadius(12)
+                    .opacity(isSaving ? 0.7 : 1.0)
             }
             .buttonStyle(.plain)
+            .disabled(isSaving)
         }
     }
 

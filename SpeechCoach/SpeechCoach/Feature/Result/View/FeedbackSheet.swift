@@ -10,7 +10,6 @@ import SwiftUI
 struct FeedbackSheet: View {
     let record: SpeechRecord
 
-    // 초기 값은 기존에 저장된 메모 있으면 그걸로, 없으면 빈 문자열
     @State private var introText: String
     @State private var strengthsText: String
     @State private var improvementsText: String

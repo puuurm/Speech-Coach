@@ -11,12 +11,15 @@ import AVFoundation
 import CoreData
 
 struct HomeView: View {
+    @Environment(\.managedObjectContext) private var context
+
     @ObservedObject var viewModel: HomeViewModel
     @EnvironmentObject var recordStore: SpeechRecordStore
     @EnvironmentObject var homeworkStore: HomeworkStore
     @EnvironmentObject var router: NavigationRouter
-    @Environment(\.managedObjectContext) private var context
-    let padding: CGFloat = 20
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var navigateToPlayer = false
+    @State private var isImporting: Bool = false
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)],
@@ -24,16 +27,25 @@ struct HomeView: View {
     )
     
     private var recordEntities: FetchedResults<SpeechRecordEntity>
-    let drillCatalog: [DrillType: CoachDrill]
-    
-    @State private var selectedItem: PhotosPickerItem?
-    @State private var navigateToPlayer = false
-    @State private var isImporting: Bool = false
+    private let padding: CGFloat = 20
+    private let homeRecentLimit = 4
     
     private var todayHomeworks: [DailyHomework] {
         let today = Calendar.current.startOfDay(for: Date())
         return homeworkStore.homeworks
             .filter {  $0.date == today }
+    }
+    
+    private var allRecords: [SpeechRecord] {
+        recordEntities.compactMap(SpeechRecordMapper.toDomain)
+    }
+
+    private var homeRecentRecords: [SpeechRecord] {
+        Array(allRecords.prefix(homeRecentLimit))
+    }
+
+    private var totalRecordCount: Int {
+        recordEntities.count
     }
     
     var body: some View {
@@ -81,11 +93,29 @@ struct HomeView: View {
                 .padding(padding)
                 .cardStyle()
                 
-                header("최근 분석")
+                sectionHeader("최근 분석", trailing: {
+                    AnyView(
+                        Button {
+                            router.push(.allRecords)
+                        } label: {
+                            Text("전체 보기")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .opacity(allRecords.count > 4 ? 1 : 0)  // 4개 이하일 땐 숨김
+                        .allowsHitTesting(allRecords.count > 4)
+                    )
+                })
+                
+                let preview = Array(allRecords.prefix(4))
+                
                 RecentAnalysisSection(
-                    records: records,
+                    records: preview,
+                    totalCount: allRecords.count,
                     onSelect: { router.push(.result(recordID: $0.id)) },
-                    onDelete: { recordStore.delete($0) }
+                    onDelete: { recordStore.delete($0) },
+                    onTapAll: { router.push(.allRecords) }
                 )
             }
         }
@@ -98,6 +128,23 @@ private extension HomeView {
         Text(title)
             .font(title == "스피치 분석" ? .title2.weight(.bold) : .title3.weight(.bold))
             .padding(.top, padding)
+    }
+    
+    private func sectionHeader(
+        _ title: String,
+        trailing: (() -> AnyView)? = nil
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.title3.weight(.bold))
+
+            Spacer()
+
+            if let trailing {
+                trailing()
+            }
+        }
+        .padding(.top, padding)
     }
     
     var emptyRecentRow: some View {
@@ -150,45 +197,6 @@ private extension HomeView {
     var records: [SpeechRecord] {
         recordEntities.compactMap { entity in
             SpeechRecordMapper.toDomain(entity)
-        }
-    }
-    
-    func dayKey(from date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.timeZone = .current
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
-    }
-    
-    private func date(fromDayKey key: String) -> Date? {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.timeZone = .current
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.date(from: key)
-    }
-    
-    func sectionHeaderTitle(for date: Date) -> String {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
-        let target = cal.startOfDay(for: date)
-        
-        let comp = cal.dateComponents([.day], from: target, to: today)
-        let diff = comp.day ?? 0
-        
-        switch diff {
-        case 0:
-            return "오늘"
-        case 1:
-            return "어제"
-        default:
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "ko_KR")
-            formatter.dateFormat = "M월 d일 (E)"
-            return formatter.string(from: date)
         }
     }
     

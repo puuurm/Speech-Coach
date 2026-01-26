@@ -18,7 +18,7 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack(path: $router.path) {
-            HomeView(viewModel: homeViewModel, drillCatalog: DrillCatalog.all)
+            HomeView(viewModel: homeViewModel)
                 .navigationDestination(for: AppRoute.self) { route in
                     switch route {
                     case .videoPlayer(let payload):
@@ -40,6 +40,9 @@ struct ContentView: View {
                             failedToSave: $failedToSave
                         )
                         .environmentObject(pc)
+                    case .allRecords:
+                        AllRecordsView()
+                        
                     }
                 }
         }

@@ -19,7 +19,6 @@ final class PlayerController: ObservableObject {
     
     private var endObserver: NSObjectProtocol?
     private var statusObserver: NSKeyValueObservation?
-    
     private var timeControlObserver: NSKeyValueObservation?
 
     func bindPlaybackEnd() {
@@ -84,6 +83,36 @@ final class PlayerController: ObservableObject {
             if autoplay { self.player.play() }
         }
         print("▶️ seek to:", safe, "cur:", self.player.currentTime().seconds)
+    }
+    
+    func stopAndTearDown(deactivateAudioSession: Bool = false) {
+        player.pause()
+        player.replaceCurrentItem(with: nil)
+        
+        if let endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
+            self.endObserver = nil
+        }
+        statusObserver?.invalidate()
+        statusObserver = nil
+        
+        timeControlObserver?.invalidate()
+        timeControlObserver = nil
+        
+        DispatchQueue.main.async {
+            self.isReadyToPlay = false
+            self.didReachEnd = false
+            self.isPlaying = false
+        }
+        
+        if deactivateAudioSession {
+            let session = AVAudioSession.sharedInstance()
+            do {
+                try session.setActive(false, options: [.notifyOthersOnDeactivation])
+            } catch {
+                print("AudioSession deactivate failed:", error)
+            }
+        }
     }
     
     deinit {

@@ -158,6 +158,7 @@ struct VideoPlayerScreen: View {
         }
         .onDisappear {
             cancelAnalysis()
+            pc.stopAndTearDown()
         }
         .sheet(isPresented: $showFeedbackSheet, onDismiss: {
             if let second = pendingSeek {

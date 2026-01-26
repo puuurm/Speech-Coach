@@ -9,44 +9,38 @@ import SwiftUI
 
 struct RecentAnalysisSection: View {
     let records: [SpeechRecord]
+    let totalCount: Int
     let onSelect: (SpeechRecord) -> Void
     let onDelete: (SpeechRecord) -> Void
-
-    private let grouper = RecentRecordsGrouper()
+    let onTapAll: () -> Void
+    
+//    private let grouper = RecentRecordsGrouper()
 
     var body: some View {
         if records.isEmpty {
             emptyRecentRow
                 .cardStyle()
         } else {
-            let sections = grouper.makeSections(from: records)
-
             VStack(alignment: .leading, spacing: 12) {
-                ForEach(sections) { section in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(section.title)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-
-                        VStack(spacing: 0) {
-                            ForEach(section.records) { record in
-                                Button {
-                                    onSelect(record)
-                                } label: {
-                                    RecentRecordRow(record: record)
-                                }
-                                .buttonStyle(.plain)
-                                .swipeActions {
-                                    Button(role: .destructive) {
-                                        onDelete(record)
-                                    } label: {
-                                        Label("삭제", systemImage: "trash")
-                                    }
-                                }
+                VStack(spacing: 0) {
+                    ForEach(records) { record in
+                        Button {
+                            onSelect(record)
+                        } label: {
+                            RecentRecordRow(record: record)
+                                .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.plain)
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                onDelete(record)
+                            } label: {
+                                Label("삭제", systemImage: "trash")
                             }
                         }
                     }
                 }
+
             }
         }
     }

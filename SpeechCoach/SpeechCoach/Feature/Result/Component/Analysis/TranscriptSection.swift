@@ -11,6 +11,20 @@ struct TranscriptSection: View {
     let record: SpeechRecord
     
     @State private var showAllTranscript: Bool = false
+    
+    private var shouldHideTranscript: Bool {
+        TranscriptQuality.shouldHide(
+            transcript: record.transcript,
+            segments: record.insight?.transcriptSegments
+        )
+    }
+    
+    private var transcriptText: String {
+        if shouldHideTranscript {
+            return TranscriptQuality.hideMessage
+        }
+        return record.transcript.isEmpty ? "인식된 텍스트가 없어요." : record.transcript
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -18,23 +32,28 @@ struct TranscriptSection: View {
                 Text("전체 스크립트")
                     .font(.headline)
                 Spacer()
-                Button(showAllTranscript ? "접기" : "펼치기") {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        showAllTranscript.toggle()
+                
+                if !shouldHideTranscript {
+                    Button(showAllTranscript ? "접기" : "펼치기") {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            showAllTranscript.toggle()
+                        }
                     }
+                    .font(.caption.weight(.semibold))
                 }
-                .font(.caption.weight(.semibold))
             }
             
-            Text("자동 인식 초안이에요. 중요한 문장은 영상과 함께 확인해 주세요.")
-                .font(.caption2)
-                .foregroundColor(.secondary)
+            Text(shouldHideTranscript
+                       ? "텍스트 변환 정확도가 낮아 스크립트를 표시하지 않았어요."
+                       : "자동 인식 초안이에요. 중요한 문장은 영상과 함께 확인해 주세요.")
+                      .font(.caption2)
+                      .foregroundColor(.secondary)
             
             let text = record.transcript.isEmpty ? "인식된 텍스트가 없어요." : record.transcript
             
-            if showAllTranscript {
+            if showAllTranscript && !shouldHideTranscript {
                 ScrollView {
-                    Text(text)
+                    Text(transcriptText)
                         .font(.body)
                         .foregroundColor(.primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -43,10 +62,10 @@ struct TranscriptSection: View {
                 .frame(minHeight: 180)
                 .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
             } else {
-                Text(text)
+                Text(transcriptText)
                     .font(.body)
                     .foregroundColor(.primary)
-                    .lineLimit(5)
+                    .lineLimit(shouldHideTranscript ? nil : 5)
                     .truncationMode(.tail)
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)

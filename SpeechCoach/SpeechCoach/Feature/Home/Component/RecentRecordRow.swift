@@ -9,10 +9,16 @@ import SwiftUI
 
 struct RecentRecordRow: View {
     let record: SpeechRecord
+    
+    private var isTranscriptUnreliable: Bool {
+        TranscriptQuality.shouldHide(
+            transcript: record.transcript,
+            segments: record.insight?.transcriptSegments
+        )
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(.systemGray5))
                 .frame(width: 51, height: 51)
@@ -28,6 +34,15 @@ struct RecentRecordRow: View {
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
+                if isTranscriptUnreliable {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle")
+                        Text("텍스트 인식이 불안정했어요")
+                    }
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                }
+                
                 HStack(spacing: 10) {
 
                     metric(icon: "clock", text: durationString(record.duration))

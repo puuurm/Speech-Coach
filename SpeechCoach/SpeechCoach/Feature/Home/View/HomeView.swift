@@ -16,7 +16,8 @@ struct HomeView: View {
     @EnvironmentObject var homeworkStore: HomeworkStore
     @EnvironmentObject var router: NavigationRouter
     @Environment(\.managedObjectContext) private var context
-    
+    let padding: CGFloat = 20
+
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)],
         animation: .default
@@ -58,49 +59,75 @@ struct HomeView: View {
                     }
                 }
             }
-            .navigationTitle("스피치 분석")
-            .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 print("🏠 Home sees records:", recordStore.records.count)
             }
 
     }
     
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("스피치 영상 도우미")
-                .font(.title2.weight(.semibold))
-            Text("학생 발표 영상을 불러와 텍스트와 지표로 빠르게 분석해요.")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.top, 16)
-        .padding(.bottom, 8)
-    }
-    
     private var content: some View {
-        List {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                header("스피치 분석")
+                
                 PhotosPicker(
                     selection: $selectedItem,
                     matching: .videos,
-                    photoLibrary: .shared()) {
-                        primaryActionCard
-                    }
-                    .buttonStyle(.plain)
+                    photoLibrary: .shared()
+                ) {
+                    primaryActionCard
+                }
+                .buttonStyle(.plain)
+                .padding(padding)
+                .cardStyle()
+                
+                header("최근 분석")
+                RecentAnalysisSection(
+                    records: records,
+                    onSelect: { router.push(.result(recordID: $0.id)) },
+                    onDelete: { recordStore.delete($0) }
+                )
             }
-            
-            recentSection
         }
-        .listStyle(.insetGrouped)
-        .listRowSeparator(.hidden)
-        .navigationTitle("스피치 분석")
-        .navigationBarTitleDisplayMode(.inline)
+        .padding(padding)
+    }
+}
+
+private extension HomeView {
+    func header(_ title: String) -> some View {
+        Text(title)
+            .font(title == "스피치 분석" ? .title2.weight(.bold) : .title3.weight(.bold))
+            .padding(.top, padding)
     }
     
-    private var primaryActionCard: some View {
+    var emptyRecentRow: some View {
+        emptyRecentAnalysisView
+            .padding(.vertical, 28)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 220)
+            .listRowInsets(EdgeInsets(top: 16, leading: 20, bottom: 24, trailing: 20))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
+
+    var emptyRecentAnalysisView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "video.slash")
+                .font(.system(size: 32))
+                .foregroundStyle(.secondary)
+
+            Text("아직 분석한 영상이 없어요")
+                .font(.subheadline.weight(.semibold))
+
+            Text("영상 불러오기로\n첫 스피치 분석을 시작해보세요")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+    
+    var primaryActionCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("새 영상 분석하기")
                 .font(.headline)
@@ -120,73 +147,13 @@ struct HomeView: View {
         .padding(16)
     }
     
-    private var records: [SpeechRecord] {
+    var records: [SpeechRecord] {
         recordEntities.compactMap { entity in
             SpeechRecordMapper.toDomain(entity)
         }
     }
     
-    private var recentSection: some View {
-        Group {
-            if records.isEmpty {
-                Section {
-                    Text("아직 분석한 영상이 없어요.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                } header: {
-                    Text("최근 분석")
-                        .font(.headline)
-                }
-            } else {
-                let groupted = Dictionary(grouping: records) { record in
-                    dayKey(from: record.createdAt)
-                }
-                
-                let sortedKeys = groupted.keys
-                    .compactMap { date(fromDayKey: $0) }
-                    .sorted(by: { $0 > $1 })
-                
-                Section {
-                    EmptyView()
-                } header: {
-                    Text("최근 분석")
-                        .font(.headline)
-                }
-                
-                ForEach(sortedKeys, id: \.self) { date in
-                    if let recordsForDay = groupted[dayKey(from: date)] {
-                        let sortedRecords = recordsForDay.sorted(by: { $0.createdAt > $1.createdAt })
-                        
-                        Section {
-                            ForEach(sortedRecords) { record in
-                                Button {
-                                    router.push(.result(recordID: record.id))
-                                } label: {
-                                    RecentRecordRow(record: record)
-                                }
-                                .buttonStyle(.plain)
-                                .listRowSeparator(.hidden)
-                                .swipeActions {
-                                    Button(role: .destructive) {
-                                        recordStore.delete(record)
-                                    } label: {
-                                        Label("삭제", systemImage: "trash")
-                                    }
-                                }
-                            }
-                        } header: {
-                            Text(sectionHeaderTitle(for: date))
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-            }
-        }
-
-    }
-    
-    private func dayKey(from date: Date) -> String {
+    func dayKey(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "ko_KR")
@@ -204,7 +171,7 @@ struct HomeView: View {
         return formatter.date(from: key)
     }
     
-    private func sectionHeaderTitle(for date: Date) -> String {
+    func sectionHeaderTitle(for date: Date) -> String {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         let target = cal.startOfDay(for: date)
@@ -224,10 +191,8 @@ struct HomeView: View {
             return formatter.string(from: date)
         }
     }
-}
-
-extension HomeView {
-    private func handlePickedItem(_ item: PhotosPickerItem) async {
+    
+    func handlePickedItem(_ item: PhotosPickerItem) async {
         do {
             guard let picked = try await item.loadTransferable(type: PickedVideo.self) else { return }
             

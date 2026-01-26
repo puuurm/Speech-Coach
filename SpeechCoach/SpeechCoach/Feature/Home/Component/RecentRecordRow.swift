@@ -18,13 +18,13 @@ struct RecentRecordRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(.systemGray5))
                 .frame(width: 51, height: 51)
                 .overlay(
                     Image(systemName: "video")
-                        .font(.title3)
+                        .font(.system(size: 20, weight: .regular))
                         .foregroundColor(.secondary)
                 )
 
@@ -65,11 +65,6 @@ struct RecentRecordRow: View {
             Spacer()
         }
         .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
-        )
     }
 
     private func metric(icon: String, text: String) -> some View {

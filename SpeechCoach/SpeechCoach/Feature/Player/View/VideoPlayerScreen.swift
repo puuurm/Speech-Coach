@@ -389,12 +389,21 @@ private extension VideoPlayerScreen {
             VStack(alignment: .leading, spacing: 4) {
                 Text("전체 스크립트 (요약)")
                     .font(.subheadline.weight(.medium))
-                Text(record.transcript)
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .lineLimit(nil)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
+                let hide = TranscriptQuality.shouldHide(transcript: record.transcript, segments: record.insight?.transcriptSegments ?? [])
+                
+                if hide {
+                    Text("주변 소음이 많아 텍스트 변환 정확도가 낮아요.\n조용한 환경에서 다시 녹음해 주세요.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text(record.transcript)
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .lineLimit(nil)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .padding(12)
             .background(Color(uiColor: .secondarySystemBackground))
@@ -415,6 +424,34 @@ private extension VideoPlayerScreen {
             .disabled(!canOpenFeedback)
             .padding(.top, 4)
         }
+    }
+    
+    private func shouldHideTranscript(
+        transcript: String,
+        segments: [TranscriptSegment]
+    ) -> Bool {
+        let t = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return true }
+
+        let count = segments.count
+        guard count > 0 else { return true }
+
+        let spokenTime = segments.map(\.duration).reduce(0, +)
+
+        let recognizedSpan: TimeInterval = {
+            guard let first = segments.min(by: { $0.startTime < $1.startTime }) else { return 0 }
+            let end = segments.map(\.endTime).max() ?? 0
+            return max(0, end - first.startTime)
+        }()
+
+        let avg = spokenTime / Double(count)
+        let density = recognizedSpan > 0 ? Double(count) / recognizedSpan : 0
+
+        if count <= 8 { return true }
+        if avg >= 1.2 { return true }
+        if density <= 0.4 { return true }
+
+        return false
     }
 
     
@@ -565,13 +602,21 @@ private extension VideoPlayerScreen {
         let fillerDict = analyzer.fillerWordsDict(from: cleaned)
         let fillerTotal = fillerDict.values.reduce(0, +)
         
-        let title = SpeechTitleBuilder.makeTitle(
-            transcript: cleaned,
-            createdAt: Date()
-        )
+        
         let recordID = UUID()
         let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
         let now = Date()
+        
+        let hide = TranscriptQuality.shouldHide(
+            transcript: cleaned,
+            segments: segments
+        )
+
+        let title = SpeechTitleBuilder.makeTitle(
+            transcript: cleaned,
+            createdAt: now,
+            canUseTranscript: !hide
+        )
         
         var record = SpeechRecord(
             id: recordID,

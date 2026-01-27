@@ -36,11 +36,13 @@ struct SpeakingTypeSection: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text(expanded ? "접기" : "펼치기")
-                        Image(systemName: "chevron.down")
-                            .rotationEffect(.degrees(expanded ? 180 : 0))
+//                        Image(systemName: "chevron.down")
+//                            .rotationEffect(.degrees(expanded ? 180 : 0))
                     }
                     .font(.caption.weight(.semibold))
                 }
+                .foregroundStyle(.secondary)
+
             }
 
             if let speechType {

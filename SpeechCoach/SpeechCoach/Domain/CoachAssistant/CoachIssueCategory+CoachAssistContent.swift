@@ -300,7 +300,6 @@ extension CoachAssistContent {
         ),
 
         // MARK: - Filler Words
-        
 
         .fillerWords: CoachAssistContent(
             problemSummary: "문장 사이 연결이 급하거나 끊겨 말의 흐름이 불안정하게 느껴질 수 있어요.",

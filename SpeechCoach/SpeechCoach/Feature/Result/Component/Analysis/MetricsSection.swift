@@ -9,7 +9,6 @@ import SwiftUI
 
 struct MetricsSection: View {
     let metrics: SpeechMetrics
-    let duration: TimeInterval
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -30,11 +29,6 @@ struct MetricsSection: View {
 //                )
             }
         }
-    }
-    
-    private var hesitationLevelText: String {
-        let level = HesitationLeveler().level(count: metrics.fillerCount, duration: duration)
-        return level.rawValue
     }
     
     private func metricCard(title: String, value: String, detail: String) -> some View {
@@ -70,10 +64,5 @@ extension MetricsSection {
         default:
             return "조금 빠른 편이에요. \n중요한 문장에서 한 박자 쉬어가는 연습을 해보면 좋아요."
         }
-    }
-
-    private var hesitationComment: String {
-        let level = HesitationLeveler().level(count: metrics.fillerCount, duration: duration)
-        return level.detailComment
     }
 }

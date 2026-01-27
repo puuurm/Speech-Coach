@@ -28,6 +28,8 @@ struct RecentAnalysisSection: View {
                             onSelect(record)
                         } label: {
                             RecentRecordRow(record: record)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())   
                                 .padding(.vertical, 8)
                         }
                         .buttonStyle(.plain)

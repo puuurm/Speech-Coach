@@ -65,6 +65,8 @@ struct RecentRecordRow: View {
             Spacer()
         }
         .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     private func metric(icon: String, text: String) -> some View {

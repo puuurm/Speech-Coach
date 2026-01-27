@@ -58,28 +58,6 @@ struct AnalysisTab: View {
             }
             
             TranscriptSection(record: record)
-            
-            DisclosureGroup(
-                isExpanded: $showAdvanced,
-                content: {
-                    Text("※ 자동 인식 초안이라 부정확할 수 있어요. 중요한 문장은 영상과 함께 확인해주세요.")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                },
-                label: {
-                    HStack {
-                        Text("안내")
-                            .font(.headline)
-                        Spacer()
-                        Text(showAdvanced ? "접기" : "펼치기")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            )
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.secondarySystemBackground)))
         }
     }
 }

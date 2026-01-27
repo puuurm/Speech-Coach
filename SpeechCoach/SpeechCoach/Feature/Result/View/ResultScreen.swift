@@ -320,8 +320,7 @@ struct ResultScreen: View {
         ) -> Void
     ) -> some View {
         HeaderSectionView(
-            record: record,
-            onChangeStudentName: onChangeStudentName
+            record: record
         )
     }
     

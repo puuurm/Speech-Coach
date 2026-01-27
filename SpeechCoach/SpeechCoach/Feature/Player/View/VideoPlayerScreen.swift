@@ -413,7 +413,7 @@ private extension VideoPlayerScreen {
                 pc.player.pause()
                 showFeedbackSheet = true
             } label: {
-                Text("피드백 작성하기")
+                Text("분석 결과 보기")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)

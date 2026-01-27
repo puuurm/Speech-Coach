@@ -40,6 +40,7 @@ struct TranscriptSection: View {
                         }
                     }
                     .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
                 }
             }
             

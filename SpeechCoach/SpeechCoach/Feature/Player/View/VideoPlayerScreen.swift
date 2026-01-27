@@ -358,8 +358,6 @@ private extension VideoPlayerScreen {
                     title: "속도",
                     value: wpmText(record.summaryWPM)
                 )
-                let leveler = HesitationLeveler()
-                let level = leveler.level(count: record.summaryFillerCount ?? .zero, duration: record.duration)
 
 //                metricBadge(
 //                    title: "말 흐름",
@@ -588,7 +586,6 @@ private extension VideoPlayerScreen {
     func mapErrorToUserFacing(_ error: Error) -> UserFacingError {
         let ns = error as NSError
 
-        // CoreAudio / AVFAudio 계열
         if ns.domain == "com.apple.coreaudio.avfaudio" {
             return UserFacingError(
                 title: "분석을 완료하지 못했어요",
@@ -597,7 +594,6 @@ private extension VideoPlayerScreen {
             )
         }
 
-        // 기본 fallback
         return UserFacingError(
             title: "분석을 완료하지 못했어요",
             message: "일시적인 오류가 발생했어요.",
@@ -645,10 +641,7 @@ private extension VideoPlayerScreen {
         let fillerDict = analyzer.fillerWordsDict(from: cleaned)
         let fillerTotal = fillerDict.values.reduce(0, +)
         
-        let hesitationAnalyzer = HesitationAnalyzer()
-
-        let hesitationCount = hesitationAnalyzer.count(from: segments, duration: duration)
-
+        
         let recordID = UUID()
         let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
         let now = Date()
@@ -670,7 +663,7 @@ private extension VideoPlayerScreen {
             title: title,
             duration: duration,
             summaryWPM: wpm,
-            summaryFillerCount: hesitationCount,
+            summaryFillerCount: fillerTotal,
             metricsGeneratedAt: now,
             transcript: cleaned,
             studentName: nil,
@@ -698,8 +691,8 @@ private extension VideoPlayerScreen {
             recordID: recordID,
             generatedAt: now,
             wordsPerMinute: wpm,
-            fillerCount: hesitationCount,
-            fillerWords: [:],
+            fillerCount: fillerTotal,
+            fillerWords: fillerDict,
             paceVariability: nil,
             spikeCount: nil
         )
@@ -715,5 +708,24 @@ private extension VideoPlayerScreen {
         
         speechService.cancelRecognitionIfSupported()
     }
+    
+    func mapErrorToUserMessage(_ error: Error) -> UserFacingError {
+        let ns = error as NSError
+
+        if ns.domain == "com.apple.coreaudio.avfaudio" {
+            return .init(
+                title: "분석을 완료하지 못했어요",
+                message: "영상의 오디오를 처리하는 중 문제가 발생했어요.",
+                suggestion: "앱을 다시 실행하거나 다른 영상으로 다시 시도해 주세요."
+            )
+        }
+
+        return .init(
+            title: "분석을 완료하지 못했어요",
+            message: "일시적인 오류가 발생했어요.",
+            suggestion: "잠시 후 다시 시도해 주세요."
+        )
+    }
+
 }
     

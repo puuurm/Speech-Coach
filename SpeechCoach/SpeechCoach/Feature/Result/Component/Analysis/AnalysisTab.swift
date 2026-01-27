@@ -27,7 +27,7 @@ struct AnalysisTab: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            MetricsSection(metrics: metrics, duration: record.duration)
+            MetricsSection(metrics: metrics)
             
             SpeakingTypeSection(
                 record: record,

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MetricsSection: View {
     let metrics: SpeechMetrics
+    let duration: TimeInterval
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -22,13 +23,18 @@ struct MetricsSection: View {
                     detail: wpmComment
                 )
                 
-                metricCard(
-                    title: "군더더기 말 (필러)",
-                    value: "\(metrics.fillerCount)회",
-                    detail: fillerComment
-                )
+//                metricCard(
+//                    title: "말 흐름",
+//                    value: hesitationLevelText,
+//                    detail: hesitationComment
+//                )
             }
         }
+    }
+    
+    private var hesitationLevelText: String {
+        let level = HesitationLeveler().level(count: metrics.fillerCount, duration: duration)
+        return level.rawValue
     }
     
     private func metricCard(title: String, value: String, detail: String) -> some View {
@@ -65,18 +71,9 @@ extension MetricsSection {
             return "조금 빠른 편이에요. \n중요한 문장에서 한 박자 쉬어가는 연습을 해보면 좋아요."
         }
     }
-    
-    private var fillerComment: String {
-        let count = metrics.fillerCount
-        switch count {
-        case 0:
-            return "군더더기 말이 거의 없어서 아주 또렷하게 들려요."
-        case 1...3:
-            return "자연스러운 범위의 군더더기 말이에요. \n전달에 큰 방해는 되지 않아요."
-        case 4...8:
-            return "군더더기 말이 조금 느껴져요. \n문장 사이에 짧은 호흡을 넣어보면 좋아요."
-        default:
-            return "군더더기 말이 자주 등장해요. \n'음' 대신 잠깐 멈추는 연습을 해보면 효과가 클 것 같아요."
-        }
+
+    private var hesitationComment: String {
+        let level = HesitationLeveler().level(count: metrics.fillerCount, duration: duration)
+        return level.detailComment
     }
 }

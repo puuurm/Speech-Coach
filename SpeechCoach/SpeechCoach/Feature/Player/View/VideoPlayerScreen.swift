@@ -246,8 +246,8 @@ private extension VideoPlayerScreen {
                         .foregroundColor(.secondary)
                 }
                 
-            case .failed(let message):
-                failedView(message: message)
+            case .failed(let error):
+                failedView(error: error)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -358,10 +358,15 @@ private extension VideoPlayerScreen {
                     title: "속도",
                     value: wpmText(record.summaryWPM)
                 )
-                metricBadge(
-                    title: "군더더기 말",
-                    value: fillerCountText(record.summaryFillerCount)
-                )
+                let leveler = HesitationLeveler()
+                let level = leveler.level(count: record.summaryFillerCount ?? .zero, duration: record.duration)
+
+//                metricBadge(
+//                    title: "말 흐름",
+//                    value: level.rawValue,
+//                    systemImage: level.systemImage
+//                )
+
             }
             
             if record.highlights.isEmpty == false {
@@ -455,13 +460,20 @@ private extension VideoPlayerScreen {
     }
 
     
-    func failedView(message: String) -> some View {
+    func failedView(error: UserFacingError) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("분석에 실패했어요")
+            Text(error.title)
                 .font(.subheadline.weight(.medium))
-            Text(message)
+            
+            Text(error.message)
                 .font(.footnote)
                 .foregroundColor(.secondary)
+            
+            if let suggestion = error.suggestion {
+                Text(suggestion)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
             
             Button {
                 retryAnalysis()
@@ -479,13 +491,22 @@ private extension VideoPlayerScreen {
         }
     }
     
-    func metricBadge(title: String, value: String) -> some View {
+    func metricBadge(title: String, value: String, systemImage: String? = nil) -> some View {
         VStack(spacing: 2) {
             Text(title)
                 .font(.caption2)
                 .foregroundColor(.secondary)
-            Text(value)
-                .font(.footnote.weight(.medium))
+            if let systemImage {
+                HStack(spacing: 4) {
+                    Image(systemName: systemImage)
+                        .font(.footnote.weight(.medium))
+                    Text(value)
+                        .font(.footnote.weight(.medium))
+                }
+            } else {
+                Text(value)
+                    .font(.footnote.weight(.medium))
+            }
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 8)
@@ -555,13 +576,35 @@ private extension VideoPlayerScreen {
             } catch {
                 await MainActor.run {
                     guard analysisRunID == runID else { return }
-                    phase = .failed(error.localizedDescription)
+                    let userError = mapErrorToUserFacing(error)
+                    phase = .failed(userError)
                     isStartingAnalysis = false
                     analysisTask = nil
                 }
             }
         }
     }
+    
+    func mapErrorToUserFacing(_ error: Error) -> UserFacingError {
+        let ns = error as NSError
+
+        // CoreAudio / AVFAudio 계열
+        if ns.domain == "com.apple.coreaudio.avfaudio" {
+            return UserFacingError(
+                title: "분석을 완료하지 못했어요",
+                message: "영상의 오디오를 처리하는 중 문제가 발생했어요.",
+                suggestion: "앱을 다시 실행하거나 다른 영상으로 다시 시도해 주세요."
+            )
+        }
+
+        // 기본 fallback
+        return UserFacingError(
+            title: "분석을 완료하지 못했어요",
+            message: "일시적인 오류가 발생했어요.",
+            suggestion: "잠시 후 다시 시도해 주세요."
+        )
+    }
+
     
     private func isEffectivelyEnded(
         _ player: AVPlayer,
@@ -602,7 +645,10 @@ private extension VideoPlayerScreen {
         let fillerDict = analyzer.fillerWordsDict(from: cleaned)
         let fillerTotal = fillerDict.values.reduce(0, +)
         
-        
+        let hesitationAnalyzer = HesitationAnalyzer()
+
+        let hesitationCount = hesitationAnalyzer.count(from: segments, duration: duration)
+
         let recordID = UUID()
         let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
         let now = Date()
@@ -624,7 +670,7 @@ private extension VideoPlayerScreen {
             title: title,
             duration: duration,
             summaryWPM: wpm,
-            summaryFillerCount: fillerTotal,
+            summaryFillerCount: hesitationCount,
             metricsGeneratedAt: now,
             transcript: cleaned,
             studentName: nil,
@@ -652,8 +698,8 @@ private extension VideoPlayerScreen {
             recordID: recordID,
             generatedAt: now,
             wordsPerMinute: wpm,
-            fillerCount: fillerTotal,
-            fillerWords: fillerDict,
+            fillerCount: hesitationCount,
+            fillerWords: [:],
             paceVariability: nil,
             spikeCount: nil
         )

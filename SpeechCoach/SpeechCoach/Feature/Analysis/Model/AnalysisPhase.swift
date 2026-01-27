@@ -12,5 +12,11 @@ enum AnalysisPhase: Equatable {
     case analyzing
     case waitingForPlaybackEnd
     case ready
-    case failed(String)
+    case failed(UserFacingError)
+}
+
+struct UserFacingError: Equatable {
+    let title: String
+    let message: String
+    let suggestion: String?
 }

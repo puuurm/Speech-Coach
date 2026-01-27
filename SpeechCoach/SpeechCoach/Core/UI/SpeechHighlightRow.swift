@@ -18,6 +18,10 @@ struct SpeechHighlightRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "checkmark.circle")
+                .foregroundColor(.secondary)
+                .padding(.top, 2)
+            
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
                     .font(.subheadline.weight(.semibold))

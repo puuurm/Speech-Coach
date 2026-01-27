@@ -413,18 +413,21 @@ struct ResultScreen: View {
     
     private var fillerImprovementTemplate: String {
         guard let fillerCount = metricsVM.metrics?.fillerCount else { return "--" }
+
         if fillerCount == 0 {
             return """
-            군더더기 말은 거의 사용하지 않으셔서 전달력이 매우 또렷하게 들립니다.
-            지금 패턴을 유지해보시면 좋겠습니다.
+            말이 끊기지 않고 자연스럽게 이어져서 전달력이 또렷하게 느껴져요.
+            지금처럼 문장 흐름을 안정적으로 유지해보시면 좋겠습니다.
             """
         } else {
             return """
-            '음'과 같은 군더더기 말이 중간중간 등장합니다.
-            생각이 날 때마나 바로 말을 시작하기보다는, 짧게 멈춘 후 문장을 이어가 보는 연습을 해보세요.
+            문장을 시작할 때 말이 급하게 이어지는 구간이 조금 보여요.
+            바로 말을 이어가기보다 한 박자 정리한 뒤 다음 문장을 시작해보세요.
+            말의 흐름이 훨씬 안정적으로 들릴 수 있어요.
             """
         }
     }
+
     private func makeFeedbackText() -> String {
         var lines: [String] = []
 

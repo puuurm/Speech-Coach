@@ -52,11 +52,13 @@ struct RecentRecordRow: View {
                         metric(icon: "speedometer", text: "— wpm")
                     }
                     
-                    if let fillerCount = record.summaryFillerCount {
-                        metric(icon: "quote.bubble", text: "\(fillerCount)")
-                    } else {
-                        metric(icon: "quote.bubble", text: "—")
-                    }
+                    metric(icon: "checkmark.circle", text: "\(highlightCount)")
+                    
+//                    if let fillerCount = record.summaryFillerCount {
+//                        metric(icon: "quote.bubble", text: "\(fillerCount)")
+//                    } else {
+//                        metric(icon: "quote.bubble", text: "—")
+//                    }
                 }
                 .lineSpacing(2)
                 .padding(.top, 2)
@@ -77,5 +79,9 @@ struct RecentRecordRow: View {
         .font(.caption)
         .foregroundColor(.secondary)
         .baselineOffset(1)
+    }
+    
+    private var highlightCount: Int {
+        record.highlights.count
     }
 }

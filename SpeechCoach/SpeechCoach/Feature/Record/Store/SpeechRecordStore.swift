@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import CoreData
+import FirebaseCrashlytics
 
 final class SpeechRecordStore: ObservableObject {
     @Published private(set) var records: [SpeechRecord] = []
@@ -82,6 +83,9 @@ final class SpeechRecordStore: ObservableObject {
                 }
                 try self.context.save()
             } catch {
+                Crashlytics.crashlytics().setCustomValue(record.id.uuidString, forKey: "record_id")
+                 Crashlytics.crashlytics().setCustomValue("upsertBundle", forKey: "store_action")
+                 Crashlytics.crashlytics().record(error: error)
                 assertionFailure("❌ upsertBundle failed: \(error)")
             }
         }
@@ -90,12 +94,23 @@ final class SpeechRecordStore: ObservableObject {
     func saveCoachingMemo(recordID: UUID, memo: String) throws {
         let trimmed = memo.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        let record = try fetchOrCreateRecordEntity(id: recordID)
-        let note = try fetchOrCreateNote(for: record)
-        note.coachingMemo = trimmed.isEmpty ? nil : trimmed
-        note.updatedAt = Date()
-        try context.save()
-        objectWillChange.send()
+        do {
+            let record = try fetchOrCreateRecordEntity(id: recordID)
+            let note = try fetchOrCreateNote(for: record)
+            note.coachingMemo = trimmed.isEmpty ? nil : trimmed
+            note.updatedAt = Date()
+            try context.save()
+            objectWillChange.send()
+        } catch {
+            Crashlytics.crashlytics().setCustomValue(recordID.uuidString, forKey: "record_id")
+            Crashlytics.crashlytics().setCustomValue("saveCoachingMemo", forKey: "store_action")
+            Crashlytics.crashlytics().log("SpeechRecordStore: memo save failed length=\(trimmed.count)")
+            Crashlytics.crashlytics().record(error: error)
+
+            context.rollback()
+            throw error
+        }
+  
     }
     
     func loadRecentRecords(limit: Int = 20) -> [SpeechRecord] {
@@ -192,11 +207,19 @@ final class SpeechRecordStore: ObservableObject {
     func persist() async throws {
         let context = self.context
         
-        try await context.perform {
-            guard context.hasChanges else { return }
-            try context.save()
+        do {
+            try await context.perform {
+                guard context.hasChanges else { return }
+                try context.save()
+            }
+            self.reload()
+        } catch {
+            Crashlytics.crashlytics().setCustomValue("persist", forKey: "store_action")
+            Crashlytics.crashlytics().log("SpeechRecordStore: persist failed")
+            Crashlytics.crashlytics().record(error: error)
+            context.rollback()
+            throw error
         }
-        self.reload()
     }
     
     func updateQualitative(for id: UUID, metrics: QualitativeMetrics) {
@@ -401,4 +424,9 @@ final class SpeechRecordStore: ObservableObject {
             try context.save()
         }
     }
+    
+    private func clog(_ message: String) {
+        Crashlytics.crashlytics().log("SpeechRecordStore: \(message)")
+    }
+
 }

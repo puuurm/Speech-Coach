@@ -37,6 +37,7 @@ final class PlayerController: ObservableObject {
             ) { [weak self] _ in
                 self?.didReachEnd = true
                 self?.isPlaying = false
+                self?.logPlayer("didReachEnd")
             }
     }
     
@@ -47,11 +48,14 @@ final class PlayerController: ObservableObject {
         ) { [weak self] player, _ in
             DispatchQueue.main.async {
                 self?.isPlaying = (player.timeControlStatus == .playing)
+                self?.logPlayer("timeControlStatus=\(player.timeControlStatus.rawValue)")
             }
         }
     }
     
     func load(url: URL) {
+        logPlayer("load url=\(url.lastPathComponent)")
+
         if timeControlObserver == nil {
             bindPlaybackState()
         }
@@ -61,6 +65,11 @@ final class PlayerController: ObservableObject {
         statusObserver = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
             DispatchQueue.main.async {
                 self?.isReadyToPlay = item.status == .readyToPlay
+                self?.logPlayer("item.status=\(item.status.rawValue) ready=\(item.status == .readyToPlay)")
+                
+                if item.status == .failed, let err = item.error {
+                    Crashlytics.crashlytics().record(error: err)
+                }
             }
         }
         bindPlaybackEnd()
@@ -86,13 +95,21 @@ final class PlayerController: ObservableObject {
             guard let self else { return }
             self.logPlayer("seek finished=\(finished) time=\(safe)")
 
-            if autoplay { self.player.play() }
+            if autoplay {
+                self.player.play()
+                self.logPlayer("autoplay after seek")
+            }
         }
     }
     
     func stopAndTearDown(deactivateAudioSession: Bool = false) {
+        logPlayer("stopAndTearDown deactivateAudioSession=\(deactivateAudioSession)")
+
         player.pause()
+        logPlayer("pause")
+
         player.replaceCurrentItem(with: nil)
+        logPlayer("replaceCurrentItem(nil)")
         
         if let endObserver {
             NotificationCenter.default.removeObserver(endObserver)
@@ -114,13 +131,16 @@ final class PlayerController: ObservableObject {
             let session = AVAudioSession.sharedInstance()
             do {
                 try session.setActive(false, options: [.notifyOthersOnDeactivation])
+                logPlayer("audioSession deactivated")
             } catch {
-                print("AudioSession deactivate failed:", error)
+                Crashlytics.crashlytics().record(error: error)
+                logPlayer("audioSession deactivate failed")
             }
         }
     }
     
     deinit {
+        logPlayer("deinit")
         if let endObserver {
             NotificationCenter.default.removeObserver(endObserver)
         }

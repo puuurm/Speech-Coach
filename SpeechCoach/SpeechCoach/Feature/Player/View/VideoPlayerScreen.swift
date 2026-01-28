@@ -121,6 +121,10 @@ struct VideoPlayerScreen: View {
         .navigationTitle(mode == .normal ? "영상 확인" : "하이라이트 확인")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            Crashlytics.crashlytics().setCustomValue("VideoPlayerScreen", forKey: "screen")
+            Crashlytics.crashlytics().setCustomValue(title, forKey: "video_title")
+            clog("appear url=\(videoURL.lastPathComponent) startTime=\(startTime ?? -1) autoplay=\(autoplay) mode=\(mode)")
+            
             AudioSessionManager.configureForPlayback()
             pc.load(url: videoURL)
 
@@ -141,11 +145,9 @@ struct VideoPlayerScreen: View {
             
             if let startTime, !appliedStartTime {
                 appliedStartTime = true
+                clog("apply startTime seek=\(startTime)")
                 pc.seek(to: startTime, autoplay: autoplay)
             }
-            
-            Crashlytics.crashlytics().setCustomValue("VideoPlayerScreen", forKey: "screen")
-            Crashlytics.crashlytics().log("Enter VideoPlayerScreen title=\(title) start=\(startTime ?? -1)")
         }
         .onChange(of: pc.didReachEnd) { ended in
             guard ended else { return }
@@ -160,10 +162,14 @@ struct VideoPlayerScreen: View {
                 tooltipVisible = true
             }
         }
+        .onChange(of: failedToSave) { failed in
+            guard failed else { return }
+            clog("note save failed (failedToSave=true)")
+        }
         .onDisappear {
+            clog("disappear -> cancelAnalysis + stopAndTearDown")
             cancelAnalysis()
             pc.stopAndTearDown()
-            Crashlytics.crashlytics().log("Leave VideoPlayerScreen")
         }
         .sheet(isPresented: $showFeedbackSheet, onDismiss: {
             if let second = pendingSeek {
@@ -184,6 +190,7 @@ struct VideoPlayerScreen: View {
                         showFeedbackSheet = false
                     },
                     onTapWatchVideo: {
+                        clog("tap: watch video")
                         showFeedbackSheet = false
                         pc.player.play()
                     },
@@ -271,6 +278,7 @@ private extension VideoPlayerScreen {
                         .foregroundColor(.secondary)
                     
                     Button {
+                        clog("tap: startPlaybackAndAnalysis")
                         tooltipVisible = false
                         tapAnalysisButton = true
                         startPlaybackAndAnalysis()
@@ -301,6 +309,7 @@ private extension VideoPlayerScreen {
                          .foregroundColor(.secondary)
 
                      Button {
+                         clog("tap: play (highlightReview)")
                          pc.player.play()
                      } label: {
                          HStack {
@@ -363,13 +372,6 @@ private extension VideoPlayerScreen {
                     title: "속도",
                     value: wpmText(record.summaryWPM)
                 )
-
-//                metricBadge(
-//                    title: "말 흐름",
-//                    value: level.rawValue,
-//                    systemImage: level.systemImage
-//                )
-
             }
             
             if record.highlights.isEmpty == false {
@@ -544,6 +546,10 @@ private extension VideoPlayerScreen {
         let runID = UUID()
         analysisRunID = runID
         
+        Crashlytics.crashlytics().setCustomValue(runID.uuidString, forKey: "analysis_run_id")
+        Crashlytics.crashlytics().setCustomValue("start", forKey: "analysis_phase")
+        clog("analysis start runID=\(runID) playbackEnded=\(playbackEnded)")
+        
         analysisTask = Task {
             do {
                 try Task.checkCancellation()
@@ -566,6 +572,9 @@ private extension VideoPlayerScreen {
                         playbackEnded = true
                     }
                     
+                    Crashlytics.crashlytics().setCustomValue("done", forKey: "analysis_phase")
+                    clog("analysis done runID=\(runID) highlights=\(record.highlights.count) transcriptLen=\(record.transcript.count)")
+                    
                     phase = playbackEnded ? .ready : .waitingForPlaybackEnd
                     isStartingAnalysis = false
                     analysisTask = nil
@@ -573,10 +582,16 @@ private extension VideoPlayerScreen {
             } catch is CancellationError {
                 await MainActor.run {
                     guard self.analysisRunID == runID else { return }
+                    Crashlytics.crashlytics().setCustomValue("cancelled", forKey: "analysis_phase")
+                    clog("analysis cancelled runID=\(runID)")
                     isStartingAnalysis = false
                     analysisTask = nil
                 }
             } catch {
+                Crashlytics.crashlytics().setCustomValue("failed", forKey: "analysis_phase")
+                Crashlytics.crashlytics().record(error: error)
+                clog("analysis failed runID=\(runID) error=\(String(describing: error))")
+
                 await MainActor.run {
                     guard analysisRunID == runID else { return }
                     let userError = mapErrorToUserFacing(error)
@@ -624,9 +639,16 @@ private extension VideoPlayerScreen {
     }
     
     func runAnalysis() async throws -> (SpeechRecord, SpeechMetrics) {
+        Crashlytics.crashlytics().setCustomValue("runAnalysis_start", forKey: "analysis_phase")
+        clog("runAnalysis start")
+
         let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko-KR"))!
         let audioURL = try await speechService.exportAudio(from: videoURL)
+        
+        Crashlytics.crashlytics().setCustomValue("transcribe", forKey: "analysis_phase")
         let rawTranscript = try await speechService.transcribe(videoURL: videoURL)
+        
+        Crashlytics.crashlytics().setCustomValue("recognizeDetailed", forKey: "analysis_phase")
         let transcriptResult = try await speechService.recognizeDetailed(url: audioURL, with: recognizer)
         
         let cleaned = transcriptResult.cleanedText
@@ -648,6 +670,9 @@ private extension VideoPlayerScreen {
         
         
         let recordID = UUID()
+        Crashlytics.crashlytics().setCustomValue(recordID.uuidString, forKey: "record_id")
+
+        Crashlytics.crashlytics().setCustomValue("importVideo", forKey: "analysis_phase")
         let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
         let now = Date()
         
@@ -684,6 +709,7 @@ private extension VideoPlayerScreen {
             highlights: []
         )
 
+        Crashlytics.crashlytics().setCustomValue("buildHighlights", forKey: "analysis_phase")
         let highlights = SpeechHighlightBuilder
             .makeHighlights(
                 duration: duration,
@@ -701,6 +727,9 @@ private extension VideoPlayerScreen {
             paceVariability: nil,
             spikeCount: nil
         )
+
+        Crashlytics.crashlytics().setCustomValue("runAnalysis_done", forKey: "analysis_phase")
+        clog("runAnalysis done transcriptLen=\(cleaned.count) highlights=\(highlights.count)")
 
         return (record, metrics)
     }
@@ -730,6 +759,10 @@ private extension VideoPlayerScreen {
             message: "일시적인 오류가 발생했어요.",
             suggestion: "잠시 후 다시 시도해 주세요."
         )
+    }
+    
+    private func clog(_ message: String) {
+        Crashlytics.crashlytics().log("VideoPlayerScreen: \(message)")
     }
 
 }

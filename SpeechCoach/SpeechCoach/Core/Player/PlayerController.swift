@@ -7,6 +7,7 @@
 
 import AVKit
 import Combine
+import FirebaseCrashlytics
 
 final class PlayerController: ObservableObject {
     let player = AVPlayer()
@@ -79,10 +80,14 @@ final class PlayerController: ObservableObject {
         let safe = max(0, min(normalized, maxT))
         let time = CMTime(seconds: safe, preferredTimescale: 600)
         
-        player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
+        logPlayer("seek requested seconds=\(seconds) normalized=\(safe) autoplay=\(autoplay)")
+    
+        player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] finished in
+            guard let self else { return }
+            self.logPlayer("seek finished=\(finished) time=\(safe)")
+
             if autoplay { self.player.play() }
         }
-        print("▶️ seek to:", safe, "cur:", self.player.currentTime().seconds)
     }
     
     func stopAndTearDown(deactivateAudioSession: Bool = false) {
@@ -119,5 +124,9 @@ final class PlayerController: ObservableObject {
         if let endObserver {
             NotificationCenter.default.removeObserver(endObserver)
         }
+    }
+    
+    private func logPlayer(_ message: String) {
+        Crashlytics.crashlytics().log("Player: \(message)")
     }
 }

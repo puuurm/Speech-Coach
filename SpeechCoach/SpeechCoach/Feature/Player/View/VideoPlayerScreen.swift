@@ -9,6 +9,7 @@ import SwiftUI
 import AVKit
 import Speech
 import SwiftUITooltip
+import FirebaseCrashlytics
 
 struct VideoPlayerScreen: View {
     let videoURL: URL
@@ -142,6 +143,9 @@ struct VideoPlayerScreen: View {
                 appliedStartTime = true
                 pc.seek(to: startTime, autoplay: autoplay)
             }
+            
+            Crashlytics.crashlytics().setCustomValue("VideoPlayerScreen", forKey: "screen")
+            Crashlytics.crashlytics().log("Enter VideoPlayerScreen title=\(title) start=\(startTime ?? -1)")
         }
         .onChange(of: pc.didReachEnd) { ended in
             guard ended else { return }
@@ -159,6 +163,7 @@ struct VideoPlayerScreen: View {
         .onDisappear {
             cancelAnalysis()
             pc.stopAndTearDown()
+            Crashlytics.crashlytics().log("Leave VideoPlayerScreen")
         }
         .sheet(isPresented: $showFeedbackSheet, onDismiss: {
             if let second = pendingSeek {

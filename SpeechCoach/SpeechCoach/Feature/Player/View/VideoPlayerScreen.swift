@@ -9,6 +9,7 @@ import SwiftUI
 import AVKit
 import Speech
 import SwiftUITooltip
+import FirebaseCrashlytics
 
 struct VideoPlayerScreen: View {
     let videoURL: URL
@@ -120,6 +121,10 @@ struct VideoPlayerScreen: View {
         .navigationTitle(mode == .normal ? "영상 확인" : "하이라이트 확인")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            Crashlytics.crashlytics().setCustomValue("VideoPlayerScreen", forKey: "screen")
+            Crashlytics.crashlytics().setCustomValue(title, forKey: "video_title")
+            clog("appear url=\(videoURL.lastPathComponent) startTime=\(startTime ?? -1) autoplay=\(autoplay) mode=\(mode)")
+            
             AudioSessionManager.configureForPlayback()
             pc.load(url: videoURL)
 
@@ -140,6 +145,7 @@ struct VideoPlayerScreen: View {
             
             if let startTime, !appliedStartTime {
                 appliedStartTime = true
+                clog("apply startTime seek=\(startTime)")
                 pc.seek(to: startTime, autoplay: autoplay)
             }
         }
@@ -156,8 +162,14 @@ struct VideoPlayerScreen: View {
                 tooltipVisible = true
             }
         }
+        .onChange(of: failedToSave) { failed in
+            guard failed else { return }
+            clog("note save failed (failedToSave=true)")
+        }
         .onDisappear {
+            clog("disappear -> cancelAnalysis + stopAndTearDown")
             cancelAnalysis()
+            pc.stopAndTearDown()
         }
         .sheet(isPresented: $showFeedbackSheet, onDismiss: {
             if let second = pendingSeek {
@@ -178,6 +190,7 @@ struct VideoPlayerScreen: View {
                         showFeedbackSheet = false
                     },
                     onTapWatchVideo: {
+                        clog("tap: watch video")
                         showFeedbackSheet = false
                         pc.player.play()
                     },
@@ -245,8 +258,8 @@ private extension VideoPlayerScreen {
                         .foregroundColor(.secondary)
                 }
                 
-            case .failed(let message):
-                failedView(message: message)
+            case .failed(let error):
+                failedView(error: error)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -265,6 +278,7 @@ private extension VideoPlayerScreen {
                         .foregroundColor(.secondary)
                     
                     Button {
+                        clog("tap: startPlaybackAndAnalysis")
                         tooltipVisible = false
                         tapAnalysisButton = true
                         startPlaybackAndAnalysis()
@@ -295,6 +309,7 @@ private extension VideoPlayerScreen {
                          .foregroundColor(.secondary)
 
                      Button {
+                         clog("tap: play (highlightReview)")
                          pc.player.play()
                      } label: {
                          HStack {
@@ -357,10 +372,6 @@ private extension VideoPlayerScreen {
                     title: "속도",
                     value: wpmText(record.summaryWPM)
                 )
-                metricBadge(
-                    title: "군더더기 말",
-                    value: fillerCountText(record.summaryFillerCount)
-                )
             }
             
             if record.highlights.isEmpty == false {
@@ -388,12 +399,21 @@ private extension VideoPlayerScreen {
             VStack(alignment: .leading, spacing: 4) {
                 Text("전체 스크립트 (요약)")
                     .font(.subheadline.weight(.medium))
-                Text(record.transcript)
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .lineLimit(nil)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
+                let hide = TranscriptQuality.shouldHide(transcript: record.transcript, segments: record.insight?.transcriptSegments ?? [])
+                
+                if hide {
+                    Text("주변 소음이 많아 텍스트 변환 정확도가 낮아요.\n조용한 환경에서 다시 녹음해 주세요.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text(record.transcript)
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .lineLimit(nil)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .padding(12)
             .background(Color(uiColor: .secondarySystemBackground))
@@ -403,7 +423,7 @@ private extension VideoPlayerScreen {
                 pc.player.pause()
                 showFeedbackSheet = true
             } label: {
-                Text("피드백 작성하기")
+                Text("분석 결과 보기")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -415,15 +435,50 @@ private extension VideoPlayerScreen {
             .padding(.top, 4)
         }
     }
+    
+    private func shouldHideTranscript(
+        transcript: String,
+        segments: [TranscriptSegment]
+    ) -> Bool {
+        let t = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return true }
+
+        let count = segments.count
+        guard count > 0 else { return true }
+
+        let spokenTime = segments.map(\.duration).reduce(0, +)
+
+        let recognizedSpan: TimeInterval = {
+            guard let first = segments.min(by: { $0.startTime < $1.startTime }) else { return 0 }
+            let end = segments.map(\.endTime).max() ?? 0
+            return max(0, end - first.startTime)
+        }()
+
+        let avg = spokenTime / Double(count)
+        let density = recognizedSpan > 0 ? Double(count) / recognizedSpan : 0
+
+        if count <= 8 { return true }
+        if avg >= 1.2 { return true }
+        if density <= 0.4 { return true }
+
+        return false
+    }
 
     
-    func failedView(message: String) -> some View {
+    func failedView(error: UserFacingError) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("분석에 실패했어요")
+            Text(error.title)
                 .font(.subheadline.weight(.medium))
-            Text(message)
+            
+            Text(error.message)
                 .font(.footnote)
                 .foregroundColor(.secondary)
+            
+            if let suggestion = error.suggestion {
+                Text(suggestion)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
             
             Button {
                 retryAnalysis()
@@ -441,13 +496,22 @@ private extension VideoPlayerScreen {
         }
     }
     
-    func metricBadge(title: String, value: String) -> some View {
+    func metricBadge(title: String, value: String, systemImage: String? = nil) -> some View {
         VStack(spacing: 2) {
             Text(title)
                 .font(.caption2)
                 .foregroundColor(.secondary)
-            Text(value)
-                .font(.footnote.weight(.medium))
+            if let systemImage {
+                HStack(spacing: 4) {
+                    Image(systemName: systemImage)
+                        .font(.footnote.weight(.medium))
+                    Text(value)
+                        .font(.footnote.weight(.medium))
+                }
+            } else {
+                Text(value)
+                    .font(.footnote.weight(.medium))
+            }
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 8)
@@ -482,6 +546,10 @@ private extension VideoPlayerScreen {
         let runID = UUID()
         analysisRunID = runID
         
+        Crashlytics.crashlytics().setCustomValue(runID.uuidString, forKey: "analysis_run_id")
+        Crashlytics.crashlytics().setCustomValue("start", forKey: "analysis_phase")
+        clog("analysis start runID=\(runID) playbackEnded=\(playbackEnded)")
+        
         analysisTask = Task {
             do {
                 try Task.checkCancellation()
@@ -504,6 +572,9 @@ private extension VideoPlayerScreen {
                         playbackEnded = true
                     }
                     
+                    Crashlytics.crashlytics().setCustomValue("done", forKey: "analysis_phase")
+                    clog("analysis done runID=\(runID) highlights=\(record.highlights.count) transcriptLen=\(record.transcript.count)")
+                    
                     phase = playbackEnded ? .ready : .waitingForPlaybackEnd
                     isStartingAnalysis = false
                     analysisTask = nil
@@ -511,19 +582,45 @@ private extension VideoPlayerScreen {
             } catch is CancellationError {
                 await MainActor.run {
                     guard self.analysisRunID == runID else { return }
+                    Crashlytics.crashlytics().setCustomValue("cancelled", forKey: "analysis_phase")
+                    clog("analysis cancelled runID=\(runID)")
                     isStartingAnalysis = false
                     analysisTask = nil
                 }
             } catch {
+                Crashlytics.crashlytics().setCustomValue("failed", forKey: "analysis_phase")
+                Crashlytics.crashlytics().record(error: error)
+                clog("analysis failed runID=\(runID) error=\(String(describing: error))")
+
                 await MainActor.run {
                     guard analysisRunID == runID else { return }
-                    phase = .failed(error.localizedDescription)
+                    let userError = mapErrorToUserFacing(error)
+                    phase = .failed(userError)
                     isStartingAnalysis = false
                     analysisTask = nil
                 }
             }
         }
     }
+    
+    func mapErrorToUserFacing(_ error: Error) -> UserFacingError {
+        let ns = error as NSError
+
+        if ns.domain == "com.apple.coreaudio.avfaudio" {
+            return UserFacingError(
+                title: "분석을 완료하지 못했어요",
+                message: "영상의 오디오를 처리하는 중 문제가 발생했어요.",
+                suggestion: "앱을 다시 실행하거나 다른 영상으로 다시 시도해 주세요."
+            )
+        }
+
+        return UserFacingError(
+            title: "분석을 완료하지 못했어요",
+            message: "일시적인 오류가 발생했어요.",
+            suggestion: "잠시 후 다시 시도해 주세요."
+        )
+    }
+
     
     private func isEffectivelyEnded(
         _ player: AVPlayer,
@@ -542,9 +639,16 @@ private extension VideoPlayerScreen {
     }
     
     func runAnalysis() async throws -> (SpeechRecord, SpeechMetrics) {
+        Crashlytics.crashlytics().setCustomValue("runAnalysis_start", forKey: "analysis_phase")
+        clog("runAnalysis start")
+
         let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko-KR"))!
         let audioURL = try await speechService.exportAudio(from: videoURL)
+        
+        Crashlytics.crashlytics().setCustomValue("transcribe", forKey: "analysis_phase")
         let rawTranscript = try await speechService.transcribe(videoURL: videoURL)
+        
+        Crashlytics.crashlytics().setCustomValue("recognizeDetailed", forKey: "analysis_phase")
         let transcriptResult = try await speechService.recognizeDetailed(url: audioURL, with: recognizer)
         
         let cleaned = transcriptResult.cleanedText
@@ -564,13 +668,24 @@ private extension VideoPlayerScreen {
         let fillerDict = analyzer.fillerWordsDict(from: cleaned)
         let fillerTotal = fillerDict.values.reduce(0, +)
         
-        let title = SpeechTitleBuilder.makeTitle(
-            transcript: cleaned,
-            createdAt: Date()
-        )
+        
         let recordID = UUID()
+        Crashlytics.crashlytics().setCustomValue(recordID.uuidString, forKey: "record_id")
+
+        Crashlytics.crashlytics().setCustomValue("importVideo", forKey: "analysis_phase")
         let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
         let now = Date()
+        
+        let hide = TranscriptQuality.shouldHide(
+            transcript: cleaned,
+            segments: segments
+        )
+
+        let title = SpeechTitleBuilder.makeTitle(
+            transcript: cleaned,
+            createdAt: now,
+            canUseTranscript: !hide
+        )
         
         var record = SpeechRecord(
             id: recordID,
@@ -594,6 +709,7 @@ private extension VideoPlayerScreen {
             highlights: []
         )
 
+        Crashlytics.crashlytics().setCustomValue("buildHighlights", forKey: "analysis_phase")
         let highlights = SpeechHighlightBuilder
             .makeHighlights(
                 duration: duration,
@@ -612,6 +728,9 @@ private extension VideoPlayerScreen {
             spikeCount: nil
         )
 
+        Crashlytics.crashlytics().setCustomValue("runAnalysis_done", forKey: "analysis_phase")
+        clog("runAnalysis done transcriptLen=\(cleaned.count) highlights=\(highlights.count)")
+
         return (record, metrics)
     }
     
@@ -623,5 +742,28 @@ private extension VideoPlayerScreen {
         
         speechService.cancelRecognitionIfSupported()
     }
+    
+    func mapErrorToUserMessage(_ error: Error) -> UserFacingError {
+        let ns = error as NSError
+
+        if ns.domain == "com.apple.coreaudio.avfaudio" {
+            return .init(
+                title: "분석을 완료하지 못했어요",
+                message: "영상의 오디오를 처리하는 중 문제가 발생했어요.",
+                suggestion: "앱을 다시 실행하거나 다른 영상으로 다시 시도해 주세요."
+            )
+        }
+
+        return .init(
+            title: "분석을 완료하지 못했어요",
+            message: "일시적인 오류가 발생했어요.",
+            suggestion: "잠시 후 다시 시도해 주세요."
+        )
+    }
+    
+    private func clog(_ message: String) {
+        Crashlytics.crashlytics().log("VideoPlayerScreen: \(message)")
+    }
+
 }
     

@@ -8,22 +8,24 @@
 import Foundation
 
 enum SpeechTitleBuilder {
-    
-    /// transcript와 날짜를 기반으로 리스트에 보여줄 title을 생성합니다.
-    /// 1) transcript의 첫 문장을 뽑고
-    /// 2) 너무 길면 잘라서 "…"을 붙이고
-    /// 3) 아무 내용이 없으면 날짜 기반 기본 제목을 사용합니다.
-    static func makeTitle(transcript: String, createdAt: Date) -> String {
+
+    static func makeTitle(
+        transcript: String,
+        createdAt: Date,
+        canUseTranscript: Bool
+    ) -> String {
+        guard canUseTranscript else {
+            return defaultTitle(for: createdAt)
+        }
+
         let trimmed = transcript
             .replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // 1) transcript가 비어 있으면 날짜 기반 기본 제목
+
         guard trimmed.isEmpty == false else {
             return defaultTitle(for: createdAt)
         }
-        
-        // 2) 첫 문장 추출
+
         if let firstSentence = firstSentence(in: trimmed) {
             return clipped(firstSentence)
         } else {
@@ -31,6 +33,7 @@ enum SpeechTitleBuilder {
         }
     }
 }
+
 
 // MARK: - Private helpers
 

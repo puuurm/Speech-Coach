@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVKit
+import FirebaseCrashlytics
 
 struct SpeechHighlightRow: View {
     let item: SpeechHighlight
@@ -18,6 +19,10 @@ struct SpeechHighlightRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "checkmark.circle")
+                .foregroundColor(.secondary)
+                .padding(.top, 2)
+            
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
                     .font(.subheadline.weight(.semibold))
@@ -59,6 +64,7 @@ extension SpeechHighlightRow {
                 case let .playable(play) = playbackPolicy {
             Button {
                 play(item.start)
+
             } label: {
                 Text("재생")
                     .font(.caption.weight(.semibold))

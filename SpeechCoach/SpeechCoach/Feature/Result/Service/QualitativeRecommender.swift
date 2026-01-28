@@ -145,14 +145,14 @@ extension QualitativeRecommender {
         
         if fillerCount >= 8 {
             suggestions.append(.init(
-                title: "군더더기 말 줄이기",
-                body: "군더더기 말(어/음)이 자주 등장해요. 생각 정리가 필요할 땐 '필러' 대신 '짧은 침묵'을 허용해보세요.",
+                title: "말 사이 여유 만들기",
+                body: "문장이 급하게 이어지는 구간이 자주 보여요. 중요한 문장 앞이나 뒤에서 한 박자 쉬어주면 말이 훨씬 안정적으로 들릴 수 있어요.",
                 category: .improvements
             ))
         } else if fillerCount > 0 {
             suggestions.append(.init(
-                title: "군더더기 말 관리",
-                body: "군더더기 말이 조금 보이지만 전반적으로는 괜찮아요. 긴 문장 시작 전에 숨 한번 정리하면 더 좋아져요.",
+                title: "문장 연결이 안정적이에요",
+                body: "전반적으로 말의 흐름은 괜찮아요. 긴 문장을 시작할 때만 잠깐 숨을 고르면 전달력이 더 좋아질 것 같아요.",
                 category: .strengths
             ))
         }

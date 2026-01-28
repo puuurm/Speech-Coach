@@ -65,13 +65,13 @@ enum DrillCatalog {
         ),
         .replaceFillerWithSilence: CoachDrill(
             type: .replaceFillerWithSilence,
-            title: "군더더기 말 → 침묵 치환",
+            title: "말 사이 여유 만들기",
             durationSec: 180,
-            guide: "군더더기 말 대신 짧은 침묵을 사용하는 연습으로, 말의 안정감을 높입니다.",
+            guide: "문장 사이에 짧은 여유를 두어, 말의 흐름을 더 안정적으로 만드는 연습입니다.",
             steps: [
-                "금지어(어/음/그)를 정한다.",
-                "군더더기 말이 나오면 바로 멈추고 이전 문장을 다시 시작한다.",
-                "침묵이 들어간 문장을 다시 들어본다."
+                "한 문장을 끝까지 말한 뒤 0.3초 쉬어본다.",
+                "다음 문장을 여유 있게 이어서 말한다.",
+                "말이 급해지지 않았는지 다시 들어본다."
             ]
         ),
         .emphasizeKeywordTone: CoachDrill(

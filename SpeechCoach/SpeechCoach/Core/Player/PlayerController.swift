@@ -7,6 +7,7 @@
 
 import AVKit
 import Combine
+import FirebaseCrashlytics
 
 final class PlayerController: ObservableObject {
     let player = AVPlayer()
@@ -19,7 +20,6 @@ final class PlayerController: ObservableObject {
     
     private var endObserver: NSObjectProtocol?
     private var statusObserver: NSKeyValueObservation?
-    
     private var timeControlObserver: NSKeyValueObservation?
 
     func bindPlaybackEnd() {
@@ -37,6 +37,7 @@ final class PlayerController: ObservableObject {
             ) { [weak self] _ in
                 self?.didReachEnd = true
                 self?.isPlaying = false
+                self?.logPlayer("didReachEnd")
             }
     }
     
@@ -47,11 +48,14 @@ final class PlayerController: ObservableObject {
         ) { [weak self] player, _ in
             DispatchQueue.main.async {
                 self?.isPlaying = (player.timeControlStatus == .playing)
+                self?.logPlayer("timeControlStatus=\(player.timeControlStatus.rawValue)")
             }
         }
     }
     
     func load(url: URL) {
+        logPlayer("load url=\(url.lastPathComponent)")
+
         if timeControlObserver == nil {
             bindPlaybackState()
         }
@@ -61,6 +65,11 @@ final class PlayerController: ObservableObject {
         statusObserver = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
             DispatchQueue.main.async {
                 self?.isReadyToPlay = item.status == .readyToPlay
+                self?.logPlayer("item.status=\(item.status.rawValue) ready=\(item.status == .readyToPlay)")
+                
+                if item.status == .failed, let err = item.error {
+                    Crashlytics.crashlytics().record(error: err)
+                }
             }
         }
         bindPlaybackEnd()
@@ -80,15 +89,64 @@ final class PlayerController: ObservableObject {
         let safe = max(0, min(normalized, maxT))
         let time = CMTime(seconds: safe, preferredTimescale: 600)
         
-        player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
-            if autoplay { self.player.play() }
+        logPlayer("seek requested seconds=\(seconds) normalized=\(safe) autoplay=\(autoplay)")
+    
+        player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] finished in
+            guard let self else { return }
+            self.logPlayer("seek finished=\(finished) time=\(safe)")
+
+            if autoplay {
+                self.player.play()
+                self.logPlayer("autoplay after seek")
+            }
         }
-        print("▶️ seek to:", safe, "cur:", self.player.currentTime().seconds)
+    }
+    
+    func stopAndTearDown(deactivateAudioSession: Bool = false) {
+        logPlayer("stopAndTearDown deactivateAudioSession=\(deactivateAudioSession)")
+
+        player.pause()
+        logPlayer("pause")
+
+        player.replaceCurrentItem(with: nil)
+        logPlayer("replaceCurrentItem(nil)")
+        
+        if let endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
+            self.endObserver = nil
+        }
+        statusObserver?.invalidate()
+        statusObserver = nil
+        
+        timeControlObserver?.invalidate()
+        timeControlObserver = nil
+        
+        DispatchQueue.main.async {
+            self.isReadyToPlay = false
+            self.didReachEnd = false
+            self.isPlaying = false
+        }
+        
+        if deactivateAudioSession {
+            let session = AVAudioSession.sharedInstance()
+            do {
+                try session.setActive(false, options: [.notifyOthersOnDeactivation])
+                logPlayer("audioSession deactivated")
+            } catch {
+                Crashlytics.crashlytics().record(error: error)
+                logPlayer("audioSession deactivate failed")
+            }
+        }
     }
     
     deinit {
+        logPlayer("deinit")
         if let endObserver {
             NotificationCenter.default.removeObserver(endObserver)
         }
+    }
+    
+    private func logPlayer(_ message: String) {
+        Crashlytics.crashlytics().log("Player: \(message)")
     }
 }

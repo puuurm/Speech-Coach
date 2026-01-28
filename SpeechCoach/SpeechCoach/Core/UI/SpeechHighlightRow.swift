@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVKit
+import FirebaseCrashlytics
 
 struct SpeechHighlightRow: View {
     let item: SpeechHighlight
@@ -63,6 +64,7 @@ extension SpeechHighlightRow {
                 case let .playable(play) = playbackPolicy {
             Button {
                 play(item.start)
+
             } label: {
                 Text("재생")
                     .font(.caption.weight(.semibold))

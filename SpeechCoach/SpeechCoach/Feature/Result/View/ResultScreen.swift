@@ -8,6 +8,7 @@
 import SwiftUI
 import AlertToast
 import AVKit
+import FirebaseCrashlytics
 
 extension ResultScreen {
     enum ResultTab: String, CaseIterable, Identifiable {
@@ -111,6 +112,11 @@ struct ResultScreen: View {
             }
             .navigationTitle("분석 결과")
             .navigationBarTitleDisplayMode(.inline)
+        }
+        .onAppear {
+            Crashlytics.crashlytics().setCustomValue("ResultScreen", forKey: "screen")
+            Crashlytics.crashlytics().setCustomValue(recordID.uuidString, forKey: "record_id")
+            Crashlytics.crashlytics().log("Enter ResultScreen record_id=\(recordID)")
         }
         .toast(isPresenting: $showCopyAlert){
             AlertToast(

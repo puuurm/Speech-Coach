@@ -15,7 +15,6 @@ iOS 기반 스피치 코칭 앱입니다.
 | ![](img/analysis-overview.png) | ![](img/analysis-detail.png) | ![](img/note.png) | ![](img/coaching.png) |
 
 
----
 
 ## ✨ Key Features
 
@@ -34,7 +33,7 @@ iOS 기반 스피치 코칭 앱입니다.
 - 하이라이트 기반 재생
 - 최근 기록 중심의 결과 화면 구성
 
----
+
 
 ## 🛠 Tech Stack
 
@@ -45,7 +44,7 @@ iOS 기반 스피치 코칭 앱입니다.
 - **Media**: AVFoundation  
 - **Monitoring**: Firebase Crashlytics  
 
----
+
 
 ## 🧩 Architecture Overview
 
@@ -54,7 +53,7 @@ iOS 기반 스피치 코칭 앱입니다.
 - PlayerController를 통한 AVPlayer 제어 일원화
 - 분석 → 피드백 → 재생 흐름을 단방향 구조로 설계
 
----
+
 
 ## 🤔 Technical Challenges
 
@@ -70,7 +69,7 @@ iOS 기반 스피치 코칭 앱입니다.
 - MVP 단계에서도 이후 기능 확장을 고려한 구조 설계
 - Result / Highlight / Coaching 영역 분리
 
----
+
 
 ## 📦 Release
 
@@ -82,7 +81,7 @@ iOS 기반 스피치 코칭 앱입니다.
 
 👉 [Release Notes 보기](https://github.com/puuurm/Speech-Coach/releases)
 
----
+
 
 ## 🚀 Roadmap
 
@@ -91,10 +90,25 @@ iOS 기반 스피치 코칭 앱입니다.
 - 사용자 피드백 기반 UX 개선
 - 시각화 리포트 추가
 
----
+
 
 ## 🧑‍💻 Author
 
 - iOS Developer  
 - 개인 프로젝트 / App Store 배포 경험  
 - 관심사: UX 중심 앱 설계, 사용자 행동 분석
+
+---
+
+## 🔧 Setup
+
+This project uses Firebase (Crashlytics).
+
+> `GoogleService-Info.plist` is intentionally **not included** in this repository for security reasons.
+
+To build the app:
+1. Create your own Firebase project
+2. Add an iOS app with your Bundle ID
+3. Download `GoogleService-Info.plist`
+4. Place it at:
+   `SpeechCoach/SpeechCoach/GoogleService-Info.plist`

@@ -23,7 +23,7 @@ struct FeedbackResultSheet: View {
     
     var body: some View {
         NavigationStack {
-            ResultScreen(
+            ResultRootView(
                 recordID: recordID,
                 highlightContext: .feedbackAnalysis,
                 playbackPolicy: .playable { start in

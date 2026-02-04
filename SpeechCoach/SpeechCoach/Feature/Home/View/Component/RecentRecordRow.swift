@@ -11,7 +11,7 @@ struct RecentRecordRow: View {
     let record: SpeechRecord
     
     private var isTranscriptUnreliable: Bool {
-        TranscriptQuality.shouldHide(
+        TranscriptQualityChecker.shouldHide(
             transcript: record.transcript,
             segments: record.insight?.transcriptSegments
         )

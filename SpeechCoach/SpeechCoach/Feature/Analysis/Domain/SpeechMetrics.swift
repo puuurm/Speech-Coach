@@ -5,7 +5,6 @@
 //  Created by Heejung Yang on 1/2/26.
 //
 
-// Analysis/Metrics/SpeechMetrics.swift
 import Foundation
 
 struct SpeechMetrics: Hashable, Codable {
@@ -17,4 +16,3 @@ struct SpeechMetrics: Hashable, Codable {
     let paceVariability: Double?
     let spikeCount: Int?
 }
-

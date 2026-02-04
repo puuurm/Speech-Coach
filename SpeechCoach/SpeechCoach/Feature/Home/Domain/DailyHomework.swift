@@ -14,4 +14,3 @@ struct DailyHomework: Identifiable, Codable, Hashable {
     let sourceHighlughtID: UUID
     var isCompleted: Bool
 }
-	

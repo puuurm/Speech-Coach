@@ -399,7 +399,7 @@ private extension VideoPlayerScreen {
             VStack(alignment: .leading, spacing: 4) {
                 Text("전체 스크립트 (요약)")
                     .font(.subheadline.weight(.medium))
-                let hide = TranscriptQuality.shouldHide(transcript: record.transcript, segments: record.insight?.transcriptSegments ?? [])
+                let hide = TranscriptQualityChecker.shouldHide(transcript: record.transcript, segments: record.insight?.transcriptSegments ?? [])
                 
                 if hide {
                     Text("주변 소음이 많아 텍스트 변환 정확도가 낮아요.\n조용한 환경에서 다시 녹음해 주세요.")
@@ -676,7 +676,7 @@ private extension VideoPlayerScreen {
         let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
         let now = Date()
         
-        let hide = TranscriptQuality.shouldHide(
+        let hide = TranscriptQualityChecker.shouldHide(
             transcript: cleaned,
             segments: segments
         )

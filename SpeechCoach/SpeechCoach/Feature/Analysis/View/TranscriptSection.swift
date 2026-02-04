@@ -13,7 +13,7 @@ struct TranscriptSection: View {
     @State private var showAllTranscript: Bool = false
     
     private var shouldHideTranscript: Bool {
-        TranscriptQuality.shouldHide(
+        TranscriptQualityChecker.shouldHide(
             transcript: record.transcript,
             segments: record.insight?.transcriptSegments
         )
@@ -21,7 +21,7 @@ struct TranscriptSection: View {
     
     private var transcriptText: String {
         if shouldHideTranscript {
-            return TranscriptQuality.hideMessage
+            return TranscriptQualityChecker.hideMessage
         }
         return record.transcript.isEmpty ? "인식된 텍스트가 없어요." : record.transcript
     }

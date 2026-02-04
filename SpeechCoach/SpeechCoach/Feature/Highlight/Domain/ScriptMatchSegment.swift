@@ -9,10 +9,10 @@ import Foundation
 
 struct ScriptMatchSegment: Identifiable, Hashable, Codable {
     enum Kind: String, Codable, CaseIterable, Hashable {
-         case matched        // 거의 동일
-         case paraphrased    // 의미 유사
-         case added          // 대본에 없는 발화
-         case omitted        // 대본에 있었는데 누락
+         case matched
+         case paraphrased
+         case added
+         case omitted
      }
     
     let id: UUID

@@ -15,13 +15,12 @@ final class ResultRecommendationsViewModel: ObservableObject {
 
     @Published private(set) var suggestions: [TemplateSuggestion] = []
 
-    // thresholds는 앱 성격에 맞게 조정
     struct PaceThresholds {
         var slowWPM: Int = 110
         var fastWPM: Int = 170
-        var slowRatioTrigger: Double = 0.35   // 느린 구간이 35% 이상이면 “느림”쪽 개입
+        var slowRatioTrigger: Double = 0.35
         var fastRatioTrigger: Double = 0.35
-        var variabilityTrigger: Double = 0.25 // (정규화/정의 방식에 맞게 조정)
+        var variabilityTrigger: Double = 0.25
         var spikeTrigger: Int = 3
     }
 
@@ -31,9 +30,6 @@ final class ResultRecommendationsViewModel: ObservableObject {
         self.thresholds = thresholds
     }
 
-    /// ResultScreen에서 호출: (1) SpeedSeriesBuilder로 만든 SpeedSeries + (2) record의 평균 WPM을 받아서
-    /// - CoachingSignals(판단 근거) 생성
-    /// - suggestions(추천 템플릿) 생성
     func buildSuggestions(
         recordID: UUID,
         averageWPM: Int,
@@ -58,7 +54,6 @@ final class ResultRecommendationsViewModel: ObservableObject {
         thresholds: PaceThresholds
     ) -> CoachingSignals {
 
-        // bin별 WPM 계산
         let binWPMs: [Double] = speedSeries.bins.map { bin in
             let seconds = max(1.0, bin.end - bin.start)
             return (Double(bin.wordCount) / seconds) * 60.0
@@ -67,19 +62,16 @@ final class ResultRecommendationsViewModel: ObservableObject {
         let binCount = binWPMs.count
         let total = max(1, binCount)
 
-        // 분포 계산
         let sorted = binWPMs.sorted()
         let medianWPM = sorted.isEmpty ? nil : Int(sorted[sorted.count / 2])
         let p10WPM = sorted.isEmpty ? nil : Int(sorted[Int(Double(sorted.count) * 0.1)])
         let p90WPM = sorted.isEmpty ? nil : Int(sorted[Int(Double(sorted.count) * 0.9)])
 
-        // 느림/빠름 비율
         let slowCount = binWPMs.filter { $0 < Double(thresholds.slowWPM) }.count
         let fastCount = binWPMs.filter { $0 > Double(thresholds.fastWPM) }.count
         let slowRatio = Double(slowCount) / Double(total)
         let fastRatio = Double(fastCount) / Double(total)
 
-        // 변동성 (CV)
         let variability: Double? = {
             guard binWPMs.count >= 2 else { return nil }
             let mean = binWPMs.reduce(0, +) / Double(binWPMs.count)
@@ -90,7 +82,6 @@ final class ResultRecommendationsViewModel: ObservableObject {
             return sqrt(variance) / mean
         }()
 
-        // 스파이크 카운트
         let spikeCount: Int = {
             guard binWPMs.count >= 2 else { return 0 }
             var spikes = 0
@@ -119,10 +110,9 @@ final class ResultRecommendationsViewModel: ObservableObject {
             binCount: binCount,
             slowThresholdWPM: thresholds.slowWPM,
             fastThresholdWPM: thresholds.fastWPM,
-            spikeDeltaThresholdWPM: Int(0.35 * 100) // 의미만 남김
+            spikeDeltaThresholdWPM: Int(0.35 * 100)
         )
 
-        // 1) 전체 속도 느림
         if averageWPM < thresholds.slowWPM {
             signals.append(
                 CoachingSignal(
@@ -134,7 +124,6 @@ final class ResultRecommendationsViewModel: ObservableObject {
             )
         }
 
-        // 2) 전체 속도 빠름
         if averageWPM > thresholds.fastWPM {
             signals.append(
                 CoachingSignal(
@@ -146,7 +135,6 @@ final class ResultRecommendationsViewModel: ObservableObject {
             )
         }
 
-        // 3) 속도 불안정
         if let variability, variability >= thresholds.variabilityTrigger {
             signals.append(
                 CoachingSignal(
@@ -158,7 +146,6 @@ final class ResultRecommendationsViewModel: ObservableObject {
             )
         }
 
-        // 4) 급격한 스파이크
         if spikeCount >= thresholds.spikeTrigger {
             signals.append(
                 CoachingSignal(

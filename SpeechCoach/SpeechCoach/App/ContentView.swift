@@ -30,7 +30,7 @@ struct ContentView: View {
                         )
                         .environmentObject(pc)
                     case .result(let id):
-                        ResultScreen(
+                        ResultRootView(
                             recordID: id,
                             highlightContext: .homeAnalysis,
                             playbackPolicy: .hidden,

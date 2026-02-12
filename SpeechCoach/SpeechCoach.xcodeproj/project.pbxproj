@@ -12,7 +12,18 @@
 		B0CF99D42F0FB936009FE2F9 /* SwiftUITooltip in Frameworks */ = {isa = PBXBuildFile; productRef = B0CF99D32F0FB936009FE2F9 /* SwiftUITooltip */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		B05A4EB52F3D9ADE00C84856 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B082C2BF2ED0178C00B07A71 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B082C2C62ED0178C00B07A71;
+			remoteInfo = SpeechCoach;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		B05A4EAF2F3D9ADE00C84856 /* Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B082C2C72ED0178C00B07A71 /* SpeechCoach.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpeechCoach.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -21,8 +32,18 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Tests/Tests.swift,
+				Tests/TestsLaunchTests.swift,
 			);
 			target = B082C2C62ED0178C00B07A71 /* SpeechCoach */;
+		};
+		B05A4ED72F3DA0EB00C84856 /* Exceptions for "SpeechCoach" folder in "Tests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Tests/Tests.swift,
+				Tests/TestsLaunchTests.swift,
+			);
+			target = B05A4EAE2F3D9ADE00C84856 /* Tests */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -31,6 +52,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				B05A3EF42F29CF9600C84856 /* Exceptions for "SpeechCoach" folder in "SpeechCoach" target */,
+				B05A4ED72F3DA0EB00C84856 /* Exceptions for "SpeechCoach" folder in "Tests" target */,
 			);
 			path = SpeechCoach;
 			sourceTree = "<group>";
@@ -38,6 +60,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		B05A4EAC2F3D9ADE00C84856 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B082C2C42ED0178C00B07A71 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -63,6 +92,7 @@
 			isa = PBXGroup;
 			children = (
 				B082C2C72ED0178C00B07A71 /* SpeechCoach.app */,
+				B05A4EAF2F3D9ADE00C84856 /* Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +100,26 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		B05A4EAE2F3D9ADE00C84856 /* Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B05A4EB72F3D9ADE00C84856 /* Build configuration list for PBXNativeTarget "Tests" */;
+			buildPhases = (
+				B05A4EAB2F3D9ADE00C84856 /* Sources */,
+				B05A4EAC2F3D9ADE00C84856 /* Frameworks */,
+				B05A4EAD2F3D9ADE00C84856 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B05A4EB62F3D9ADE00C84856 /* PBXTargetDependency */,
+			);
+			name = Tests;
+			packageProductDependencies = (
+			);
+			productName = Tests;
+			productReference = B05A4EAF2F3D9ADE00C84856 /* Tests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		B082C2C62ED0178C00B07A71 /* SpeechCoach */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = B082C2D22ED0178E00B07A71 /* Build configuration list for PBXNativeTarget "SpeechCoach" */;
@@ -106,6 +156,10 @@
 				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
+					B05A4EAE2F3D9ADE00C84856 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = B082C2C62ED0178C00B07A71;
+					};
 					B082C2C62ED0178C00B07A71 = {
 						CreatedOnToolsVersion = 26.1.1;
 					};
@@ -131,11 +185,19 @@
 			projectRoot = "";
 			targets = (
 				B082C2C62ED0178C00B07A71 /* SpeechCoach */,
+				B05A4EAE2F3D9ADE00C84856 /* Tests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		B05A4EAD2F3D9ADE00C84856 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B082C2C52ED0178C00B07A71 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -169,6 +231,13 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		B05A4EAB2F3D9ADE00C84856 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B082C2C32ED0178C00B07A71 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -178,7 +247,55 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		B05A4EB62F3D9ADE00C84856 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B082C2C62ED0178C00B07A71 /* SpeechCoach */;
+			targetProxy = B05A4EB52F3D9ADE00C84856 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		B05A4EB82F3D9ADE00C84856 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V9TZ6H4V4N;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.heejung.Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = SpeechCoach;
+			};
+			name = Debug;
+		};
+		B05A4EB92F3D9ADE00C84856 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V9TZ6H4V4N;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.heejung.Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = SpeechCoach;
+			};
+			name = Release;
+		};
 		B082C2D02ED0178E00B07A71 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -393,6 +510,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		B05A4EB72F3D9ADE00C84856 /* Build configuration list for PBXNativeTarget "Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B05A4EB82F3D9ADE00C84856 /* Debug */,
+				B05A4EB92F3D9ADE00C84856 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		B082C2C22ED0178C00B07A71 /* Build configuration list for PBXProject "SpeechCoach" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

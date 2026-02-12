@@ -21,7 +21,7 @@ final class ResultViewModel: ObservableObject {
     
     // MARK: - Lifecycle
     
-    func load(using store: SpeechRecordStore) async {
+    func load(using store: SpeechRecordStore, analyzer: ResultAnalyzing = ResultAnalyzer()) async {
         state = .loading
         
         do {
@@ -33,40 +33,23 @@ final class ResultViewModel: ObservableObject {
             
             guard let metrics = store.metrics(with: record.id) else { return }
             
-            let speedSeries = SpeedSeriesBuilder.make(
-                duration: record.duration,
-                transcript: record.transcript,
-                segments: record.insight?.transcriptSegments,
-                binSeconds: 5
-            )
-            
-            let speechType: SpeechTypeSummary?
-            if let segments = record.insight?.transcriptSegments, !segments.isEmpty {
-                var summary = SpeechTypeSummarizer.summarize(
+            let analysis = analyzer.analyze(
+                ResultAnalysisInput(
                     duration: record.duration,
-                    wordsPerMinute: metrics.wordsPerMinute,
-                    segments: segments
-                )
-                summary.oneLiner = SpeechTypeOneLinerBuilder.make(from: summary)
-                speechType = summary
-            } else {
-                speechType = nil
-            }
-            
-            let noteDraft = hydrateNote(from: record)
-            
-            let suggestions: [TemplateSuggestion] = []
+                    transcript: record.transcript,
+                    segments: record.insight?.transcriptSegments,
+                    metrics: metrics
+                ))
             
             let loaded = LoadedState(
                 record: record,
                 metrics: metrics,
                 previousRecord: previousRecord,
                 previousMetrics: nil,
-                speechType: speechType,
-                suggestions: suggestions,
-                note: noteDraft
+                speechType: analysis.speechType,
+                suggestions: [],
+                note: hydrateNote(from: record)
             )
-            
             state = .loaded(loaded)
         } catch {
             state = .failed("불러오기 실패: \(error.localizedDescription)")

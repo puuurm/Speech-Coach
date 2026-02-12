@@ -152,19 +152,6 @@ enum SpeechTypeSummarizer {
         if longPerMin >= 1.5 { return .choppy }
         return .smooth
     }
-
-    
-//    static func inferStructureType(segments: [TranscriptSegment]) -> StructureType {
-//        let text = segments.map(\.text).joined(separator: " ")
-//        let hasIntro = text.contains("결론") || text.contains("먼저") || text.contains("첫째")
-//        let hasWrap = text.contains("정리") || text.contains("마무리") || text.contains("결과적으로")
-//        
-//        switch (hasIntro, hasWrap) {
-//        case (true, true): return .clear
-//        case (true, false), (false, true): return .partial
-//        default: return .unclear
-//        }
-//    }
     
     static func inferStructureType(segments: [TranscriptSegment]) -> StructureType {
         let text = segments.map(\.text).joined(separator: " ")

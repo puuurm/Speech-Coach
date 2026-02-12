@@ -9,9 +9,10 @@ import SwiftUI
 import AVKit
 import Speech
 import SwiftUITooltip
-import FirebaseCrashlytics
 
 struct VideoPlayerScreen: View {
+    @Environment(\.crashLogger) private var crashLogger
+    
     let videoURL: URL
     let title: String
     let startTime: TimeInterval?
@@ -121,8 +122,8 @@ struct VideoPlayerScreen: View {
         .navigationTitle(mode == .normal ? "영상 확인" : "하이라이트 확인")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            Crashlytics.crashlytics().setCustomValue("VideoPlayerScreen", forKey: "screen")
-            Crashlytics.crashlytics().setCustomValue(title, forKey: "video_title")
+            crashLogger.setValue("VideoPlayerScreen", forKey: "screen")
+            crashLogger.setValue(title, forKey: "video_title")
             clog("appear url=\(videoURL.lastPathComponent) startTime=\(startTime ?? -1) autoplay=\(autoplay) mode=\(mode)")
             
             AudioSessionManager.configureForPlayback()
@@ -546,8 +547,8 @@ private extension VideoPlayerScreen {
         let runID = UUID()
         analysisRunID = runID
         
-        Crashlytics.crashlytics().setCustomValue(runID.uuidString, forKey: "analysis_run_id")
-        Crashlytics.crashlytics().setCustomValue("start", forKey: "analysis_phase")
+        crashLogger.setValue(runID.uuidString, forKey: "analysis_run_id")
+        crashLogger.setValue("start", forKey: "analysis_phase")
         clog("analysis start runID=\(runID) playbackEnded=\(playbackEnded)")
         
         analysisTask = Task {
@@ -572,7 +573,7 @@ private extension VideoPlayerScreen {
                         playbackEnded = true
                     }
                     
-                    Crashlytics.crashlytics().setCustomValue("done", forKey: "analysis_phase")
+                    crashLogger.setValue("done", forKey: "analysis_phase")
                     clog("analysis done runID=\(runID) highlights=\(record.highlights.count) transcriptLen=\(record.transcript.count)")
                     
                     phase = playbackEnded ? .ready : .waitingForPlaybackEnd
@@ -582,14 +583,14 @@ private extension VideoPlayerScreen {
             } catch is CancellationError {
                 await MainActor.run {
                     guard self.analysisRunID == runID else { return }
-                    Crashlytics.crashlytics().setCustomValue("cancelled", forKey: "analysis_phase")
+                    crashLogger.setValue("cancelled", forKey: "analysis_phase")
                     clog("analysis cancelled runID=\(runID)")
                     isStartingAnalysis = false
                     analysisTask = nil
                 }
             } catch {
-                Crashlytics.crashlytics().setCustomValue("failed", forKey: "analysis_phase")
-                Crashlytics.crashlytics().record(error: error)
+                crashLogger.setValue("failed", forKey: "analysis_phase")
+                crashLogger.record(error)
                 clog("analysis failed runID=\(runID) error=\(String(describing: error))")
 
                 await MainActor.run {
@@ -639,16 +640,16 @@ private extension VideoPlayerScreen {
     }
     
     func runAnalysis() async throws -> (SpeechRecord, SpeechMetrics) {
-        Crashlytics.crashlytics().setCustomValue("runAnalysis_start", forKey: "analysis_phase")
+        crashLogger.setValue("runAnalysis_start", forKey: "analysis_phase")
         clog("runAnalysis start")
 
         let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko-KR"))!
         let audioURL = try await speechService.exportAudio(from: videoURL)
         
-        Crashlytics.crashlytics().setCustomValue("transcribe", forKey: "analysis_phase")
+        crashLogger.setValue("transcribe", forKey: "analysis_phase")
         let rawTranscript = try await speechService.transcribe(videoURL: videoURL)
         
-        Crashlytics.crashlytics().setCustomValue("recognizeDetailed", forKey: "analysis_phase")
+        crashLogger.setValue("recognizeDetailed", forKey: "analysis_phase")
         let transcriptResult = try await speechService.recognizeDetailed(url: audioURL, with: recognizer)
         
         let cleaned = transcriptResult.cleanedText
@@ -670,9 +671,8 @@ private extension VideoPlayerScreen {
         
         
         let recordID = UUID()
-        Crashlytics.crashlytics().setCustomValue(recordID.uuidString, forKey: "record_id")
-
-        Crashlytics.crashlytics().setCustomValue("importVideo", forKey: "analysis_phase")
+        crashLogger.setValue(recordID.uuidString, forKey: "record_id")
+        crashLogger.setValue("importVideo", forKey: "analysis_phase")
         let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
         let now = Date()
         
@@ -709,7 +709,7 @@ private extension VideoPlayerScreen {
             highlights: []
         )
 
-        Crashlytics.crashlytics().setCustomValue("buildHighlights", forKey: "analysis_phase")
+        crashLogger.setValue("buildHighlights", forKey: "analysis_phase")
         let highlights = SpeechHighlightBuilder
             .makeHighlights(
                 duration: duration,
@@ -728,7 +728,7 @@ private extension VideoPlayerScreen {
             spikeCount: nil
         )
 
-        Crashlytics.crashlytics().setCustomValue("runAnalysis_done", forKey: "analysis_phase")
+        crashLogger.setValue("runAnalysis_done", forKey: "analysis_phase")
         clog("runAnalysis done transcriptLen=\(cleaned.count) highlights=\(highlights.count)")
 
         return (record, metrics)
@@ -762,7 +762,7 @@ private extension VideoPlayerScreen {
     }
     
     private func clog(_ message: String) {
-        Crashlytics.crashlytics().log("VideoPlayerScreen: \(message)")
+        crashLogger.log("VideoPlayerScreen: \(message)")
     }
 
 }

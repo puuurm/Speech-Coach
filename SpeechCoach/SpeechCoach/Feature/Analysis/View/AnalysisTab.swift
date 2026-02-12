@@ -6,9 +6,10 @@
 //
 
 import SwiftUI
-import FirebaseCrashlytics
 
 struct AnalysisTab: View {
+    @Environment(\.crashLogger) private var crashLogger
+    
     let record: SpeechRecord
     let metrics: SpeechMetrics
     
@@ -44,9 +45,8 @@ struct AnalysisTab: View {
                 case .insertMemo(let snippet):
                     insertIntoImprovements(snippet)
                 case .playHighlight(let highlight):
-                    Crashlytics.crashlytics().setCustomValue(highlight.id.uuidString, forKey: "highlight_id")
-                    Crashlytics.crashlytics().log("Action playHighlight id=\(highlight.id) start=\(highlight.start) end=\(highlight.end)")
-
+                    crashLogger.setValue(highlight.id.uuidString, forKey: "highlight_id")
+                    crashLogger.log("Action playHighlight id=\(highlight.id) start=\(highlight.start) end=\(highlight.end)")
                     presentCoachAssistant(highlight)
                 case .selectHighlight(let highlight):
                     selectedHighlight = highlight

@@ -7,7 +7,6 @@
 
 import AVKit
 import Combine
-import FirebaseCrashlytics
 
 final class PlayerController: ObservableObject {
     let player = AVPlayer()
@@ -15,12 +14,17 @@ final class PlayerController: ObservableObject {
     @Published var fallbackDuration: TimeInterval = 0
     @Published var isReadyToPlay: Bool = false
     @Published var didReachEnd: Bool = false
-    
     @Published var isPlaying: Bool = false
     
     private var endObserver: NSObjectProtocol?
     private var statusObserver: NSKeyValueObservation?
     private var timeControlObserver: NSKeyValueObservation?
+    
+    private let crashLogger: CrashLogging
+    
+    init(crashLogger: CrashLogging = NoOptionsCrashLogger()) {
+        self.crashLogger = crashLogger
+    }
 
     func bindPlaybackEnd() {
         if let endObserver {
@@ -68,7 +72,7 @@ final class PlayerController: ObservableObject {
                 self?.logPlayer("item.status=\(item.status.rawValue) ready=\(item.status == .readyToPlay)")
                 
                 if item.status == .failed, let err = item.error {
-                    Crashlytics.crashlytics().record(error: err)
+                    self?.crashLogger.record(err)
                 }
             }
         }
@@ -133,7 +137,7 @@ final class PlayerController: ObservableObject {
                 try session.setActive(false, options: [.notifyOthersOnDeactivation])
                 logPlayer("audioSession deactivated")
             } catch {
-                Crashlytics.crashlytics().record(error: error)
+                crashLogger.record(error)
                 logPlayer("audioSession deactivate failed")
             }
         }
@@ -147,6 +151,6 @@ final class PlayerController: ObservableObject {
     }
     
     private func logPlayer(_ message: String) {
-        Crashlytics.crashlytics().log("Player: \(message)")
+        crashLogger.log("Player: \(message)")
     }
 }

@@ -9,12 +9,18 @@ import AlertToast
 import SwiftUI
 
 struct ContentView: View {
+    private let crashLogger: CrashLogging
     @StateObject private var homeViewModel = HomeViewModel()
     @StateObject private var homeworkStore = HomeworkStore()
     @EnvironmentObject private var recordStore: SpeechRecordStore
     @StateObject private var router = NavigationRouter()
-    @StateObject private var pc = PlayerController()
+    @StateObject private var pc: PlayerController
     @State private var failedToSave = false
+    
+    init(crashLogger: CrashLogging) {
+        self.crashLogger = crashLogger
+        _pc = StateObject(wrappedValue: PlayerController(crashLogger: crashLogger))
+    }
     
     var body: some View {
         NavigationStack(path: $router.path) {
@@ -47,7 +53,6 @@ struct ContentView: View {
                 }
         }
         .environmentObject(homeworkStore)
-        .environmentObject(recordStore)
         .environmentObject(router)
         .toast(isPresenting: $failedToSave) {
             AlertToast(

@@ -8,16 +8,20 @@
 import Foundation
 import Combine
 import CoreData
-import FirebaseCrashlytics
 
 final class SpeechRecordStore: ObservableObject {
     @Published private(set) var records: [SpeechRecord] = []
     
     private var context: NSManagedObjectContext
     private let maxRecentCount: Int = 20
+    private let crashLogger: CrashLogging
     
-    init(context: NSManagedObjectContext) {
+    init(
+        context: NSManagedObjectContext,
+        crashLogger: CrashLogging = NoOptionsCrashLogger()
+    ) {
         self.context = context
+        self.crashLogger = crashLogger
         self.context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         self.context.automaticallyMergesChangesFromParent = true
         reload()
@@ -83,9 +87,9 @@ final class SpeechRecordStore: ObservableObject {
                 }
                 try self.context.save()
             } catch {
-                Crashlytics.crashlytics().setCustomValue(record.id.uuidString, forKey: "record_id")
-                 Crashlytics.crashlytics().setCustomValue("upsertBundle", forKey: "store_action")
-                 Crashlytics.crashlytics().record(error: error)
+                self.crashLogger.setValue(record.id.uuidString, forKey: "record_id")
+                self.crashLogger.setValue("upsertBundle", forKey: "store_action")
+                self.crashLogger.record(error)
                 assertionFailure("❌ upsertBundle failed: \(error)")
             }
         }
@@ -102,10 +106,10 @@ final class SpeechRecordStore: ObservableObject {
             try context.save()
             objectWillChange.send()
         } catch {
-            Crashlytics.crashlytics().setCustomValue(recordID.uuidString, forKey: "record_id")
-            Crashlytics.crashlytics().setCustomValue("saveCoachingMemo", forKey: "store_action")
-            Crashlytics.crashlytics().log("SpeechRecordStore: memo save failed length=\(trimmed.count)")
-            Crashlytics.crashlytics().record(error: error)
+            crashLogger.setValue(recordID.uuidString, forKey: "record_id")
+            crashLogger.setValue("saveCoachingMemo", forKey: "store_action")
+            crashLogger.log("SpeechRecordStore: memo save failed length=\(trimmed.count)")
+            crashLogger.record(error)
 
             context.rollback()
             throw error
@@ -214,9 +218,9 @@ final class SpeechRecordStore: ObservableObject {
             }
             self.reload()
         } catch {
-            Crashlytics.crashlytics().setCustomValue("persist", forKey: "store_action")
-            Crashlytics.crashlytics().log("SpeechRecordStore: persist failed")
-            Crashlytics.crashlytics().record(error: error)
+            crashLogger.setValue("persist", forKey: "store_action")
+            crashLogger.log("SpeechRecordStore: persist failed")
+            crashLogger.record(error)
             context.rollback()
             throw error
         }
@@ -426,7 +430,7 @@ final class SpeechRecordStore: ObservableObject {
     }
     
     private func clog(_ message: String) {
-        Crashlytics.crashlytics().log("SpeechRecordStore: \(message)")
+        crashLogger.log("SpeechRecordStore: \(message)")
     }
 
 }

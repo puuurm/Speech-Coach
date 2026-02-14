@@ -8,6 +8,7 @@
 import SwiftUI
 import AlertToast
 import AVKit
+import SpeechCoachAnalysis
 
 extension ResultScreenLegacy {
     enum ResultTab: String, CaseIterable, Identifiable {

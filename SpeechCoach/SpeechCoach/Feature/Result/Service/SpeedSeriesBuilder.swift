@@ -6,99 +6,160 @@
 //
 
 import Foundation
+import SpeechCoachAnalysis
 
-enum SpeedSeriesBuilder {
+enum SpeechHighlightBuilder {
 
-    static func make(
+    static func makeHighlights(
         duration: TimeInterval,
-        transcript: String,
-        segments: [TranscriptSegment]?,
-        binSeconds: TimeInterval = 5
-    ) -> SpeedSeries {
-        let safeDuration = max(0, duration)
-        guard safeDuration > 0 else {
-            return SpeedSeries(binSeconds: binSeconds, bins: [])
+        segments: [TranscriptSegment]
+    ) -> [SpeechHighlight] {
+
+        var result: [SpeechHighlight] = []
+
+        let minHighlightLength: TimeInterval = 0.5
+        let overlapTolerance: TimeInterval = 0.0
+
+        func clamp(_ t: TimeInterval) -> TimeInterval {
+            min(max(0, t), duration)
         }
 
-        if let segments, segments.isEmpty == false {
-            return makeFromSegments(duration: safeDuration, segments: segments, binSeconds: binSeconds)
-        } else {
-            return makeFallback(duration: safeDuration, transcript: transcript, binSeconds: binSeconds)
-        }
-    }
-
-    private static func makeFromSegments(
-        duration: TimeInterval,
-        segments: [TranscriptSegment],
-        binSeconds: TimeInterval
-    ) -> SpeedSeries {
-        let bins = buildEmptyBins(duration: duration, binSeconds: binSeconds)
-        guard bins.isEmpty == false else { return SpeedSeries(binSeconds: binSeconds, bins: []) }
-
-        var counts = Array(repeating: 0, count: bins.count)
-
-        for seg in segments {
-            let words = tokenize(seg.text).count
-            if words == 0 { continue }
-
-            let idx = binIndex(for: seg.startTime, binSeconds: binSeconds)
-            if idx >= 0, idx < counts.count {
-                counts[idx] += words
+        func severityRank(_ s: HighlightSeverity) -> Int {
+            switch s {
+            case .low: return 0
+            case .medium: return 1
+            case .high: return 2
             }
         }
 
-        let filled: [SpeedBin] = zip(bins, counts).map { bin, c in
-            SpeedBin(start: bin.start, end: bin.end, wordCount: c)
-        }
-        return SpeedSeries(binSeconds: binSeconds, bins: filled)
-    }
+        func overlaps(_ a: SpeechHighlight, _ b: SpeechHighlight) -> Bool {
+            let aStart = a.start
+            let aEnd = a.end
+            let bStart = b.start
+            let bEnd = b.end
 
-    private static func makeFallback(
-        duration: TimeInterval,
-        transcript: String,
-        binSeconds: TimeInterval
-    ) -> SpeedSeries {
-        let bins = buildEmptyBins(duration: duration, binSeconds: binSeconds)
-        guard bins.isEmpty == false else { return SpeedSeries(binSeconds: binSeconds, bins: []) }
-
-        let words = tokenize(transcript)
-        guard words.isEmpty == false else {
-            return SpeedSeries(binSeconds: binSeconds, bins: bins.map { SpeedBin(start: $0.start, end: $0.end, wordCount: 0) })
+            return max(aStart, bStart) < (min(aEnd, bEnd) - overlapTolerance)
         }
 
-        let perBin = Double(words.count) / Double(bins.count)
-        let filled = bins.enumerated().map { i, b in
-            let start = Int(round(Double(i) * perBin))
-            let end = Int(round(Double(i + 1) * perBin))
-            let c = max(0, min(words.count, end) - min(words.count, start))
-            return SpeedBin(start: b.start, end: b.end, wordCount: c)
+        func sanitized(_ h: SpeechHighlight) -> SpeechHighlight? {
+            let s = clamp(h.start)
+            let e = clamp(h.end)
+
+            guard e > s else { return nil }
+            guard (e - s) >= minHighlightLength else { return nil }
+
+            return SpeechHighlight(
+                title: h.title,
+                detail: h.detail,
+                start: s,
+                end: e,
+                reason: h.reason,
+                category: h.category,
+                severity: h.severity
+            )
         }
 
-        return SpeedSeries(binSeconds: binSeconds, bins: filled)
-    }
+        func upsert(_ h: SpeechHighlight) {
+            guard let candidate = sanitized(h) else { return }
 
-    private static func buildEmptyBins(duration: TimeInterval, binSeconds: TimeInterval) -> [(start: TimeInterval, end: TimeInterval)] {
-        let size = max(1.0, binSeconds)
-        let count = Int(ceil(duration / size))
-        guard count > 0 else { return [] }
+            for i in result.indices {
+                if overlaps(result[i], candidate) {
+                    if severityRank(candidate.severity) > severityRank(result[i].severity) {
+                        result[i] = candidate
+                    }
+                    return // 겹치면 처리 끝
+                }
+            }
 
-        var result: [(TimeInterval, TimeInterval)] = []
-        result.reserveCapacity(count)
-
-        for i in 0..<count {
-            let s = Double(i) * size
-            let e = min(duration, Double(i + 1) * size)
-            result.append((s, e))
+            result.append(candidate)
         }
-        return result
-    }
 
-    private static func binIndex(for time: TimeInterval, binSeconds: TimeInterval) -> Int {
-        let size = max(1.0, binSeconds)
-        return Int(floor(time / size))
-    }
+        let gaps = PauseAnalyzer.gaps(from: segments, duration: duration)
+        if let longest = gaps.max(by: { $0.duration < $1.duration }), longest.duration >= 1.2 {
 
-    static func tokenize(_ text: String) -> [String] {
-        text.split { $0.isWhitespace || $0.isNewline }.map(String.init)
+            let severity: HighlightSeverity
+            if longest.duration >= 2.5 {
+                severity = .high
+            } else if longest.duration >= 1.8 {
+                severity = .medium
+            } else {
+                severity = .low
+            }
+
+            upsert(
+                SpeechHighlight(
+                    title: "가장 긴 멈춤",
+                    detail: "\(String(format: "%.1f", longest.duration))초 멈춤 - 답변 정리 구간으로 보임",
+                    start: longest.start,
+                    end: longest.end,
+                    reason: HighlightReason.longPause,
+                    category: .unclearStructure,
+                    severity: severity
+                )
+            )
+        }
+
+        let series = SpeedSeries.make(from: segments, duration: duration, binSize: 5)
+        if let maxBins = series.bins.max(by: { $0.wpm < $1.wpm }), maxBins.wpm >= 170 {
+
+            let wpm = maxBins.wpm
+            let severity: HighlightSeverity
+            if wpm >= 200 {
+                severity = .high
+            } else if wpm >= 185 {
+                severity = .medium
+            } else {
+                severity = .low
+            }
+
+            upsert(
+                SpeechHighlight(
+                    title: "속도 가장 빠른 구간",
+                    detail: "정보가 몰리며 말이 빨라진 구간 - 전달력 저하 가능",
+                    start: maxBins.start,
+                    end: maxBins.end,
+                    reason: HighlightReason.fastPace,
+                    category: .paceFast,
+                    severity: severity
+                )
+            )
+        }
+
+        if let low = segments
+            .compactMap({ seg -> (seg: TranscriptSegment, c: Float)? in
+                guard let c = seg.confidence else { return nil }
+                return (seg, c)
+            })
+            .min(by: { $0.c < $1.c })?
+            .seg
+        {
+            let start = low.startTime
+            let end = min(duration, low.startTime + low.duration)
+
+            let confidence = low.confidence ?? 1.0
+            let severity: HighlightSeverity
+            if confidence <= 0.55 {
+                severity = .high
+            } else if confidence <= 0.70 {
+                severity = .medium
+            } else {
+                severity = .low
+            }
+
+            upsert(
+                SpeechHighlight(
+                    title: "발음이 불명확한 구간",
+                    detail: "발음 또는 환경 영향으로 말이 흐려진 구간",
+                    start: start,
+                    end: end,
+                    reason: HighlightReason.unclearPronunciation,
+                    category: .unclearPronunciation,
+                    severity: severity
+                )
+            )
+        }
+
+        return Array(result.prefix(3))
     }
 }
+

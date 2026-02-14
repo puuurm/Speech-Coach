@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SpeechCoachAnalysis
 
 struct SpeechRecord: Identifiable, Hashable, Codable {
     let id: UUID

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SpeechCoachAnalysis
 
 struct TranscriptSection: View {
     let record: SpeechRecord
@@ -21,7 +22,7 @@ struct TranscriptSection: View {
     
     private var transcriptText: String {
         if shouldHideTranscript {
-            return TranscriptQualityChecker.hideMessage
+            return TranscriptQualityCopy.hideMessage
         }
         return record.transcript.isEmpty ? "인식된 텍스트가 없어요." : record.transcript
     }

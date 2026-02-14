@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import SpeechCoachAnalysis
 
 enum ResultState: Equatable {
     case loading

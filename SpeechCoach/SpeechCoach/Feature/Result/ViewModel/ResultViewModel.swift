@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import SpeechCoachAnalysis
 
 @MainActor
 final class ResultViewModel: ObservableObject {
@@ -38,7 +39,7 @@ final class ResultViewModel: ObservableObject {
                     duration: record.duration,
                     transcript: record.transcript,
                     segments: record.insight?.transcriptSegments,
-                    metrics: metrics
+                    wordsPerMinute: metrics.wordsPerMinute
                 ))
             
             let loaded = LoadedState(

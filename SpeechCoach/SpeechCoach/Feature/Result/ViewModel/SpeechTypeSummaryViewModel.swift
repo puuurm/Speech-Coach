@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import SpeechCoachAnalysis
 
 // MARK: - ViewModel (SpeechMetrics -> SpeechTypeSummary UI)
 
@@ -26,7 +27,7 @@ final class SpeechTypeSummaryViewModel: ObservableObject {
             wordsPerMinute: wordsPerMinute,
             segments: segments
         )
-        summary.oneLiner = SpeechTypeOneLinerBuilder.make(from: summary)
+//        summary.oneLiner = SpeechTypeOneLinerBuilder.make(from: summary)
         self.speechType = summary
     }
     

@@ -1,20 +1,20 @@
 //
 //  PauseAnalyzer.swift
-//  SpeechCoach
+//  SpeechCoachAnalysis
 //
-//  Created by Heejung Yang on 12/15/25.
+//  Created by Heejung Yang on 2/14/26.
 //
 
 import Foundation
 
-enum PauseAnalyzer {
-    struct Gap: Hashable {
-        var start: TimeInterval
-        var end: TimeInterval
-        var duration: TimeInterval { max(0, end - start) }
+public enum PauseAnalyzer {
+    public struct Gap: Hashable {
+        public var start: TimeInterval
+        public var end: TimeInterval
+        public var duration: TimeInterval { max(0, end - start) }
     }
     
-    static func gaps(from segments: [TranscriptSegment], duration: TimeInterval) -> [Gap] {
+    public static func gaps(from segments: [TranscriptSegment], duration: TimeInterval) -> [Gap] {
         guard duration > 0 else { return [] }
         let sorted = segments.sorted(by: { $0.startTime < $1.startTime })
         guard sorted.count >= 2 else { return [] }

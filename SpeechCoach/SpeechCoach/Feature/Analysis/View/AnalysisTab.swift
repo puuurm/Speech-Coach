@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SpeechCoachAnalysis
 
 struct AnalysisTab: View {
     @Environment(\.crashLogger) private var crashLogger

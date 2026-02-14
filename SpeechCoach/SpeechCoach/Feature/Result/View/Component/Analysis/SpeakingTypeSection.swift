@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SpeechCoachAnalysis
 
 enum SpeakingTypeAction {
     case copy

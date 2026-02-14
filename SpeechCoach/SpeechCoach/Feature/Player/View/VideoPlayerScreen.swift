@@ -9,6 +9,7 @@ import SwiftUI
 import AVKit
 import Speech
 import SwiftUITooltip
+import SpeechCoachAnalysis
 
 struct VideoPlayerScreen: View {
     @Environment(\.crashLogger) private var crashLogger

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SpeechCoachAnalysis
 
 enum SpeechTypeOneLinerBuilder {
     static func make(from summary: SpeechTypeSummary) -> String {

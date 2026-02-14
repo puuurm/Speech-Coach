@@ -1,8 +1,8 @@
 //
 //  ResultAnalysisStrategies.swift
-//  SpeechCoach
+//  SpeechCoachAnalysis
 //
-//  Created by Heejung Yang on 2/12/26.
+//  Created by Heejung Yang on 2/14/26.
 //
 
 import Foundation
@@ -24,9 +24,7 @@ protocol SpeechTypeSummarizing {
     ) -> SpeechTypeSummary
 }
 
-protocol SpeechTypeOneLinerBuilding {
-    func make(from summary: SpeechTypeSummary) -> String
-}
+
 
 // MARK: - Live Implementations
 
@@ -42,8 +40,4 @@ struct DefaultSpeechTypeSummarizer: SpeechTypeSummarizing {
     }
 }
 
-struct DefaultSpeechTypeOneLinerBuilder: SpeechTypeOneLinerBuilding {
-    func make(from summary: SpeechTypeSummary) -> String {
-        SpeechTypeOneLinerBuilder.make(from: summary)
-    }
-}
+

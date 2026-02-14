@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SpeechCoachAnalysis
 
 struct RecentRecordRow: View {
     let record: SpeechRecord

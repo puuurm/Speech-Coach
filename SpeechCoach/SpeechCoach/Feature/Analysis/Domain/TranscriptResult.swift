@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SpeechCoachAnalysis
 
 struct TranscriptResult: Codable, Hashable {
     let rawText: String

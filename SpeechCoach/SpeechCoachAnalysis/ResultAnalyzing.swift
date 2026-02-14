@@ -1,12 +1,12 @@
 //
 //  ResultAnalyzing.swift
-//  SpeechCoach
+//  SpeechCoachAnalysis
 //
-//  Created by Heejung Yang on 2/7/26.
+//  Created by Heejung Yang on 2/14/26.
 //
 
 import Foundation
 
-protocol ResultAnalyzing {
+public protocol ResultAnalyzing {
     func analyze(_ input: ResultAnalysisInput) -> ResultAnalysisOutput
 }

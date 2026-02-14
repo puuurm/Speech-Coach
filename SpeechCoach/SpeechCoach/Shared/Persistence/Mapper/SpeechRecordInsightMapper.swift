@@ -6,6 +6,7 @@
 //
 
 import CoreData
+import SpeechCoachAnalysis
 
 enum SpeechRecordInsightMapper {
     static func upsert(

@@ -8,6 +8,7 @@
 import Foundation
 import AVFoundation
 import Speech
+import SpeechCoachAnalysis
 
 protocol SpeechService {
     func transcribe(videoURL: URL) async throws -> String

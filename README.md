@@ -17,27 +17,7 @@ MVP 범위를 어떻게 정리했는지를 정리한 글입니다.
 |------------------|----------------|----------------|-----------|
 | ![](img/analysis-overview.png) | ![](img/analysis-detail.png) | ![](img/note.png) | ![](img/coaching.png) |
 
-
-
-## ✨ Key Features
-
-### 🎙 Speech Analysis
-- 발화 속도 및 침묵 구간 기반 분석
-- 말하기 흐름을 기준으로 한 유형 요약
-- 분석 신뢰도가 낮을 경우 안내 메시지 제공
-
-### 🧠 Coaching & Feedback
-- 하이라이트 기반 코칭 카드 제공
-- 코칭 메모 작성 및 저장
-- 말하기 유형별 개선 포인트 제시
-
-### 📊 Result Management
-- 분석 결과 저장 및 재확인
-- 하이라이트 기반 재생
-- 최근 기록 중심의 결과 화면 구성
-
-
-
+---
 ## 🛠 Tech Stack
 
 - **Language**: Swift  
@@ -45,53 +25,44 @@ MVP 범위를 어떻게 정리했는지를 정리한 글입니다.
 - **Architecture**: MVVM  
 - **Persistence**: Core Data  
 - **Media**: AVFoundation  
-- **Monitoring**: Firebase Crashlytics  
+- **Monitoring**: Firebase Crashlytics
+  
+## 🧩 Architecture
+### Layered Responsibility
 
+```
+App (Environment & External Dependencies)
+   ↓
+Feature (UI / ViewModel)
+   ↓
+Analysis Module (Pure Logic, No Framework Dependency)
+```
+### Project Structure
+```
+SpeechCoach
+├── App (iOS Application Layer)
+│   ├── App        
+│   ├── Feature      
+│   ├── Domain    
+│   ├── Store     
+│   ├── Shared      
+│   └── Resource    
 
+├── SpeechCoachAnalysis (Pure Analysis Framework)
+│   ├── Interface 
+│   ├── Analyzer    
+│   ├── Strategy  
+│   ├── Logic       
+│   └── Model  
 
-## 🧩 Architecture Overview
+└── SpeechCoachAnalysisTests
+    └── UnitTests   
 
-- SpeechRecord / Metrics / Highlight 구조 분리
-- recordID 기반 ViewModel 설계
-- PlayerController를 통한 AVPlayer 제어 일원화
-- 분석 → 피드백 → 재생 흐름을 단방향 구조로 설계
-
-
-
-## 🤔 Technical Challenges
-
-### 1. 분석 결과와 영상 재생 동기화
-- 문제: 분석 결과와 실제 영상 재생 위치 불일치
-- 해결: AVPlayer 제어 로직을 PlayerController로 통합
-
-### 2. 분석 신뢰도에 따른 UX 처리
-- 문제: STT 정확도가 낮을 경우 잘못된 피드백 제공
-- 해결: 신뢰도 기준 분기 및 안내 UI 추가
-
-### 3. 확장 가능한 구조 설계
-- MVP 단계에서도 이후 기능 확장을 고려한 구조 설계
-- Result / Highlight / Coaching 영역 분리
-
-
+```
+> 분석 도메인을 App Target과 분리된 Framework로 구성하여 Firebase·UI 의존성 없이 단위 테스트가 가능하도록 만들었습니다.
 
 ## 📦 Release
-
-### v1.0.0 — Initial Release
-- Speech analysis & feedback flow
-- Highlight-based coaching
-- Improved playback stability
-- UX refinement & bug fixes
-
-👉 [Release Notes 보기](https://github.com/puuurm/Speech-Coach/releases)
-
-
-
-## 🚀 Roadmap
-
-- 분석 정확도 고도화
-- 코칭 알고리즘 확장
-- 사용자 피드백 기반 UX 개선
-- 시각화 리포트 추가
+App Store 출시 완료 (v1.0)
 
 
 
@@ -101,13 +72,14 @@ MVP 범위를 어떻게 정리했는지를 정리한 글입니다.
 - 개인 프로젝트 / App Store 배포 경험  
 - 관심사: UX 중심 앱 설계, 사용자 행동 분석
 
----
 
 ## 🔧 Setup
 
-This project uses Firebase (Crashlytics).
+Firebase 설정 필요:
 
-> `GoogleService-Info.plist` is intentionally **not included** in this repository for security reasons.
+
+```GoogleService-Info.plist```는 보안상 포함되어 있지 않습니다.
+
 
 To build the app:
 1. Create your own Firebase project

@@ -192,6 +192,7 @@ private extension HomeView {
             .font(.subheadline)
         }
         .padding(16)
+        .contentShape(Rectangle())
     }
     
     var records: [SpeechRecord] {

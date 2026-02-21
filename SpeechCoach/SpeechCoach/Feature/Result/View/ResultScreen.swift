@@ -388,7 +388,9 @@ struct ResultScreen: View {
         template: String
     ) -> Bool {
         if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            text = template
+            withAnimation(.easeInOut(duration: 0.15)) {
+                text = template
+            }
             return true
         } else {
             return false
@@ -660,89 +662,84 @@ extension ResultScreen {
             Text("내 연습 노트")
                 .font(.headline)
             
-            memoEditorRow(
+            MemoEditorRow(
                 title: "한 줄 요약",
                 buttonTitle: "예시 넣기",
                 placeholder: "이 영상에서 내가 가장 전하고 싶은 말을 한 문장으로 적어보세요.",
                 text: $introText
-            ) {
+            ) { highlight in
                 guard let example = oneLineSummaryExamples.randomElement() else { return }
-                if introText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    introText = example
-                    presentToast("예시를 넣었어요. 수정해서 사용해보세요.")
+                if setTemplateIfEmpty(&introText, template: example) {
+                    highlight()
                 } else {
-                    presentToast("이미 내용이 있어요. 예시는 참고용이에요.")
+                    presentToast("이미 내용이 있어요")
                 }
             }
-
-            memoEditorRow(
+            
+            MemoEditorRow(
                 title: "좋았던 점",
                 buttonTitle: "힌트",
                 placeholder: "이번 영상에서 괜찮았던 점 2~3개를 적어보세요. \n(예: 말 속도, 또박또박함, 결론이 잘 보임)",
                 text: $strenthsText
-            ) {
+            ) { highlight in
                 let template = """
                 • (예: 말이 차분해서 듣기 편했다)
                 • (예: 핵심이 또렷했다)
                 • \(wpmStrengthHighlight)
                 """
-                
                 if setTemplateIfEmpty(&strenthsText, template: template) {
-                    presentToast("힌트를 넣었어요. 수정해서 사용해보세요.")
+                    highlight()
                 } else {
-                    presentToast("이미 작성 중이에요. 힌트는 참고용이에요.")
+                    presentToast("이미 작성 중이에요")
                 }
             }
             
-            memoEditorRow(
+            MemoEditorRow(
                 title: "다음에 고칠 1가지",
                 buttonTitle: "힌트",
                 placeholder: "다음 영상에서 하나만 바꾼다면 뭘 바꿀까요? \n(예: 속도 조금 올리기, 결론 먼저 말하기)",
                 text: $improvementsText
-            ) {
+            ) { highlight in
                 let template = "• \(wpmImprovementTemplate)"
-                
                 if setTemplateIfEmpty(&improvementsText, template: template) {
-                    presentToast("힌트를 넣었어요. 수정해서 사용해보세요.")
+                    highlight()
                 } else {
-                    presentToast("이미 작성 중이에요. 힌트는 참고용이에요.")
+                    presentToast("이미 작성 중이에요")
                 }
             }
             
-            memoEditorRow(
+            MemoEditorRow(
                 title: "다음 연습 목표",
                 buttonTitle: "예시 넣기",
                 placeholder: "다음 연습에서 해보고 싶은 목표를 1~2개 적어보세요.",
                 text: $nextStepsText
-            ) {
+            ) { highlight in
                 let template = """
                 • 첫 문장을 결론으로 시작하기
                 • 핵심 문장마다 0.5초 멈춘 뒤 말하기
                 """
-
                 if setTemplateIfEmpty(&nextStepsText, template: template) {
-                    presentToast("예시를 넣었어요. 수정해서 사용해보세요.")
+                    highlight()
                 } else {
-                    presentToast("이미 작성 중이에요. 수정해서 사용해보세요.")
+                    presentToast("이미 작성 중이에요")
                 }
             }
             
-            memoEditorRow(
+            MemoEditorRow(
                 title: "지금 바로 해볼 것",
                 buttonTitle: "예시 넣기",
                 placeholder: "오늘 바로 할 수 있는 행동을 2~3개 적어보세요.",
                 text: $practiceChecklistText
-            ) {
+            ) { highlight in
                 let template = """
                 • 30초 버전으로 다시 말해보기
                 • 첫 문장을 결론으로 바꿔서 다시 찍기
                 • 멈춘 구간만 다시 보고 한 번 더 말해보기
                 """
-
                 if setTemplateIfEmpty(&practiceChecklistText, template: template) {
-                    presentToast("예시를 넣었어요. 수정해서 사용해보세요.")
+                    highlight()
                 } else {
-                    presentToast("이미 작성 중이에요. 수정해서 사용해보세요.")
+                    presentToast("이미 작성 중이에요")
                 }
             }
         }

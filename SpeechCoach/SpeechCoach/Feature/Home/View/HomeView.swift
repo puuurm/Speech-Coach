@@ -54,11 +54,16 @@ struct HomeView: View {
                 if isImporting {
                     Color.white
                         .ignoresSafeArea()
-                    VStack(spacing: 12) {
+                    VStack(spacing: 24) {
                         ProgressView()
+                            .progressViewStyle(.circular)
+                            .scaleEffect(2.0)
+
                         Text("영상 불러오는 중이에요...")
-                            .font(.subheadline)
+                            .font(.callout)
+                            .foregroundColor(.gray)
                     }
+
                 }
             }
             .onChange(of: selectedItem) { newValue in

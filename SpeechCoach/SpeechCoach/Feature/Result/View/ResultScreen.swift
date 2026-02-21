@@ -228,29 +228,37 @@ struct ResultScreen: View {
             .padding(.top, 10)
             .padding(.bottom, 8)
             
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    switch selectedTab {
-                    case .feedback:
-                        feedbackTab(record: record)
-                    case .analysis:
-                        AnalysisTab(
-                            record: record,
-                            metrics: metrics,
-                            previousRecord: previousRecord,
-                            previousMetrics: metricsVM.previousMetrics,
-                            speechType: summaryVM.speechType,
-                            playbackPolicy: playbackPolicy,
-                            highlightContext: highlightContext,
-                            selectedHighlight: $selectedHighlight,
-                            insertIntoImprovements: insertIntoImprovements,
-                            presentCoachAssistant: presentCoachAssistant
-                        )
-                    }
+            ZStack {
+                ScrollView {
+                    feedbackTab(record: record)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
+                .opacity(selectedTab == .feedback ? 1 : 0)
+                .allowsHitTesting(selectedTab == .feedback)
+                .accessibilityHidden(selectedTab != .feedback)
+
+                ScrollView {
+                    AnalysisTab(
+                        record: record,
+                        metrics: metrics,
+                        previousRecord: previousRecord,
+                        previousMetrics: metricsVM.previousMetrics,
+                        speechType: summaryVM.speechType,
+                        playbackPolicy: playbackPolicy,
+                        highlightContext: highlightContext,
+                        selectedHighlight: $selectedHighlight,
+                        insertIntoImprovements: insertIntoImprovements,
+                        presentCoachAssistant: presentCoachAssistant
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                }
+                .opacity(selectedTab == .analysis ? 1 : 0)
+                .allowsHitTesting(selectedTab == .analysis)
+                .accessibilityHidden(selectedTab != .analysis)
             }
+
         }
     }
     

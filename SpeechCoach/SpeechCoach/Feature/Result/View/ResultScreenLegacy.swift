@@ -45,6 +45,8 @@ struct ResultScreenLegacy: View {
     @State private var practiceChecklistText: String = ""
     
     @State private var showCopyAlert = false
+    @State private var showToast = false
+    @State private var toastTitle: String = ""
     @State private var isSaving = false
     @State private var previousRecord: SpeechRecord?
 
@@ -111,6 +113,17 @@ struct ResultScreenLegacy: View {
             }
             .navigationTitle("분석 결과")
             .navigationBarTitleDisplayMode(.inline)
+        }
+        .toast(isPresenting: $showToast){
+            AlertToast(
+                type: .regular,
+                title: toastTitle,
+                style: AlertToast.AlertStyle.style(
+                    backgroundColor: .black,
+                    titleColor: .white,
+                    titleFont: .callout
+                )
+            )
         }
         .toast(isPresenting: $showCopyAlert){
             AlertToast(
@@ -214,28 +227,35 @@ struct ResultScreenLegacy: View {
             .padding(.top, 10)
             .padding(.bottom, 8)
             
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    switch selectedTab {
-                    case .feedback:
-                        feedbackTab(record: record)
-                    case .analysis:
-                        AnalysisTab(
-                            record: record,
-                            metrics: metrics,
-                            previousRecord: previousRecord,
-                            previousMetrics: metricsVM.previousMetrics,
-                            speechType: summaryVM.speechType,
-                            playbackPolicy: playbackPolicy,
-                            highlightContext: highlightContext,
-                            selectedHighlight: $selectedHighlight,
-                            insertIntoImprovements: insertIntoImprovements,
-                            presentCoachAssistant: presentCoachAssistant
-                        )
-                    }
+            ZStack {
+                ScrollView {
+                    feedbackTab(record: record)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
+                .opacity(selectedTab == .feedback ? 1 : 0)
+                .allowsHitTesting(selectedTab == .feedback)
+                .accessibilityHidden(selectedTab != .feedback)
+
+                ScrollView {
+                    AnalysisTab(
+                        record: record,
+                        metrics: metrics,
+                        previousRecord: previousRecord,
+                        previousMetrics: metricsVM.previousMetrics,
+                        speechType: summaryVM.speechType,
+                        playbackPolicy: playbackPolicy,
+                        highlightContext: highlightContext,
+                        selectedHighlight: $selectedHighlight,
+                        insertIntoImprovements: insertIntoImprovements,
+                        presentCoachAssistant: presentCoachAssistant
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                }
+                .opacity(selectedTab == .analysis ? 1 : 0)
+                .allowsHitTesting(selectedTab == .analysis)
+                .accessibilityHidden(selectedTab != .analysis)
             }
         }
     }
@@ -368,11 +388,18 @@ struct ResultScreenLegacy: View {
         try await recordStore.persist()
     }
     
-    private func appendTemplate(_ text: inout String, template: String) {
+    @discardableResult
+    private func setTemplateIfEmpty(
+        _ text: inout String,
+        template: String
+    ) -> Bool {
         if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            text = template
+            withAnimation(.easeInOut(duration: 0.15)) {
+                text = template
+            }
+            return true
         } else {
-            text += "\n\n" + template
+            return false
         }
     }
     
@@ -598,8 +625,6 @@ extension ResultScreenLegacy {
         VStack(alignment: .leading, spacing: 18) {
             quickTipsSection
             learnerNoteSections(record: record)
-//            suggestionSection
-//            noteSectionsRedesigned(record: record)
             primaryActionsRow(record: record)
         }
     }
@@ -643,67 +668,85 @@ extension ResultScreenLegacy {
             Text("내 연습 노트")
                 .font(.headline)
             
-            memoEditorRow(
+            MemoEditorRow(
                 title: "한 줄 요약",
-                buttonTitle: "예시",
+                buttonTitle: "예시 넣기",
                 placeholder: "이 영상에서 내가 가장 전하고 싶은 말을 한 문장으로 적어보세요.",
                 text: $introText
-            ) {
+            ) { highlight in
                 guard let example = oneLineSummaryExamples.randomElement() else { return }
-                if introText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    introText = example
+                if setTemplateIfEmpty(&introText, template: example) {
+                    highlight()
                 } else {
-                    introText = appendLine(introText, example)
+                    presentToast("이미 내용이 있어요")
                 }
             }
-
-            memoEditorRow(
+            
+            MemoEditorRow(
                 title: "좋았던 점",
                 buttonTitle: "힌트",
                 placeholder: "이번 영상에서 괜찮았던 점 2~3개를 적어보세요. \n(예: 말 속도, 또박또박함, 결론이 잘 보임)",
                 text: $strenthsText
-            ) {
-                appendTemplate(&strenthsText, template: """
+            ) { highlight in
+                let template = """
                 • (예: 말이 차분해서 듣기 편했다)
                 • (예: 핵심이 또렷했다)
                 • \(wpmStrengthHighlight)
-                """)
+                """
+                if setTemplateIfEmpty(&strenthsText, template: template) {
+                    highlight()
+                } else {
+                    presentToast("이미 작성 중이에요")
+                }
             }
             
-            memoEditorRow(
+            MemoEditorRow(
                 title: "다음에 고칠 1가지",
                 buttonTitle: "힌트",
                 placeholder: "다음 영상에서 하나만 바꾼다면 뭘 바꿀까요? \n(예: 속도 조금 올리기, 결론 먼저 말하기)",
                 text: $improvementsText
-            ) {
-                appendTemplate(&improvementsText, template: """
-                • \(wpmImprovementTemplate)
-                """)
+            ) { highlight in
+                let template = "• \(wpmImprovementTemplate)"
+                if setTemplateIfEmpty(&improvementsText, template: template) {
+                    highlight()
+                } else {
+                    presentToast("이미 작성 중이에요")
+                }
             }
             
-            memoEditorRow(
+            MemoEditorRow(
                 title: "다음 연습 목표",
-                buttonTitle: "예시",
+                buttonTitle: "예시 넣기",
                 placeholder: "다음 연습에서 해보고 싶은 목표를 1~2개 적어보세요.",
                 text: $nextStepsText
-            ) {
-                appendTemplate(&nextStepsText, template: """
+            ) { highlight in
+                let template = """
                 • 첫 문장을 결론으로 시작하기
                 • 핵심 문장마다 0.5초 멈춘 뒤 말하기
-                """)
+                """
+                if setTemplateIfEmpty(&nextStepsText, template: template) {
+                    highlight()
+                } else {
+                    presentToast("이미 작성 중이에요")
+                }
             }
             
-            memoEditorRow(
+            MemoEditorRow(
                 title: "지금 바로 해볼 것",
-                buttonTitle: "예시",
+                buttonTitle: "예시 넣기",
                 placeholder: "오늘 바로 할 수 있는 행동을 2~3개 적어보세요.",
                 text: $practiceChecklistText
-            ) {
-                appendTemplate(&practiceChecklistText, template: """
+            ) { highlight in
+                let template = """
                 • 30초 버전으로 다시 말해보기
                 • 첫 문장을 결론으로 바꿔서 다시 찍기
                 • 멈춘 구간만 다시 보고 한 번 더 말해보기
-                """)
+                """
+                if setTemplateIfEmpty(&practiceChecklistText, template: template) {
+                    highlight()
+                } else {
+                    presentToast("이미 작성 중이에요")
+                }
             }
         }
     }
@@ -738,59 +781,6 @@ extension ResultScreenLegacy {
                 Text("버튼을 누르면 해당 섹션에 문장이 추가돼요")
                     .font(.caption2)
                     .foregroundColor(.secondary)
-            }
-        }
-    }
-    
-    func noteSectionsRedesigned(record: SpeechRecord) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("피드백 메모")
-                .font(.headline)
-            
-            memoEditorRow(
-                title: "인사 / 전체 인상",
-                buttonTitle: "인사 템플릿",
-                placeholder: "전체적인 인상과 수고 메시지를 적어주세요.",
-                text: $introText
-            ) {
-                appendTemplate(&introText, template: """
-                \(record.greetingName) 안녕하세요. 
-                보내주신 과제 영상에 대한 피드백 남겨드립니다.
-                첫 촬영이라 익숙하지 않으셨을 텐데 차분히 연습해주셔서 감사합니다.
-                """)
-            }
-            
-            memoEditorRow(
-                title: "잘된 점 / 강점",
-                buttonTitle: "강점 템플릿",
-                placeholder: "좋았던 점을 bullet로 정리해보세요.",
-                text: $strenthsText
-            ) {
-                appendTemplate(&strenthsText, template: """
-                전반적으로 차분하게 전달해주셔서 듣기 편했습니다.
-                특히 \(wpmStrengthHighlight) 부분이 강점으로 느껴집니다.
-                """)
-            }
-            
-            memoEditorRow(
-                title: "개선할 점",
-                buttonTitle: "개선 템플릿",
-                placeholder: "개선 포인트를 구체적으로 적어주세요.",
-                text: $improvementsText
-            ) {
-                appendTemplate(&improvementsText, template: wpmImprovementTemplate)
-            }
-            
-            memoEditorRow(
-                title: "다음 연습 / 수업 방향",
-                buttonTitle: "다음 연습 템플릿",
-                placeholder: "다음 과제/수업에서의 목표를 적어주세요.",
-                text: $nextStepsText
-            ) {
-                appendTemplate(&nextStepsText, template: """
-                다음 과제에서는 핵심 문장마다 한 박자 멈추는 연습을 해보세요.
-                다음 수업에서 이 부분을 원포인트로 같이 점검해보겠습니다.
-                """)
             }
         }
     }
@@ -865,6 +855,11 @@ extension ResultScreenLegacy {
         } else {
             improvementsText += "\n\n" + s
         }
+    }
+    
+    private func presentToast(_ title: String) {
+        toastTitle = title
+        showToast = true
     }
 }
 

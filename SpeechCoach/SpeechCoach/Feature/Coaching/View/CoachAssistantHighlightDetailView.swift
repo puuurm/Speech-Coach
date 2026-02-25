@@ -82,6 +82,9 @@ struct CoachAssistantHighlightDetailView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .onChange(of: selectedTab) { _ in
+                    isMemoFocused = false
+                }
                 
                 Group {
                     switch selectedTab {
@@ -95,6 +98,13 @@ struct CoachAssistantHighlightDetailView: View {
             }
             .padding(16)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            TapGesture().onEnded { _ in
+                isMemoFocused = false
+            }
+        )
         .navigationTitle("강사 보조")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: record.id) {
@@ -567,7 +577,3 @@ struct CoachAssistantHighlightDetailView: View {
         generator.notificationOccurred(.success)
     }
 }
-
-//#Preview {
-//    CoachAssistantHighlightDetailView()
-//}

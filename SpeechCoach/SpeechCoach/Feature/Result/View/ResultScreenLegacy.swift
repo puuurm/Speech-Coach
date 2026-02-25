@@ -226,6 +226,9 @@ struct ResultScreenLegacy: View {
             .padding(.horizontal, 20)
             .padding(.top, 10)
             .padding(.bottom, 8)
+            .onChange(of: selectedTab) { _ in
+                DispatchQueue.main.async { dismissKeyboard() }
+            }
             
             ZStack {
                 ScrollView {
@@ -236,6 +239,7 @@ struct ResultScreenLegacy: View {
                 .opacity(selectedTab == .feedback ? 1 : 0)
                 .allowsHitTesting(selectedTab == .feedback)
                 .accessibilityHidden(selectedTab != .feedback)
+                .scrollDismissesKeyboard(.interactively)
 
                 ScrollView {
                     AnalysisTab(
@@ -256,8 +260,18 @@ struct ResultScreenLegacy: View {
                 .opacity(selectedTab == .analysis ? 1 : 0)
                 .allowsHitTesting(selectedTab == .analysis)
                 .accessibilityHidden(selectedTab != .analysis)
+                .scrollDismissesKeyboard(.interactively)
             }
         }
+        .dismissKeyboardOnAnyTap()
+        .scrollDismissesKeyboard(.interactively)
+    }
+    
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
+        )
     }
     
     private func highlightRow(_ item: SpeechHighlight) -> some View {
@@ -541,86 +555,6 @@ struct ResultScreenLegacy: View {
 
 extension ResultScreenLegacy {
     
-    func noteCard(
-        title: String,
-        placeholder: String,
-        text: Binding<String>,
-        templateAction: @escaping () -> Void
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Button("템플릿") { templateAction() }
-                    .font(.caption.weight(.semibold))
-            }
-            ZStack(alignment: .topLeading) {
-                TextEditor(text: text)
-                    .frame(minHeight: 88)
-                    .padding(8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.secondary.opacity(0.25))
-                    )
-                if text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text(placeholder)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 14)
-                        .allowsHitTesting(false)
-                }
-            }
-        }
-        .padding(12)
-    }
-    
-    func memoEditorRow(
-        title: String,
-        buttonTitle: String,
-        placeholder: String,
-        text: Binding<String>,
-        onTemplateTap: @escaping () -> Void
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(title)
-                    .font(.headline)
-                
-                Spacer()
-                
-                Button(buttonTitle) { onTemplateTap() }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.accentColor)
-            }
-            
-            ZStack(alignment: .topLeading) {
-                if text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text(placeholder)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 12)
-                }
-                TextEditor(text: text)
-                    .font(.body)
-                    .padding(8)
-                    .frame(minHeight: 110)
-                    .scrollContentBackground(.hidden)
-                    .background(Color.clear)
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.secondary.opacity(0.25), lineWidth: 1)
-            )
-        }
-    }
-    
-}
-
-extension ResultScreenLegacy {
-    
     func feedbackTab(record: SpeechRecord) -> some View {
         VStack(alignment: .leading, spacing: 18) {
             quickTipsSection
@@ -860,27 +794,5 @@ extension ResultScreenLegacy {
     private func presentToast(_ title: String) {
         toastTitle = title
         showToast = true
-    }
-}
-
-struct SpeechTypeSummarySection: View {
-    let speechType: SpeechTypeSummary
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("말하기 타입 요약")
-                .font(.headline)
-
-            Text(speechType.oneLiner)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-
-            HStack(spacing: 8) {
-                Text(speechType.paceType.label)
-                Text("·")
-                Text(speechType.paceStability.label)
-            }
-            .font(.footnote)
-        }
     }
 }

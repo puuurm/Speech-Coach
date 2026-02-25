@@ -21,4 +21,16 @@ extension View {
             )
         )
     }
+    
+    func dismissKeyboardOnAnyTap() -> some View {
+        self.contentShape(Rectangle())
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil, from: nil, for: nil
+                    )
+                }
+            )
+    }
 }

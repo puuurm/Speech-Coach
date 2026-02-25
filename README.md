@@ -1,5 +1,11 @@
 # 🎤 Speech Coach
 
+<p align="center">
+  <a href="https://apps.apple.com/app/speechcoach/id6757696645">
+    <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" height="55">
+  </a>
+</p>
+
 말하기 영상을 분석해 **발화 흐름 · 전달력 · 말하기 습관을 개선**할 수 있도록 돕는  
 iOS 기반 스피치 코칭 앱입니다.
 

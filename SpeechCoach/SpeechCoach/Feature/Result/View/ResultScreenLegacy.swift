@@ -744,7 +744,7 @@ extension ResultScreenLegacy {
                 .disabled(isSaving)
             }
 
-            Text("복사한 노트는 노션·메모앱·카톡 등에 붙여넣을 수 있어요.")
+            Text("복사한 노트는 다른 앱에 붙여넣어 사용할 수 있어요.")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 4)

@@ -209,7 +209,6 @@
 				B082C2C32ED0178C00B07A71 /* Sources */,
 				B082C2C42ED0178C00B07A71 /* Frameworks */,
 				B082C2C52ED0178C00B07A71 /* Resources */,
-				B05A3A9E2F28BDAE00C84856 /* ShellScript */,
 				B05A53982F3F1C1300C84856 /* Embed Frameworks */,
 			);
 			buildRules = (
@@ -301,29 +300,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		B05A3A9E2F28BDAE00C84856 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}",
-				"$(SRCROOT)/$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)",
-			);
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nset -e\n\nCRASHLYTICS_RUN=\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\n\nAPP_BUNDLE=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}\"\nGSP_IN_APP=\"${APP_BUNDLE}/GoogleService-Info.plist\"\n\n# 1) 앱 번들에 plist가 실제로 들어갔는지 체크\nif [ ! -f \"$GSP_IN_APP\" ]; then\n  echo \"❌ GoogleService-Info.plist is NOT in app bundle: $GSP_IN_APP\"\n  echo \"✅ Check: Build Phases > Copy Bundle Resources includes GoogleService-Info.plist\"\n  exit 1\nfi\n\n# 2) plist 포맷 체크\n/usr/bin/plutil -lint \"$GSP_IN_APP\"\n\n# 3) Crashlytics에 gsp 경로를 명시적으로 넘김\n\"$CRASHLYTICS_RUN\" -gsp \"$GSP_IN_APP\" -p ios\n\n";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		B05A537A2F3F1C1300C84856 /* Sources */ = {

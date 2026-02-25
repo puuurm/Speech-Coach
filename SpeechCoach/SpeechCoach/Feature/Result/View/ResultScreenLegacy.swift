@@ -468,60 +468,33 @@ struct ResultScreenLegacy: View {
         }
     }
 
-    private func makeFeedbackText() -> String {
-        var lines: [String] = []
+    private func makeFeedbackText(record: SpeechRecord? = nil) -> String {
+        func trimmed(_ s: String) -> String {
+            s.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
 
-        lines.append("내 연습 노트")
-        lines.append("")
-
-        // 기록 메타: 날짜/영상명 등
-        // guard let record = recordVM.record else { return "--" }
-        // lines.append("영상: \(record.title ?? "발표 영상")")
-        // lines.append("")
-
-        let summary = introText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !summary.isEmpty {
-            lines.append("한 줄 요약")
-            lines.append(summary)
+        func appendSection(_ title: String, body: String, into lines: inout [String]) {
+            let b = trimmed(body)
+            guard !b.isEmpty else { return }
+            lines.append(title)
+            lines.append(b)
             lines.append("")
         }
 
-        lines.append("좋았던 점")
-        let strengths = strenthsText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !strengths.isEmpty {
-            lines.append(strengths)
-        } else {
-            lines.append("• 오늘 영상에서 괜찮았던 점을 2~3개 적어보세요.")
+        var lines: [String] = []
+        lines.append("내 연습 노트")
+        if let record {
+            lines.append("영상 제목: \(record.title)")
         }
         lines.append("")
 
-        lines.append("다음에 고칠 1가지")
-        let improvements = improvementsText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !improvements.isEmpty {
-            lines.append(improvements)
-        } else {
-            lines.append("• 다음 영상에서 하나만 바꾼다면 무엇인지 적어보세요.")
-        }
-        lines.append("")
+        appendSection("한 줄 요약", body: introText, into: &lines)
+        appendSection("좋았던 점", body: strenthsText, into: &lines)
+        appendSection("다음에 바꿔볼 1가지", body: improvementsText, into: &lines)
+        appendSection("다음 연습 목표", body: nextStepsText, into: &lines)
+        appendSection("지금 바로 해볼 것", body: practiceChecklistText, into: &lines)
 
-        lines.append("다음 연습 목표")
-        let nextSteps = nextStepsText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !nextSteps.isEmpty {
-            lines.append(nextSteps)
-        } else {
-            lines.append("• 첫 문장을 결론으로 시작하기")
-            lines.append("• 핵심 문장마다 0.5초 멈춘 뒤 말하기")
-        }
-        lines.append("")
-
-        lines.append("지금 바로 해볼 것")
-        let checklist = practiceChecklistText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !checklist.isEmpty {
-            lines.append(checklist)
-        } else {
-            lines.append("• 30초 버전으로 다시 말해보기")
-            lines.append("• 첫 문장을 결론으로 바꿔서 다시 찍기")
-        }
+        while lines.last == "" { lines.removeLast() }
 
         return lines.joined(separator: "\n")
     }
@@ -635,7 +608,7 @@ extension ResultScreenLegacy {
             }
             
             MemoEditorRow(
-                title: "다음에 고칠 1가지",
+                title: "다음에 바꿔볼 1가지",
                 buttonTitle: "힌트",
                 placeholder: "다음 영상에서 하나만 바꾼다면 뭘 바꿀까요? \n(예: 속도 조금 올리기, 결론 먼저 말하기)",
                 text: $improvementsText
@@ -720,56 +693,62 @@ extension ResultScreenLegacy {
     }
     
     func primaryActionsRow(record: SpeechRecord) -> some View {
-        HStack(spacing: 10) {
-            Button {
-                let text = makeFeedbackText()
-//                UIPasteboard.general.string = text
-                showCopyAlert = true
-            } label: {
-                Label("내 정리 복사", systemImage: "doc.on.doc")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.accentColor)
-                    .foregroundStyle(.white)
-                    .cornerRadius(12)
-            }
-            .buttonStyle(.plain)
-            
-            Button {
-                guard !isSaving else { return }
-                isSaving = true
-
-                Task { @MainActor in
-                    do {
-                        try await saveNotes(record: record)
-                        Haptics.success()
-                        try? await Task.sleep(nanoseconds: 150_000_000)
-                        dismiss()
-                        router.popToRoot()
-                        isSaving = false
-                    } catch {
-                        Haptics.error()
-                        failedToSave = true
-                        isSaving = false
-                    }
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Button {
+                    let text = makeFeedbackText(record: record)
+                    UIPasteboard.general.string = text
+                    showCopyAlert = true
+                    Haptics.success()
+                } label: {
+                    Label("내 연습 노트 복사", systemImage: "doc.on.doc")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.accentColor)
+                        .foregroundStyle(.white)
+                        .cornerRadius(12)
                 }
-            } label: {
-                Label(isSaving ? "저장 중..." : "저장", systemImage: "checkmark")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(width: 92)
-                    .padding(.vertical, 12)
-                    .background(Color(.systemGray6))
-                    .foregroundColor(.primary)
-                    .cornerRadius(12)
-                    .opacity(isSaving ? 0.7 : 1.0)
+                .buttonStyle(.plain)
+                
+                Button {
+                    guard !isSaving else { return }
+                    isSaving = true
+
+                    Task { @MainActor in
+                        do {
+                            try await saveNotes(record: record)
+                            Haptics.success()
+                            try? await Task.sleep(nanoseconds: 150_000_000)
+                            dismiss()
+                            router.popToRoot()
+                            isSaving = false
+                        } catch {
+                            Haptics.error()
+                            failedToSave = true
+                            isSaving = false
+                        }
+                    }
+                } label: {
+                    Label(isSaving ? "저장 중..." : "저장", systemImage: "checkmark")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(width: 92)
+                        .padding(.vertical, 12)
+                        .background(Color(.systemGray6))
+                        .foregroundColor(.primary)
+                        .cornerRadius(12)
+                        .opacity(isSaving ? 0.7 : 1.0)
+                }
+                .buttonStyle(.plain)
+                .disabled(isSaving)
             }
-            .buttonStyle(.plain)
-            .disabled(isSaving)
+            
+            Text("노션·메모앱·카톡 등에 붙여넣어 공유할 수 있어요.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 4)
         }
     }
-
-    
 }
 
 extension ResultScreenLegacy {

@@ -695,22 +695,23 @@ extension ResultScreenLegacy {
     func primaryActionsRow(record: SpeechRecord) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
+
                 Button {
                     let text = makeFeedbackText(record: record)
                     UIPasteboard.general.string = text
                     showCopyAlert = true
                     Haptics.success()
                 } label: {
-                    Label("내 연습 노트 복사", systemImage: "doc.on.doc")
-                        .font(.subheadline.weight(.semibold))
+                    Label("노트 복사", systemImage: "doc.on.doc")
+                        .font(.subheadline.weight(.regular))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.accentColor)
-                        .foregroundStyle(.white)
+                        .background(Color(.systemGray6))
+                        .foregroundColor(.primary)
                         .cornerRadius(12)
                 }
                 .buttonStyle(.plain)
-                
+
                 Button {
                     guard !isSaving else { return }
                     isSaving = true
@@ -730,20 +731,20 @@ extension ResultScreenLegacy {
                         }
                     }
                 } label: {
-                    Label(isSaving ? "저장 중..." : "저장", systemImage: "checkmark")
+                    Text(isSaving ? "저장 중..." : "저장")
                         .font(.subheadline.weight(.semibold))
-                        .frame(width: 92)
+                        .frame(width: 96)
                         .padding(.vertical, 12)
-                        .background(Color(.systemGray6))
-                        .foregroundColor(.primary)
+                        .background(Color.accentColor)
+                        .foregroundStyle(.white)
                         .cornerRadius(12)
                         .opacity(isSaving ? 0.7 : 1.0)
                 }
                 .buttonStyle(.plain)
                 .disabled(isSaving)
             }
-            
-            Text("노션·메모앱·카톡 등에 붙여넣어 공유할 수 있어요.")
+
+            Text("복사한 노트는 노션·메모앱·카톡 등에 붙여넣을 수 있어요.")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 4)

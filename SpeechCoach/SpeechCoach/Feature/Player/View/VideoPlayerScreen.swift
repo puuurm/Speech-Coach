@@ -21,6 +21,36 @@ struct VideoPlayerScreen: View {
     let mode: VideoPlayerScreenMode
     var tooltipConfig = DefaultTooltipConfig()
     
+    @State private var duration: TimeInterval = 0
+    @State private var isLoadingDuration = true
+    
+    @State private var tapAnalysisButton: Bool = false
+    @State private var showFeedbackSheet: Bool = false
+    
+    @State private var appliedStartTime = false
+    @State private var tooltipVisible = false
+    @State private var pendingSeek: Double? = nil
+    @State private var failedToSave = false
+    
+    @EnvironmentObject var router: NavigationRouter
+    @EnvironmentObject var recordStore: SpeechRecordStore
+    
+    private let speechService = RealSpeechService()
+    private let analyzer = TranscriptAnalyzer()
+    private var pipeline: SpeechAnalysisPipeline {
+        DefaultSpeechAnalysisPipeline(
+            speechService: speechService,
+            analyzer: analyzer,
+            crashLogger: crashLogger
+        )
+    }
+    
+    @State private var analysisController: VideoAnalysisController? = nil
+    @EnvironmentObject private var pc: PlayerController
+    
+    @AppStorage("hide_fullflow_banner")
+    private var hideFullFlowBanner: Bool = false
+    
     init (
         videoURL: URL,
         title: String,
@@ -39,38 +69,6 @@ struct VideoPlayerScreen: View {
         self.tooltipConfig.animationTime = 1
     }
     
-    @State private var duration: TimeInterval = 0
-    @State private var isLoadingDuration = true
-    
-    @State private var phase: AnalysisPhase = .idle
-    @State private var playbackEnded: Bool = false
-    
-    @State private var isStartingAnalysis: Bool = false
-    @State private var tapAnalysisButton: Bool = false
-
-    @State private var analyzedRecord: SpeechRecord?
-    @State private var analyzedMetrics: SpeechMetrics?
-    @State private var showFeedbackSheet: Bool = false
-    
-    @State private var appliedStartTime = false
-    @State private var tooltipVisible = false
-    @State private var pendingSeek: Double? = nil
-    @State private var failedToSave = false
-    
-    @EnvironmentObject var router: NavigationRouter
-    @EnvironmentObject var recordStore: SpeechRecordStore
-    
-    private let speechService = RealSpeechService()
-    private let analyzer = TranscriptAnalyzer()
-    
-    @EnvironmentObject private var pc: PlayerController
-    
-    @AppStorage("hide_fullflow_banner")
-    private var hideFullFlowBanner: Bool = false
-    
-    @State private var analysisTask: Task<Void, Never>?
-    @State private var analysisRunID: UUID?
-    
     var allowsAnalysisStart: Bool {
         switch mode {
         case .normal: return true
@@ -88,15 +86,18 @@ struct VideoPlayerScreen: View {
     }
     
     private var canOpenFeedback: Bool {
-        analyzedRecord != nil
+        analysisController?.analyzedRecord != nil
     }
     
     private var shouldShowFullFlowBanner: Bool {
-        guard analyzedRecord != nil else { return false }
+        guard analysisController?.analyzedRecord != nil else { return false }
         guard hideFullFlowBanner == false else { return false }
+        
         switch mode {
-        case .normal: return playbackEnded == false
-        case .highlightReview: return false
+        case .normal:
+            return (analysisController?.playbackEnded ?? false) == false
+        case .highlightReview:
+            return false
         }
     }
     
@@ -150,16 +151,25 @@ struct VideoPlayerScreen: View {
                 clog("apply startTime seek=\(startTime)")
                 pc.seek(to: startTime, autoplay: autoplay)
             }
+            
+            if analysisController == nil {
+                analysisController = VideoAnalysisController(
+                    videoURL: videoURL,
+                    pc: pc,
+                    recordStore: recordStore,
+                    pipeline: pipeline,
+                    crashLogger: crashLogger,
+                    durationProvider: { duration },
+                    mapErrorToUserFacing: mapErrorToUserFacing
+                )
+            }
         }
         .onChange(of: pc.didReachEnd) { ended in
             guard ended else { return }
-            playbackEnded = true
-            
-            if case .waitingForPlaybackEnd = phase {
-                phase = .ready
-            }
+            analysisController?.notifyPlaybackEnded()
         }
         .onChange(of: pc.isPlaying) { playing in
+            clog("disappear -> cancelAnalysis + stopAndTearDown")
             if !tapAnalysisButton {
                 tooltipVisible = true
             }
@@ -170,7 +180,7 @@ struct VideoPlayerScreen: View {
         }
         .onDisappear {
             clog("disappear -> cancelAnalysis + stopAndTearDown")
-            cancelAnalysis()
+            analysisController?.cancel()
             pc.stopAndTearDown()
         }
         .sheet(isPresented: $showFeedbackSheet, onDismiss: {
@@ -179,7 +189,7 @@ struct VideoPlayerScreen: View {
                 pendingSeek = nil
             }
         }) {
-            if let record = analyzedRecord {
+            if let record = analysisController?.analyzedRecord {
                 FeedbackResultSheet(
                     recordID: record.id,
                     shouldShowFullFlowBanner: shouldShowFullFlowBanner,
@@ -240,7 +250,7 @@ private extension VideoPlayerScreen {
     
     var analysisStatusSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            switch phase {
+            switch (analysisController?.phase ?? .idle) {
             case .idle:
                 idleStateView
                 
@@ -251,10 +261,9 @@ private extension VideoPlayerScreen {
                 waitingForPlaybackEndView
                 
             case .ready:
-                if let record = analyzedRecord {
+                if let record = analysisController?.analyzedRecord {
                     readyView(record: record)
                 } else {
-                    // 이론상 거의 안 오는 상태지만 방어 코드
                     Text("분석 결과를 불러오는 중입니다…")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -283,7 +292,7 @@ private extension VideoPlayerScreen {
                         clog("tap: startPlaybackAndAnalysis")
                         tooltipVisible = false
                         tapAnalysisButton = true
-                        startPlaybackAndAnalysis()
+                        analysisController?.startPlaybackAndAnalysisIfNeeded()
                     } label: {
                         HStack {
                             Image(systemName: "play.fill")
@@ -350,7 +359,7 @@ private extension VideoPlayerScreen {
                 .font(.subheadline.weight(.medium))
         
             Button("결과 보기") {
-                phase = .ready
+                analysisController?.openResultNow()
             }
             .buttonStyle(PrimaryFullWidthButtonStyle(cornerRadius: 12))
             
@@ -483,7 +492,7 @@ private extension VideoPlayerScreen {
             }
             
             Button {
-                retryAnalysis()
+                analysisController?.retryAnalysis()
             } label: {
                 HStack {
                     Image(systemName: "arrow.clockwise")
@@ -525,86 +534,6 @@ private extension VideoPlayerScreen {
 // MARK: - Player & Analysis Logic
 
 private extension VideoPlayerScreen {
-    
-    func startPlaybackAndAnalysis() {
-    
-        if isEffectivelyEnded(pc.player) {
-            playbackEnded = true
-        }
-        
-        if !playbackEnded {
-            pc.player.play()
-        }
-        
-        guard !isStartingAnalysis else { return }
-        guard analyzedRecord == nil else { return }
-        
-        self.analysisTask?.cancel()
-        self.analysisTask = nil
-        
-        phase = .analyzing
-        isStartingAnalysis = true
-        
-        let runID = UUID()
-        analysisRunID = runID
-        
-        crashLogger.setValue(runID.uuidString, forKey: "analysis_run_id")
-        crashLogger.setValue("start", forKey: "analysis_phase")
-        clog("analysis start runID=\(runID) playbackEnded=\(playbackEnded)")
-        
-        analysisTask = Task {
-            do {
-                try Task.checkCancellation()
-                
-                let (record, metrics) = try await runAnalysis()
-                
-                try Task.checkCancellation()
-                
-                recordStore.upsertBundle(record: record, metrics: metrics)
-                
-                try Task.checkCancellation()
-                
-                await MainActor.run {
-                    guard self.analysisRunID == runID else { return }
-                    
-                    analyzedRecord = record
-                    analyzedMetrics = metrics
-                    
-                    if isEffectivelyEnded(pc.player) {
-                        playbackEnded = true
-                    }
-                    
-                    crashLogger.setValue("done", forKey: "analysis_phase")
-                    clog("analysis done runID=\(runID) highlights=\(record.highlights.count) transcriptLen=\(record.transcript.count)")
-                    
-                    phase = playbackEnded ? .ready : .waitingForPlaybackEnd
-                    isStartingAnalysis = false
-                    analysisTask = nil
-                }
-            } catch is CancellationError {
-                await MainActor.run {
-                    guard self.analysisRunID == runID else { return }
-                    crashLogger.setValue("cancelled", forKey: "analysis_phase")
-                    clog("analysis cancelled runID=\(runID)")
-                    isStartingAnalysis = false
-                    analysisTask = nil
-                }
-            } catch {
-                crashLogger.setValue("failed", forKey: "analysis_phase")
-                crashLogger.record(error)
-                clog("analysis failed runID=\(runID) error=\(String(describing: error))")
-
-                await MainActor.run {
-                    guard analysisRunID == runID else { return }
-                    let userError = mapErrorToUserFacing(error)
-                    phase = .failed(userError)
-                    isStartingAnalysis = false
-                    analysisTask = nil
-                }
-            }
-        }
-    }
-    
     func mapErrorToUserFacing(_ error: Error) -> UserFacingError {
         let ns = error as NSError
 
@@ -617,145 +546,6 @@ private extension VideoPlayerScreen {
         }
 
         return UserFacingError(
-            title: "분석을 완료하지 못했어요",
-            message: "일시적인 오류가 발생했어요.",
-            suggestion: "잠시 후 다시 시도해 주세요."
-        )
-    }
-
-    
-    private func isEffectivelyEnded(
-        _ player: AVPlayer,
-        epsilon: Double = 0.3
-    ) -> Bool {
-        guard let item = player.currentItem,
-              item.duration.isNumeric else {
-            return false
-        }
-        return player.currentTime().seconds >= max(0, item.duration.seconds - epsilon)
-    }
-    
-    func retryAnalysis() {
-        analyzedRecord = nil
-        startPlaybackAndAnalysis()
-    }
-    
-    func runAnalysis() async throws -> (SpeechRecord, SpeechMetrics) {
-        crashLogger.setValue("runAnalysis_start", forKey: "analysis_phase")
-        clog("runAnalysis start")
-
-        let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko-KR"))!
-        let audioURL = try await speechService.exportAudio(from: videoURL)
-        
-        crashLogger.setValue("transcribe", forKey: "analysis_phase")
-        let rawTranscript = try await speechService.transcribe(videoURL: videoURL)
-        
-        crashLogger.setValue("recognizeDetailed", forKey: "analysis_phase")
-        let transcriptResult = try await speechService.recognizeDetailed(url: audioURL, with: recognizer)
-        
-        let cleaned = transcriptResult.cleanedText
-        let segments = transcriptResult.segments
-        
-        let duration: TimeInterval = {
-            if self.duration > 0 {
-                return self.duration
-            } else {
-                let asset = AVAsset(url: videoURL)
-                let seconds = CMTimeGetSeconds(asset.duration)
-                return seconds.isFinite ? seconds : 0
-            }
-        }()
-        
-        let wpm = analyzer.wordsPerMinute(transcript: cleaned, duration: duration)
-        let fillerDict = analyzer.fillerWordsDict(from: cleaned)
-        let fillerTotal = fillerDict.values.reduce(0, +)
-        
-        
-        let recordID = UUID()
-        crashLogger.setValue(recordID.uuidString, forKey: "record_id")
-        crashLogger.setValue("importVideo", forKey: "analysis_phase")
-        let relative = try VideoStore.shared.importToSandbox(sourceURL: videoURL, recordID: recordID)
-        let now = Date()
-        
-        let hide = TranscriptQualityChecker.shouldHide(
-            transcript: cleaned,
-            segments: segments
-        )
-
-        let title = SpeechTitleBuilder.makeTitle(
-            transcript: cleaned,
-            createdAt: now,
-            canUseTranscript: !hide
-        )
-        
-        var record = SpeechRecord(
-            id: recordID,
-            createdAt: now,
-            title: title,
-            duration: duration,
-            summaryWPM: wpm,
-            summaryFillerCount: fillerTotal,
-            metricsGeneratedAt: now,
-            transcript: cleaned,
-            studentName: nil,
-            videoRelativePath: relative,
-            note: nil,
-            insight: .init(
-                oneLiner: "",
-                problemSummary: "",
-                qualitative: nil,
-                transcriptSegments: segments,
-                updatedAt: now
-            ),
-            highlights: []
-        )
-
-        crashLogger.setValue("buildHighlights", forKey: "analysis_phase")
-        let highlights = SpeechHighlightBuilder
-            .makeHighlights(
-                duration: duration,
-                segments: record.insight?.transcriptSegments ?? []
-            )
-        record.highlights = highlights
-        record.metricsGeneratedAt = now
-        
-        let metrics = SpeechMetrics(
-            recordID: recordID,
-            generatedAt: now,
-            wordsPerMinute: wpm,
-            fillerCount: fillerTotal,
-            fillerWords: fillerDict,
-            paceVariability: nil,
-            spikeCount: nil
-        )
-
-        crashLogger.setValue("runAnalysis_done", forKey: "analysis_phase")
-        clog("runAnalysis done transcriptLen=\(cleaned.count) highlights=\(highlights.count)")
-
-        return (record, metrics)
-    }
-    
-    func cancelAnalysis() {
-        analysisTask?.cancel()
-        analysisTask = nil
-        
-        isStartingAnalysis = false
-        
-        speechService.cancelRecognitionIfSupported()
-    }
-    
-    func mapErrorToUserMessage(_ error: Error) -> UserFacingError {
-        let ns = error as NSError
-
-        if ns.domain == "com.apple.coreaudio.avfaudio" {
-            return .init(
-                title: "분석을 완료하지 못했어요",
-                message: "영상의 오디오를 처리하는 중 문제가 발생했어요.",
-                suggestion: "앱을 다시 실행하거나 다른 영상으로 다시 시도해 주세요."
-            )
-        }
-
-        return .init(
             title: "분석을 완료하지 못했어요",
             message: "일시적인 오류가 발생했어요.",
             suggestion: "잠시 후 다시 시도해 주세요."

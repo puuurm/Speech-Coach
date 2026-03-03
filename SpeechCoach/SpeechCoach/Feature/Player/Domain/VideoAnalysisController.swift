@@ -24,7 +24,7 @@ final class VideoAnalysisController: ObservableObject {
     private let durationProvider: @MainActor () -> TimeInterval
     private unowned let pc: PlayerController
     
-    private let recordStore: SpeechRecordStore
+    private let persister: SpeechRecordPersisting
     private let pipeline: SpeechAnalysisPipeline
     private let crashLogger: CrashLogging
     private let mapErrorToUserFacing: (Error) -> UserFacingError
@@ -32,7 +32,7 @@ final class VideoAnalysisController: ObservableObject {
     init(
         videoURL: URL,
         pc: PlayerController,
-        recordStore: SpeechRecordStore,
+        persister: SpeechRecordPersisting,
         pipeline: SpeechAnalysisPipeline,
         crashLogger: CrashLogging,
         durationProvider: @escaping @MainActor () -> TimeInterval,
@@ -40,7 +40,7 @@ final class VideoAnalysisController: ObservableObject {
     ) {
         self.videoURL = videoURL
         self.pc = pc
-        self.recordStore = recordStore
+        self.persister = persister
         self.pipeline = pipeline
         self.crashLogger = crashLogger
         self.durationProvider = durationProvider
@@ -72,6 +72,7 @@ final class VideoAnalysisController: ObservableObject {
     func cancel() {
         analysisTask?.cancel()
         analysisTask = nil
+        pipeline.cancel()
         
         crashLogger.setValue("cancelled", forKey: "analysis_phase")
         crashLogger.log("VideoAnalysisController: cancelled")
@@ -88,35 +89,21 @@ final class VideoAnalysisController: ObservableObject {
     }
     
     private func transition(_ event: AnalysisEvent) {
-        switch (phase, event) {
-        case (.idle, .startTapped):
-            phase = .analyzing
-            
-        case (.analyzing, .analysisSucceeded(let ended, let record, let metrics)):
-            analyzedRecord = record
-            analyzedMetrics = metrics
-            phase = ended ? .ready : .waitingForPlaybackEnd
-            
-        case (.waitingForPlaybackEnd, .playbackEnded),
-            (.waitingForPlaybackEnd, .openResultNow):
-            phase = .ready
-            
-        case (_, .failed(let err)):
-            phase = .failed(err)
-            
-        case (_, .cancelled):
-            phase = .idle
-            
-        case (_, .reset):
-            analyzedRecord = nil
-            analyzedMetrics = nil
-            playbackEnded = false
-            phase = .idle
-            
-        default:
-            break
-        }
+        var state = AnalysisState(
+            phase: phase,
+            playbackEnded: playbackEnded,
+            analyzedRecord: analyzedRecord,
+            analyzedMetrics: analyzedMetrics
+        )
+        
+        AnalysisReducer.reduce(&state, event)
+        
+        phase = state.phase
+        playbackEnded = state.playbackEnded
+        analyzedRecord = state.analyzedRecord
+        analyzedMetrics = state.analyzedMetrics
     }
+    
     private func startAnalysisTask() {
         analysisTask?.cancel()
         analysisTask = nil
@@ -140,7 +127,7 @@ final class VideoAnalysisController: ObservableObject {
                 
                 try Task.checkCancellation()
                 
-                recordStore.upsertBundle(record: record, metrics: metrics)
+                persister.upsertBundle(record: record, metrics: metrics)
                 
                 try Task.checkCancellation()
                 
@@ -186,3 +173,95 @@ final class VideoAnalysisController: ObservableObject {
         return player.currentTime().seconds >= max(0, item.duration.seconds - epsilon)
     }
 }
+
+#if DEBUG
+extension VideoAnalysisController {
+
+    func _forcePhaseForTesting(_ phase: AnalysisPhase) {
+        switch phase {
+        case .idle:
+            transition(.reset)
+
+        case .analyzing:
+            transition(.reset)
+            transition(.startTapped)
+
+        case .waitingForPlaybackEnd:
+            transition(.reset)
+            transition(.startTapped)
+            let (record, metrics) = Self._dummyRecordAndMetricsForTesting_static()
+            transition(.analysisSucceeded(
+                playbackEnded: false,
+                record: record,
+                metrics: metrics
+            ))
+
+        case .ready:
+            transition(.reset)
+            transition(.startTapped)
+            let (record, metrics) = Self._dummyRecordAndMetricsForTesting_static()
+            transition(.analysisSucceeded(
+                playbackEnded: true,
+                record: record,
+                metrics: metrics
+            ))
+
+        case .failed(let error):
+            transition(.failed(error))
+        }
+    }
+
+    func _simulateAnalysisSucceededForTesting(
+        playbackEnded: Bool,
+        record: SpeechRecord,
+        metrics: SpeechMetrics
+    ) {
+        transition(.analysisSucceeded(
+            playbackEnded: playbackEnded,
+            record: record,
+            metrics: metrics
+        ))
+    }
+
+    // MARK: - Dummy Factory (테스트 전용)
+
+    static func _dummyRecordAndMetricsForTesting_static() -> (SpeechRecord, SpeechMetrics) {
+        let id = UUID()
+        let now = Date()
+
+        let record = SpeechRecord(
+            id: id,
+            createdAt: now,
+            title: "test",
+            duration: 10,
+            summaryWPM: 100,
+            summaryFillerCount: 1,
+            metricsGeneratedAt: now,
+            transcript: "테스트",
+            studentName: nil,
+            videoRelativePath: "test.mov",
+            note: nil,
+            insight: .init(
+                oneLiner: "",
+                problemSummary: "",
+                qualitative: nil,
+                transcriptSegments: [],
+                updatedAt: now
+            ),
+            highlights: []
+        )
+
+        let metrics = SpeechMetrics(
+            recordID: id,
+            generatedAt: now,
+            wordsPerMinute: 100,
+            fillerCount: 1,
+            fillerWords: [:],
+            paceVariability: nil,
+            spikeCount: nil
+        )
+
+        return (record, metrics)
+    }
+}
+#endif

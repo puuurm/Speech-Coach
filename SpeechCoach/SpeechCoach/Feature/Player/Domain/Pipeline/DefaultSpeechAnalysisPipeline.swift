@@ -25,6 +25,11 @@ class DefaultSpeechAnalysisPipeline: SpeechAnalysisPipeline {
         self.crashLogger = crashLogger
     }
     
+    func cancel() {
+        speechService.cancelRecognitionIfSupported()
+        crashLogger.log("DefaultSpeechAnalysisPipeline: cancel requested")
+    }
+    
     func run(videoURL: URL, durationHint: TimeInterval) async throws -> (SpeechRecord, SpeechMetrics) {
         crashLogger.setValue("runAnalysis_start", forKey: "analysis_phase")
         crashLogger.log("DefaultSpeechAnalysisPipeline: run start video=\(videoURL.lastPathComponent)")

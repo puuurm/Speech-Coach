@@ -9,4 +9,5 @@ import Foundation
 
 protocol SpeechAnalysisPipeline {
     func run(videoURL: URL, durationHint: TimeInterval) async throws -> (SpeechRecord, SpeechMetrics)
+    func cancel()
 }

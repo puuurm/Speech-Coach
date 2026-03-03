@@ -156,7 +156,7 @@ struct VideoPlayerScreen: View {
                 analysisController = VideoAnalysisController(
                     videoURL: videoURL,
                     pc: pc,
-                    recordStore: recordStore,
+                    persister: recordStore,
                     pipeline: pipeline,
                     crashLogger: crashLogger,
                     durationProvider: { duration },

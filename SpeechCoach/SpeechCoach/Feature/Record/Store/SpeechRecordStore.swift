@@ -432,5 +432,6 @@ final class SpeechRecordStore: ObservableObject {
     private func clog(_ message: String) {
         crashLogger.log("SpeechRecordStore: \(message)")
     }
-
 }
+
+extension SpeechRecordStore: SpeechRecordPersisting {}

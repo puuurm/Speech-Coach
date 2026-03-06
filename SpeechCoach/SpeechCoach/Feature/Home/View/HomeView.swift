@@ -27,14 +27,15 @@ struct HomeView: View {
     )
     
     private var recordEntities: FetchedResults<SpeechRecordEntity>
+    
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)],
+        animation: .default
+    )
+    private var focusEntities: FetchedResults<DailyFocusEntity>
+    
     private let padding: CGFloat = 20
     private let homeRecentLimit = 4
-    
-    private var todayHomeworks: [DailyHomework] {
-        let today = Calendar.current.startOfDay(for: Date())
-        return homeworkStore.homeworks
-            .filter {  $0.date == today }
-    }
     
     private var allRecords: [SpeechRecord] {
         recordEntities.compactMap(SpeechRecordMapper.toDomain)
@@ -43,9 +44,22 @@ struct HomeView: View {
     private var homeRecentRecords: [SpeechRecord] {
         Array(allRecords.prefix(homeRecentLimit))
     }
-
-    private var totalRecordCount: Int {
-        recordEntities.count
+    
+    private var todayFocusEntity: DailyFocusEntity? {
+        let cal = Calendar.current
+        return focusEntities.first(where: { entity in
+            guard let d = entity.date else { return false }
+            return cal.isDateInToday(d)
+        })
+    }
+    
+    private var todayFocus: DailyFocusEntity? {
+        guard let entity = todayFocusEntity,
+              let text = entity.text,
+              text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        else { return nil }
+        
+        return entity
     }
     
     var body: some View {
@@ -54,6 +68,7 @@ struct HomeView: View {
                 if isImporting {
                     Color.white
                         .ignoresSafeArea()
+                    
                     VStack(spacing: 24) {
                         ProgressView()
                             .progressViewStyle(.circular)
@@ -63,7 +78,6 @@ struct HomeView: View {
                             .font(.callout)
                             .foregroundColor(.gray)
                     }
-
                 }
             }
             .onChange(of: selectedItem) { newValue in
@@ -78,14 +92,22 @@ struct HomeView: View {
             }
             .onAppear {
                 print("🏠 Home sees records:", recordStore.records.count)
+                print("focusEntities.count =", focusEntities.count)
+                print("todayFocusEntity =", todayFocusEntity?.date as Any, todayFocusEntity?.text as Any)
             }
-
     }
     
     private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 header("스피치 분석")
+                
+                if let entity = todayFocusEntity,
+                   let text = entity.text,
+                   text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                   entity.isDone == false {
+                    todayFocusCardView
+                }
                 
                 PhotosPicker(
                     selection: $selectedItem,
@@ -97,7 +119,7 @@ struct HomeView: View {
                 .buttonStyle(.plain)
                 .padding(padding)
                 .cardStyle()
-                
+
                 sectionHeader("최근 분석", trailing: {
                     AnyView(
                         Button {
@@ -108,7 +130,7 @@ struct HomeView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.plain)
-                        .opacity(allRecords.count > 4 ? 1 : 0)  // 4개 이하일 땐 숨김
+                        .opacity(allRecords.count > 4 ? 1 : 0)
                         .allowsHitTesting(allRecords.count > 4)
                     )
                 })
@@ -133,6 +155,32 @@ private extension HomeView {
         Text(title)
             .font(title == "스피치 분석" ? .title2.weight(.bold) : .title3.weight(.bold))
             .padding(.top, padding)
+    }
+    
+    @ViewBuilder
+    var todayFocusCardView: some View {
+        if let entity = todayFocus,
+           let text = entity.text {
+            PhotosPicker(
+                selection: $selectedItem,
+                matching: .videos,
+                photoLibrary: .shared()
+            ) {
+                TodayFocusCard(
+                    text: text,
+                    onTapDone: {
+                        recordStore.completeDailyFocus(for: Date())
+                    },
+                    onTapOpenRelated: {
+                        if let id = entity.recordID {
+                            router.push(.result(recordID: id))
+                        }
+                    }
+                )
+            }
+            .buttonStyle(.plain)
+            .cardStyle()
+        }
     }
     
     private func sectionHeader(
@@ -198,12 +246,6 @@ private extension HomeView {
         }
         .padding(16)
         .contentShape(Rectangle())
-    }
-    
-    var records: [SpeechRecord] {
-        recordEntities.compactMap { entity in
-            SpeechRecordMapper.toDomain(entity)
-        }
     }
     
     func handlePickedItem(_ item: PhotosPickerItem) async {

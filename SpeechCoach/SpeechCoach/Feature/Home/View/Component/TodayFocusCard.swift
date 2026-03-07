@@ -6,9 +6,12 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 struct TodayFocusCard: View {
     let text: String
+    @Binding var selectedItem: PhotosPickerItem?
+    
     let onTapDone: () -> Void
     let onTapOpenRelated: () -> Void
     
@@ -49,23 +52,30 @@ struct TodayFocusCard: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 10) {
-                HStack(spacing: 6) {
-                    Image(systemName: "play.rectangle.on.rectangle")
-                    
-                    Text("바로 연습하기")
-                        .fontWeight(.semibold)
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                PhotosPicker(
+                    selection: $selectedItem,
+                    matching: .videos,
+                    photoLibrary: .shared()
+                ) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "play.rectangle.on.rectangle")
+                        
+                        Text("바로 연습하기")
+                            .fontWeight(.semibold)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.subheadline)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 12)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
                 }
-                .font(.subheadline)
-                .padding(.vertical, 12)
-                .padding(.horizontal, 12)
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .buttonStyle(.plain)
                 
                 Button {
                     onTapOpenRelated()

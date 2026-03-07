@@ -106,7 +106,19 @@ struct HomeView: View {
                    let text = entity.text,
                    text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
                    entity.isDone == false {
-                    todayFocusCardView
+                    TodayFocusCard(
+                        text: text,
+                        selectedItem: $selectedItem,
+                        onTapDone: {
+                            recordStore.completeDailyFocus(for: Date())
+                        },
+                        onTapOpenRelated: {
+                            if let id = entity.recordID {
+                                router.push(.result(recordID: id))
+                            }
+                        }
+                    )
+                    .cardStyle()
                 }
                 
                 PhotosPicker(
@@ -157,31 +169,31 @@ private extension HomeView {
             .padding(.top, padding)
     }
     
-    @ViewBuilder
-    var todayFocusCardView: some View {
-        if let entity = todayFocus,
-           let text = entity.text {
-            PhotosPicker(
-                selection: $selectedItem,
-                matching: .videos,
-                photoLibrary: .shared()
-            ) {
-                TodayFocusCard(
-                    text: text,
-                    onTapDone: {
-                        recordStore.completeDailyFocus(for: Date())
-                    },
-                    onTapOpenRelated: {
-                        if let id = entity.recordID {
-                            router.push(.result(recordID: id))
-                        }
-                    }
-                )
-            }
-            .buttonStyle(.plain)
-            .cardStyle()
-        }
-    }
+//    @ViewBuilder
+//    var todayFocusCardView: some View {
+//        if let entity = todayFocus,
+//           let text = entity.text {
+//            PhotosPicker(
+//                selection: $selectedItem,
+//                matching: .videos,
+//                photoLibrary: .shared()
+//            ) {
+//                TodayFocusCard(
+//                    text: text,
+//                    onTapDone: {
+//                        recordStore.completeDailyFocus(for: Date())
+//                    },
+//                    onTapOpenRelated: {
+//                        if let id = entity.recordID {
+//                            router.push(.result(recordID: id))
+//                        }
+//                    }
+//                )
+//            }
+//            .buttonStyle(.plain)
+//            .cardStyle()
+//        }
+//    }
     
     private func sectionHeader(
         _ title: String,

@@ -90,11 +90,6 @@ struct HomeView: View {
                     }
                 }
             }
-            .onAppear {
-                print("🏠 Home sees records:", recordStore.records.count)
-                print("focusEntities.count =", focusEntities.count)
-                print("todayFocusEntity =", todayFocusEntity?.date as Any, todayFocusEntity?.text as Any)
-            }
     }
     
     private var content: some View {
@@ -118,7 +113,7 @@ struct HomeView: View {
                             }
                         }
                     )
-                    .cardStyle()
+                    .rainbowCardStyle()
                 }
                 
                 PhotosPicker(
@@ -168,32 +163,6 @@ private extension HomeView {
             .font(title == "스피치 분석" ? .title2.weight(.bold) : .title3.weight(.bold))
             .padding(.top, padding)
     }
-    
-//    @ViewBuilder
-//    var todayFocusCardView: some View {
-//        if let entity = todayFocus,
-//           let text = entity.text {
-//            PhotosPicker(
-//                selection: $selectedItem,
-//                matching: .videos,
-//                photoLibrary: .shared()
-//            ) {
-//                TodayFocusCard(
-//                    text: text,
-//                    onTapDone: {
-//                        recordStore.completeDailyFocus(for: Date())
-//                    },
-//                    onTapOpenRelated: {
-//                        if let id = entity.recordID {
-//                            router.push(.result(recordID: id))
-//                        }
-//                    }
-//                )
-//            }
-//            .buttonStyle(.plain)
-//            .cardStyle()
-//        }
-//    }
     
     private func sectionHeader(
         _ title: String,

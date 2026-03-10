@@ -28,10 +28,13 @@ enum DailyFocusBuilder {
 
         switch wpm {
         case ..<105:
-            return clip("오늘은 문장 끝을 또렷하게 마무리하고, 핵심 문장을 한 번 더 힘줘서 말해보기 (\(wpm)wpm)", maxLength: 52)
+            return clip("오늘은 문장 끝을 또렷하게 마무리하고, 핵심 문장을 한 번 더 힘줘서 말해보기", maxLength: 52)
+            
+        case 105..<165:
+            return clip("오늘은 핵심 문장을 말하기 전에 짧게 멈추고 또렷하게 시작해보기", maxLength: 52)
 
         case 165...:
-            return clip("오늘은 핵심 문장마다 0.5초 멈추고, 호흡을 정리한 뒤 이어 말해보기 (\(wpm)wpm)", maxLength: 52)
+            return clip("오늘은 핵심 문장마다 0.5초 멈추고, 호흡을 정리한 뒤 이어 말해보기", maxLength: 52)
 
         default:
             return nil

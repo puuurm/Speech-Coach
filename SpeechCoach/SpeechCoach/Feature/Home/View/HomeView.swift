@@ -209,7 +209,7 @@ private extension HomeView {
     }
     
     var primaryActionCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("새 영상 분석하기")
                 .font(.headline)
             Text("발표나 연습 영상을 불러와 \n내 말의 흐름과 핵심 지표를 확인해보세요.")
@@ -225,7 +225,7 @@ private extension HomeView {
             }
             .font(.subheadline)
         }
-        .padding(16)
+        .padding(.bottom, 9)
         .contentShape(Rectangle())
     }
     

@@ -435,3 +435,105 @@ final class SpeechRecordStore: ObservableObject {
 }
 
 extension SpeechRecordStore: SpeechRecordPersisting {}
+
+extension SpeechRecordStore {
+
+    func upsertDailyFocus(
+        date: Date,
+        text: String,
+        recordID: UUID?
+    ) {
+        let day = Calendar.current.startOfDay(for: date)
+        let now = Date()
+
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 3 else { return }
+
+        context.perform {
+            do {
+                let req: NSFetchRequest<DailyFocusEntity> = DailyFocusEntity.fetchRequest()
+                req.fetchLimit = 1
+
+                let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: day) ?? day.addingTimeInterval(60 * 60 * 24)
+                req.predicate = NSPredicate(format: "date >= %@ AND date < %@", day as NSDate, nextDay as NSDate)
+
+                let entity = try self.context.fetch(req).first ?? DailyFocusEntity(context: self.context)
+
+                if entity.id == UUID() {
+                }
+
+                if entity.objectID.isTemporaryID {
+                    entity.id = UUID()
+                    entity.date = day
+                    entity.isDone = false
+                }
+
+                entity.text = trimmed
+                entity.recordID = recordID
+                entity.updatedAt = now
+
+                try self.context.save()
+            } catch {
+                self.crashLogger.setValue("upsertDailyFocus_failed", forKey: "daily_focus")
+//                self.crashLogger.record(error: error)
+            }
+        }
+    }
+
+    func fetchDailyFocus(for date: Date) -> DailyFocus? {
+        let day = Calendar.current.startOfDay(for: date)
+        let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: day) ?? day.addingTimeInterval(60 * 60 * 24)
+
+        var result: DailyFocus?
+
+        context.performAndWait {
+            do {
+                let req: NSFetchRequest<DailyFocusEntity> = DailyFocusEntity.fetchRequest()
+                req.fetchLimit = 1
+                req.predicate = NSPredicate(format: "date >= %@ AND date < %@", day as NSDate, nextDay as NSDate)
+                req.sortDescriptors = [NSSortDescriptor(key: "updatedAt", ascending: false)]
+
+                if let e = try self.context.fetch(req).first,
+                    let id = e.id,
+                    let date = e.date,
+                    let text = e.text,
+                    let recordID = e.recordID,
+                    let updatedAt = e.updatedAt {
+                    result = DailyFocus(
+                        id: id,
+                        date: date,
+                        text: text,
+                        isDone: e.isDone,
+                        recordID: recordID,
+                        updatedAt: updatedAt
+                    )
+                }
+            } catch {
+                self.crashLogger.setValue("fetchDailyFocus_failed", forKey: "daily_focus")
+            }
+        }
+
+        return result
+    }
+    
+    func completeDailyFocus(for date: Date) {
+        let day = Calendar.current.startOfDay(for: date)
+        let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: day)
+            ?? day.addingTimeInterval(60 * 60 * 24)
+        
+        context.perform {
+            do {
+                let req: NSFetchRequest<DailyFocusEntity> = DailyFocusEntity.fetchRequest()
+                req.fetchLimit = 1
+                req.predicate = NSPredicate(format: "date >= %@ AND date < %@", day as NSDate, nextDay as NSDate)
+
+                guard let e = try self.context.fetch(req).first else { return }
+                e.isDone = true
+                e.updatedAt = Date()
+                try self.context.save()
+            } catch {
+                self.crashLogger.setValue("markDailyFocusDone_failed", forKey: "daily_focus")
+            }
+        }
+    }
+}

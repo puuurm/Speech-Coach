@@ -399,6 +399,20 @@ struct ResultScreenLegacy: View {
             )
         }
         
+        if let focus = DailyFocusBuilder.makeTodayFocusText(
+            record: record,
+            metrics: metricsVM.metrics,
+            improvements: improvementsText,
+            checklist: practiceChecklistText,
+            nextSteps: nextStepsText
+        ) {
+            recordStore.upsertDailyFocus(
+                date: Date(),
+                text: focus,
+                recordID: record.id
+            )
+        }
+        
         try await recordStore.persist()
     }
     
